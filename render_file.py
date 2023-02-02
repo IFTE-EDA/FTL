@@ -23,19 +23,24 @@ if not os.path.isfile(sys.argv[1]):
 
 #parser = FileParser("LTest_hook.json")
 parser = FileParser(sys.argv[1])
+
 parser.parse()
+parser.transformer.plotter = plt
 #plt.show(parser.meshes[0])
-parser.calculate_assignments()
-parser.render()
-parser.meshes[0].c("grey")
-parser.meshes[1].c("orange")
-#parser.visualize(plt)
+parser.visualize(plt)
+parser.calculate_assignments(onlybaselayer=False)
+result = parser.render()
+#parser.meshes[0].c("grey")
+#parser.meshes[1].c("orange")
+
 
 #pcb = load("LTest_hook.stl")
 print("Refining mesh")
 
-plt.show(parser.meshes)
-parser.visualize(plt)
+#plt.show(parser.meshes)
+plt.show(parser.transformer.debugOutput)
+plt.show(result.z(40).c("grey"))
+#parser.visualize(plt)
 
 plt.render()
 plt.interactive().close()

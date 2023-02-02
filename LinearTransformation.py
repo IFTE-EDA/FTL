@@ -4,13 +4,14 @@ from Transformation import *
 
 class LinearTransformation(Transformation):
 
-    def __init__(self, mat, bounds, prio=0):
+    def __init__(self, mat, bounds, prio=0, residual=False):
         super().__init__(self, bounds, prio)
         self.residual = False
         self.mat = mat
         self.boundaries = bounds
         #shapely.geometry.box(xmin, ymin, xmax, ymax)
         self.prio = prio
+        self.isResidual = residual
 
     def __repr__(self):
         return "Tr.Lin: [P={}; Res={}; bounds: {}]".format(self.prio, self.addResidual, self.boundaries)

@@ -1,6 +1,7 @@
 import json
 from ZBend import *
 from MatrixTransformer import *
+from MeshLayer import *
 import vedo as v
 
 class FileParser:
@@ -10,38 +11,31 @@ class FileParser:
         f = open(filename)
         self.j_data = json.load(f)
 
-        self.mel_general = self.j_data["mel_general"]
+        self.mel = self.j_data["mel"]
         self.mel_trans = self.j_data["mel_trans"]
         self.mel_residual = self.j_data["mel_residual"]
         self.j_layers = self.j_data["layers"]
         self.j_transformations = self.j_data["transformations"]
+        self.layers = []
         f.close()
 
     def parse(self):
-        print("Found {} layers and {} transformations. Global MEL: [{}/{}/{}]".format(len(self.j_layers), len(self.j_transformations), self.mel_general, self.mel_trans, self.mel_residual))
-
+        print("Found {} layers and {} transformations. Global MEL: [{}/{}/{}]".format(len(self.j_layers), len(self.j_transformations), self.mel, self.mel_trans, self.mel_residual))
+        self.transformer = MatrixTransformer()
         self.meshes = []
         self.transformations = []
         for i, layer in enumerate(self.j_layers):
-            if "mel_general" in layer:
-                mel_general = layer["mel_general"]
-            else:
-                mel_general = self.j_data["mel_general"]
-            if "mel_trans" in layer:
-                mel_trans = layer["mel_trans"]
-            else:
-                mel_trans = self.j_data["mel_trans"]
-            if "mel_residual" in layer:
-                mel_residual = layer["mel_residual"]
-            else:
-                mel_residual = self.j_data["mel_residual"]
-
-            print("  Found layer #{} '{}' with MEL [{}/{}/{}], reading data from file '{}'".format(i, layer["name"], mel_general, mel_trans, mel_residual, layer["file"]))
-
-            mesh = v.load(layer["file"]).subdivide(1, 2, mel_general).clean()
+            layerObj = MeshLayer.get_from_JSON(layer, self, i)
+            #mesh = v.load(layer["file"])
+            #layerObj = MeshLayer(mesh, layer, self, i)
+            self.layers.append(layerObj)
+            self.transformer.add_layer(layerObj)
+            print("  Found layer #{} '{}' with MEL [{}/{}/{}], reading data from file '{}'".format(i, layer["name"], layerObj.mel, layerObj.mel_trans, layerObj.mel_residual, layer["file"]))
             self.meshes.append(mesh)
 
-        self.transformer = MatrixTransformer(self.meshes, self.mel_general)
+        meshNumStr = "/".join([str(layer.mesh.npoints) for layer in self.transformer.layers])
+
+        print("Transformer created. Imported {} layers with {} points.".format(self.transformer.nlayers, meshNumStr))
 
         print("\nAll layers imported. Reading transformations...")
 
@@ -50,7 +44,7 @@ class FileParser:
                 color = tr["color"]
             else:
                 color = None
-            print("  Found transformation #{} '{}' of type {} with priority {} and color '{}'".format(i, tr["name"], tr["type"], tr["priority"], color))
+            print("  Found transformation #{} '{}' of type {} with priority {} and color '{}'".format(len(self.transformer.transformations), tr["name"], tr["type"], tr["priority"], color))
             if (tr["type"] == "ZBend"):
                 if (tr["dir"] == "POSX"):
                     dir = DIR.POSX
@@ -72,13 +66,17 @@ class FileParser:
             #self.transformations.append(trans)
             self.transformer.add_transformation(trans)
 
-        print("\nDone parsing.")
+        print("\nDone parsing.\n\n")
 
     def __str__(self):
         pass
 
-    def calculate_assignments(self):
-        self.transformer.calculate_assignments()
+    def get_layer_id(self, name):
+        idList = self.j_layers[:]["name"]
+        return idList.index(name)
+
+    def calculate_assignments(self, onlybaselayer=False):
+        self.transformer.calculate_assignments(onlybaselayer)
 
     def visualize(self, plt):
         self.transformer.visualize(plt)
@@ -86,9 +84,12 @@ class FileParser:
 
     def render(self):
         print("\nRendering...")
-        newPoints = self.transformer.start_transformation()
-        for i, mesh in enumerate(newPoints):
-            self.meshes[i].points(mesh)
-            newFilename = "{}_{}.stl".format(self.filename[:-5], self.j_layers[i]["name"])
-            print("Saving layer #{} in '{}'".format(i, newFilename))
-            write(self.meshes[i], newFilename)
+        self.transformer.start_transformation()
+        #newPoints = self.transformer.start_transformation()
+        #for i, mesh in enumerate(newPoints):
+        #    self.meshes[i].points(mesh)
+        #    newFilename = "{}_{}.stl".format(self.filename[:-5], self.j_layers[i]["name"])
+        #    print("Saving layer #{} in '{}'".format(i, newFilename))
+         #   write(self.meshes[i], newFilename)
+        ret = self.transformer.get_result_mesh()
+        return ret

@@ -9,9 +9,13 @@ class Transformation:
         self.boundaries = bounds
         self.prio = prio
         self.addResidual = addResidual
+        self.isResidual = False
         #self.color = None
         self.color = [255, 255, 0, 255]
-        self.points = []
+        #self.points = []
+        self.meshes = []
+        self.mel = []
+        self.scope = None
         self.parent = None
 
     def __str__(self):
@@ -30,17 +34,21 @@ class Transformation:
         #pts[:][2] = z
         pts = x, y, z
 
+    def get_preprocessed_mesh(self, layerId):
+        print ("    Transformation {}\n     -> layer {}/{}".format(self, layerId, len(self.mel)))
+        return self.meshes[layerId].clone().subdivide(1, 2, self.mel[layerId])
+
     def getAffectedPoints(self):
-        pass
+        raise NotImplementedError("Please implement the function in a new class.")
 
     def getMatrixAt(self):
-        pass
+        raise NotImplementedError("Please implement the function in a new class.")
 
     def isInScope(self, point):
-        pass
+        raise NotImplementedError("Please implement the function in a new class.")
 
     def getResidualTransformation(self):
-        pass
-    def getBorderline(self, delta):
-        pass
+        raise NotImplementedError("Please implement the function in a new class.")
+    def getBorderline(self):
+        raise NotImplementedError("Please implement the function in a new class.")
 

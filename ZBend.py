@@ -1,5 +1,7 @@
 import numpy as np
-from vedo import *
+import shapely.geometry
+import shapely.geometry.polygon
+import vedo as v
 from enum import Enum
 import copy
 from Transformation import *
@@ -14,7 +16,8 @@ class ZBend(Transformation):
         #print("Transformation created")
         self.angle = np.deg2rad(angle)
         self.dir = dir
-        self.boundaries = shapely.geometry.box(xmin, ymin, xmax, ymax)
+        #self.boundaries = shapely.geometry.box(xmin, ymin, xmax, ymax)
+        self.boundaries = shapely.geometry.Polygon([[xmin, ymin], [xmax, ymin], [xmax, ymax], [xmin, ymax]])
         self.xmin = xmin
         self.xmax = xmax
         self.ymin = ymin
@@ -22,7 +25,9 @@ class ZBend(Transformation):
         self.prio = prio
         self.addResidual = addResidual
         self.parent = None
-        self.points = []
+        #self.points = []
+        self.meshes = []
+        self.mel = []
 
     def __repr__(self):
         return "Tr.ZBEND: [D={}; P={}; Res={}; angle={}; x={}->{}, y={}->{}]".format(self.dir, self.prio, self.addResidual, self.angle, self.xmin, self.xmax, self.ymin, self.ymax)
@@ -67,20 +72,42 @@ class ZBend(Transformation):
             return [self.xmin - delta, self.ymin - delta, self.xmin + delta, self.ymax + delta]
         """
 
-    def getOutline(self):
-        #pts = self.boundaries.exterior.coords[:-1]
-        #pts[:, 2] = self.parent.zmaxi
-        x = self.boundaries.exterior.coords.xy[0][:-1]
-        y = self.boundaries.exterior.coords.xy[1][:-1]
-        #x, y = self.boundaries.exterior.coords.xy[:][:-1]
-        z = [self.parent.zmax] * len(x)
-        pts = np.zeros((len(x), 3))   #zip(x, y, z)
-        #pts[:][0] = x
-        #pts[:][1] = y
-        #pts[:][2] = z
-        pts = x, y, z
+    def getOutlinePts(self):
+        # pts = self.boundaries.exterior.coords[:-1]
+        # pts[:, 2] = self.parent.zmaxi
+        poly = shapely.geometry.polygon.orient(self.boundaries)
+        # print ("Poly is CCW: {}".format(poly.exterior.is_ccw))
+        # x = self.boundaries.exterior.coords.xy[0][:-1]
+        # y = self.boundaries.exterior.coords.xy[1][:-1]
+        x = poly.exterior.coords.xy[0][:-1]
+        y = poly.exterior.coords.xy[1][:-1]
+        # x, y = self.boundaries.exterior.coords.xy[:][:-1]
+        # z = [self.parent.zmax] * len(x)
+        z = [0] * len(x)
+        pts = np.zeros((len(x), 3))   # zip(x, y, z)
+        # pts[:][0] = x
+        # pts[:][1] = y
+        # pts[:][2] = z
+        pts = list(zip(x, y, z))
 
-        return Line(pts, closed=True)
+        return pts
+
+    def getOutline(self):
+        return v.Line(self.getOutlinePts(), closed=True)
+
+    def getBorderlinePts(self):
+        if (self.dir == DIR.NEGY):
+            pts = [(self.xmin, self.ymin, 0), (self.xmax, self.ymin, 0)]
+        elif (self.dir == DIR.POSY):
+            pts = [(self.xmin, self.ymin, 0), (self.xmax, self.ymin, 0)]
+        elif (self.dir == DIR.NEGX):
+            pts = [(self.xmin, self.ymin, 0), (self.xmin, self.ymax, 0)]
+        elif (self.dir == DIR.POSX):
+            pts = [(self.xmin, self.ymin, 0), (self.xmin, self.ymax, 0)]
+        return pts
+
+    def getBorderline(self):
+        return Line(self.getBorderlinePts())
 
     def getResidualTransformation(self):
         if (self.dir == DIR.NEGY):
@@ -94,7 +121,7 @@ class ZBend(Transformation):
 
             #newBounds = shapely.geometry.box(self.xmin, self.ymax, self.xmax, self.parent.ymin)
             newBounds = shapely.geometry.box(self.parent.xmin, self.ymax, self.parent.xmax, self.parent.ymin)
-            return LinearTransformation(newTr, newBounds, self.prio)
+            return LinearTransformation(newTr, newBounds, self.prio, residual=True)
             #return LinearTransformation([[1, 0, 0, 10], [0, 1, 0, 0], [0, 0, 1, 5]], newBounds, self.prio)
 
         elif (self.dir == DIR.POSY):
