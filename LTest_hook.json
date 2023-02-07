@@ -1,17 +1,20 @@
 {
 	"version": 0.1,
-	"mel_general":	4,
+	"mel":			4,
 	"mel_trans":	2,
 	"mel_residual":	4,
 	"layers": [
 		{
 			"name":			"PCB",
-			"file":			"LTest_hook_board.stl"
+			"file":			"LTest_hook_board.stl",
+			"mel":			3,
+			"mel_trans":	1,
+			"mel_residual":	3
 		},
 		{
 			"name":			"Copper",
 			"file":			"LTest_hook_trace.stl",
-			"mel_general":	3,
+			"mel":			3,
 			"mel_trans":	1,
 			"mel_residual":	3
 		}
@@ -25,7 +28,7 @@
 			"angle":		180,
 			"xmin":			120,
 			"xmax":			160,
-			"ymin":			-60,
+			"ymin":			-62,
 			"ymax":			-40,
 			"color":		"blue"
 		},

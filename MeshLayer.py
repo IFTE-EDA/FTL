@@ -2,6 +2,7 @@ import numpy as np
 import shapely.geometry
 import shapely.geometry.polygon
 import vedo as v
+from MatrixTransformer import *
 from enum import Enum
 import copy
 from Transformation import *
@@ -18,7 +19,7 @@ class MeshLayer:
         self.layer_id = id
         self.mesh = mesh
 
-        print("Created layer '{}' with id #{}".format(self.name, self.layer_id ))
+        debug("Created layer '{}' with id #{}".format(self.name, self.layer_id ))
 
         if data["mel"] is None:
             if parser.j_data["mel"] is None:
@@ -46,7 +47,7 @@ class MeshLayer:
 
 
 
-        print("Layer done. MEL: {}/{}/{}".format(self.mel, self.mel_trans, self.mel_residual))
+        debug("Layer done. MEL: {}/{}/{}".format(self.mel, self.mel_trans, self.mel_residual))
 
     @classmethod
     def get_from_JSON(cls, data, parser=None, id=None):

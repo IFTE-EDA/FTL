@@ -12,8 +12,8 @@ global MAX_EDGE_LENGTH
 
 class ZBend(Transformation):
 
-    def __init__(self, xmin, xmax, ymin, ymax, angle, dir, prio=0, addResidual=True):
-        #print("Transformation created")
+    def __init__(self, xmin, xmax, ymin, ymax, angle, dir, prio=0, addResidual=True, name=None):
+        #debug("Transformation created")
         self.angle = np.deg2rad(angle)
         self.dir = dir
         #self.boundaries = shapely.geometry.box(xmin, ymin, xmax, ymax)
@@ -24,6 +24,7 @@ class ZBend(Transformation):
         self.ymax = ymax
         self.prio = prio
         self.addResidual = addResidual
+        self.name = name
         self.parent = None
         #self.points = []
         self.meshes = []
@@ -40,7 +41,7 @@ class ZBend(Transformation):
         if (not pt.disjoint(self.boundaries)):
             return True
         #else:
-        #    print(pt.__str__() + " out of scope")
+        #    debug(pt.__str__() + " out of scope")
 
     def getScope(self):
         if (self.dir == DIR.NEGY or self.dir == DIR.POSY):
@@ -76,7 +77,7 @@ class ZBend(Transformation):
         # pts = self.boundaries.exterior.coords[:-1]
         # pts[:, 2] = self.parent.zmaxi
         poly = shapely.geometry.polygon.orient(self.boundaries)
-        # print ("Poly is CCW: {}".format(poly.exterior.is_ccw))
+        # debug ("Poly is CCW: {}".format(poly.exterior.is_ccw))
         # x = self.boundaries.exterior.coords.xy[0][:-1]
         # y = self.boundaries.exterior.coords.xy[1][:-1]
         x = poly.exterior.coords.xy[0][:-1]

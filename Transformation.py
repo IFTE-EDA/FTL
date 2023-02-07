@@ -4,8 +4,8 @@ from shapely.geometry import Point, Polygon, LineString, GeometryCollection
 
 class Transformation:
 
-    def __init__(self, bounds, prio=0, addResidual=True):
-        #print("Transformation created")
+    def __init__(self, bounds, prio=0, addResidual=True, name=None):
+        #debug("Transformation created")
         self.boundaries = bounds
         self.prio = prio
         self.addResidual = addResidual
@@ -17,9 +17,10 @@ class Transformation:
         self.mel = []
         self.scope = None
         self.parent = None
+        self.name = name
 
     def __str__(self):
-        print("Transformation")
+        debug("Transformation")
 
     def getOutline(self):
         #pts = self.boundaries.exterior.coords[:-1]
@@ -35,7 +36,7 @@ class Transformation:
         pts = x, y, z
 
     def get_preprocessed_mesh(self, layerId):
-        print ("    Transformation {}\n     -> layer {}/{}".format(self, layerId, len(self.mel)))
+        debug ("    Transformation {}\n     -> layer {}/{}".format(self, layerId, len(self.mel)))
         return self.meshes[layerId].clone().subdivide(1, 2, self.mel[layerId])
 
     def getAffectedPoints(self):

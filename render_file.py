@@ -13,7 +13,7 @@ from ZBend import *
 from LinearTransformation import *
 from FileParser import FileParser
 
-print("LISBeT 0.1")
+debug("LISBeT 0.1")
 plt = Plotter(interactive=False, axes=7)
 
 if len(sys.argv) < 2:
@@ -35,7 +35,7 @@ result = parser.render()
 
 
 #pcb = load("LTest_hook.stl")
-print("Refining mesh")
+debug("Refining mesh")
 
 #plt.show(parser.meshes)
 plt.show(parser.transformer.debugOutput)

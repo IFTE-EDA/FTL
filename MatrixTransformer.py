@@ -1,10 +1,33 @@
 import vedo as v
-from Transformation import *
 import vtk
 
+MODE_GUI = False
+def debug(str):
+    if MODE_GUI:
+        main.console(str)
+    else:
+        print(str)
+
+def debugln(str):
+    debug(str + "\n")
+
+from Transformation import *
+from RenderContainer import *
+
+
 class MatrixTransformer:
-    def __init__(self, plt=None):
-        self.plotter = plt
+    def __init__(self, rcFP=None, rcRender=None):
+        if rcFP is None:
+            rcFP = RenderContainer()
+        elif type(rcFP) is v.Plotter:
+            rcFP = RenderContainer(rcFP)
+        if rcRender is None:
+            rcRender = RenderContainer()
+        elif type(rcFP) is v.Plotter:
+            rcRender = RenderContainer(rcRender)
+        self.rcFP = rcFP
+        self.rcRender = rcRender
+
         self.points = []
         #self.mesh = []
         self.layers = []
@@ -34,7 +57,7 @@ class MatrixTransformer:
         tr.parent = self
         if (tr.addResidual):
             res = tr.getResidualTransformation()
-            print ("    - adding Residual {}".format(res))
+            debug ("    - adding Residual {}".format(res))
             self.add_transformation(res)
 
     def add_layer(self, layer):
@@ -52,51 +75,56 @@ class MatrixTransformer:
 
         self.nlayers += 1
 
-    def visualize(self, plt):
-        print("\n-------------------------\n-----  VISUALIZING  -----\n-------------------------")
+    def visualize(self):
+        debug("\n-------------------------\n-----  VISUALIZING  -----\n-------------------------")
         meshes = [l.mesh for l in self.layers]
-        #meshes = []
-        #for layer in self.layers:
-        #    meshes.append(layer.mesh)
-        #plt.show(merge(self.layers[:].mesh).alpha(1).c("grey").z(-20))
-        plt.show(merge(meshes).alpha(1).c("grey").z(-20))
+        #plt.show(merge(meshes).alpha(1).c("grey").z(-20))
+        for layer in self.layers:
+            self.rcFP.add_layer(layer.name, layer.mesh.clone().c("grey"))
         trId = 0
         while trId < len(self.transformations):
             tr = self.transformations[trId]
-            print(tr)
-            print("{} meshes found".format(len(tr.meshes)))
+            debug(tr)
+            debug("{} meshes found".format(len(tr.meshes)))
             area = v.Rectangle((tr.xmin, tr.ymin), (tr.xmax, tr.ymax)).extrude(3).z(-1.5).c("green").alpha(0.2)
-            self.debugOutput.extend([area, tr.getOutline().c("yellow7")])
+            #self.debugOutput.extend([area, tr.getOutline().c("yellow7")])
             #borderScope = tr.getBorderScope(4)
-            plt.show(area, tr.getOutline().c("yellow7"))
+            #plt.show(area, tr.getOutline().c("yellow7"))
+            self.rcFP.add_transformation(tr.name+"_outline", tr.getOutline().c("yellow7"))
+            self.rcFP.add_transformation(tr.name + "_area", area.clone(), False)
+            self.rcRender.add_transformation(tr.name + "_area", area.clone(), False)
             if len(tr.meshes) > 0:
-                plt.show(v.merge(tr.meshes).alpha(1).c("blue"))
+                #plt.show(v.merge(tr.meshes).alpha(1).c("blue"))
+                self.rcRender.add_layer(tr.name+"_slice", v.merge(tr.meshes).alpha(1).c("blue"), False)
             if tr.addResidual:
                 if len(self.transformations[trId+1].meshes) > 0:
-                    plt.show(v.merge(self.transformations[trId+1].meshes).alpha(1).c("green"))
-                #print("    Skipping residual Transformation #{}: {}\n    -> added {} residual points.".format(trId+1, self.transformations[trId + 1], len(self.transformations[trId + 1].points)))
+                    #plt.show(v.merge(self.transformations[trId+1].meshes).alpha(1).c("green"))
+                    #self.debugOutput.append(v.merge(self.transformations[trId + 1].meshes).alpha(1).c("green"))
+                    self.rcRender.add_layer(tr.name+"-Res_slice", v.merge(self.transformations[trId + 1].meshes).alpha(1).c("green"), False)
+                #debug("    Skipping residual Transformation #{}: {}\n    -> added {} residual points.".format(trId+1, self.transformations[trId + 1], len(self.transformations[trId + 1].points)))
                 trId += 2       #skip next transformation as we did it as a residual here
             else:
                 trId += 1       #next transformation
         if len(self.fixed_mesh) > 0:
-            plt.show(v.merge(self.fixed_mesh).alpha(1).c("red"))
+            #plt.show(v.merge(self.fixed_mesh).alpha(1).c("red"))
+            self.rcRender.add_layer("Mesh_Fixed", v.merge(self.fixed_mesh).alpha(1).c("red"), False)
 
     def calculate_assignments(self, onlybaselayer=False):
         for layerId, layer in enumerate(self.layers):
 
             if layerId == 0:
-                print ("\nCalculating assignments. Layer #0 seen as substrate to generate transformation scopes...")
+                debug ("\nCalculating assignments. Layer #0 seen as substrate to generate transformation scopes...")
                 part = layer.mesh.clone()
                 trId = 0
                 while trId < len(self.transformations):
                     tr = self.transformations[trId]
-                    print("-> Transformation #{}: {}".format(trId, tr))
+                    debug("-> Transformation #{}: {}".format(trId, tr))
 
                     outline = tr.getOutline()
                     mesh_transformed, part = cut_with_line(part, outline, closed=True)
-                    #print(outline)
+                    #debug(outline)
                     #self.plotter.show(outline.c("red").lw(4), mesh_transformed.clone().c("blue").z(layerId*100+trId*20), part.clone().c("orange").z(layerId*100+trId*20))
-                    self.plotter.render()
+                    #self.plotter.render()
                     write(mesh_transformed, "_mesh_transformed.stl")
                     write(part, "_part.stl")
                     olpts = outline.points()
@@ -110,13 +138,15 @@ class MatrixTransformer:
                     tr.scope = scope_transformed
                     tr.meshes.append(mesh_transformed.clone())
                     tr.mel.append(layer.mel_trans)
-                    self.debugOutput.append(scope_transformed.clone().c("blue").alpha(0.2))
+                    #self.debugOutput.append(scope_transformed.clone().c("blue").alpha(0.2))
+                    self.rcFP.add_transformation(tr.name+"_mesh", scope_transformed.clone().c("blue").alpha(0.2), False)
 
                     fixedMeshes = []
                     residualMeshes = []
                     split = part.split()
                     p0, p1 = tr.getBorderlinePts()
-                    self.debugOutput.append(Line(tr.getBorderlinePts()).lw(2).c("red"))
+                    #self.debugOutput.append(Line(tr.getBorderlinePts()).lw(2).c("red"))
+                    self.rcFP.add_debug(tr.name+"_borderline", Line(tr.getBorderlinePts()).lw(2).c("red"), False)
                     for prt in split:
                         #border = tr.getBorderlinePts()
                         if prt.intersect_with_line(p0, p1).any():
@@ -132,11 +162,11 @@ class MatrixTransformer:
                         self.transformations[trId + 1].meshes.append(residual)
                         self.transformations[trId + 1].mel.append(layer.mel_residual)
 
-                    # print("    Transformation done. Points fixed: {}; discovered: {}; transformed: {}; residual: {}".format(len(fixedPts), len(discoveredPoints), len(transformedPts), len(residualPts)))
+                    # debug("    Transformation done. Points fixed: {}; discovered: {}; transformed: {}; residual: {}".format(len(fixedPts), len(discoveredPoints), len(transformedPts), len(residualPts)))
 
                     if tr.addResidual:
-                        # print("    Skipping residual Transformation #{}: {}\n    -> added {} residual points.".format(trId+1, self.transformations[trId + 1], len(self.transformations[trId + 1].points)))
-                        print("    Skipping residual Transformation #{}: {}\n".format(trId + 1,
+                        # debug("    Skipping residual Transformation #{}: {}\n    -> added {} residual points.".format(trId+1, self.transformations[trId + 1], len(self.transformations[trId + 1].points)))
+                        debug("    Skipping residual Transformation #{}: {}\n".format(trId + 1,
                                                                                       self.transformations[trId + 1]))
                         trId += 2  # skip next transformation as we did it as a residual here
                     else:
@@ -145,18 +175,19 @@ class MatrixTransformer:
                 self.fixed_mesh.append(part)
                 #self.mel.append(layer.mel)
                 self.fixed_scope = get_contour_scope(part)
-                self.debugOutput.append(self.fixed_scope.clone().c("red").alpha(0.2))
-                print ("Base layer done.\n")
+                #self.debugOutput.append(self.fixed_scope.clone().c("red").alpha(0.2))
+                self.rcRender.add_debug("Fixed_scope", self.fixed_scope.clone().c("red").alpha(0.2), False)
+                debug ("Base layer done.\n")
                 continue
             if onlybaselayer:
                 break
-            print("Calculating {} assignments for layer #{}".format(len(self.transformations), layerId))
+            debug("Calculating {} assignments for layer #{}".format(len(self.transformations), layerId))
 
             mesh_fixed = layer.mesh.clone()
             trId = 0
             while trId < len(self.transformations):
                 tr = self.transformations[trId]
-                print("-> Transformation #{}: {}".format(trId, tr))
+                debug("-> Transformation #{}: {}".format(trId, tr))
 
 
                 #mesh_fixed, mesh_transformed, mesh_residual = cut_with_line(mesh_fixed, tr.getOutlinePts(), closed=True)
@@ -169,21 +200,21 @@ class MatrixTransformer:
 
 
                 #mesh_transformed, mesh_fixed, mesh_residual = split_with_transformation(self, mesh_fixed, tr)
-                print("  -> Slice successful.")
+                debug("  -> Slice successful.")
                 tr.meshes.append(mesh_transformed.clone())
                 tr.mel.append(layer.mel_trans)
                 p0, p1 = tr.getBorderlinePts()
                 self.debugOutput.append(Line(tr.getBorderlinePts()).lw(2).c("red"))
 
                 if tr.addResidual and mesh_residual is not None and mesh_residual.npoints > 0:
-                    print("  -> Adding residual....")
+                    debug("  -> Adding residual....")
                     self.transformations[trId + 1].meshes.append(mesh_residual)
                     self.transformations[trId + 1].mel.append(layer.mel_residual)
-                    #self.debugOutput.append(scope_residual.clone().c("green").alpha(0.2))
+                    self.debugOutput.append(scope_residual.clone().c("green").alpha(0.2))
 
                 if tr.addResidual:
-                    # print("    Skipping residual Transformation #{}: {}\n    -> added {} residual points.".format(trId+1, self.transformations[trId + 1], len(self.transformations[trId + 1].points)))
-                    print("    Skipping residual Transformation #{}: {}\n".format(trId + 1,
+                    # debug("    Skipping residual Transformation #{}: {}\n    -> added {} residual points.".format(trId+1, self.transformations[trId + 1], len(self.transformations[trId + 1].points)))
+                    debug("    Skipping residual Transformation #{}: {}\n".format(trId + 1,
                                                                                   self.transformations[trId + 1]))
                     trId += 2  # skip next transformation as we did it as a residual here
                 else:
@@ -191,7 +222,7 @@ class MatrixTransformer:
 
                 self.debugOutput.append(mesh_transformed.clone().c("blue"))
 
-                print("    Transformation done.\n")
+                debug("    Transformation done.\n")
             if mesh_fixed is not None:
                 # self.debugOutput.append(mesh_fixed.clone().z(20).c("red"))
                 self.fixed_mesh.append(mesh_fixed)
@@ -200,8 +231,8 @@ class MatrixTransformer:
             #if mesh_fixed is not None:
             #    self.debugOutput.append(mesh_fixed.clone())
 
-            #print("---------------------------------------------\n Points fixed: {}; transformed: {}; residual: {}".format(fixedPtCloud.npoints, transformedPtCloud.npoints, residualPtCloud.npoints))
-            #print("Total Points: {}\n\n".format(fixedPtCloud.npoints + transformedPtCloud.npoints + residualPtCloud.npoints))
+            #debug("---------------------------------------------\n Points fixed: {}; transformed: {}; residual: {}".format(fixedPtCloud.npoints, transformedPtCloud.npoints, residualPtCloud.npoints))
+            #debug("Total Points: {}\n\n".format(fixedPtCloud.npoints + transformedPtCloud.npoints + residualPtCloud.npoints))
 
 
 
@@ -316,11 +347,11 @@ def split_with_transformation(self, mesh, tr):
     fixedMeshes = []
     residualMeshes = []
     split = part.split()
-    print("  -> Splitting {} parts...".format(len(split)))
+    debug("  -> Splitting {} parts...".format(len(split)))
     for prt in split:
         # border = tr.getBorderlinePts()
         inter = len(self.fixed_scope.inside_points(prt.points()).points())
-        #print("    Intersecting points: {}".format(inter))                  # TODO: Check for bounding box intersections
+        #debug("    Intersecting points: {}".format(inter))                  # TODO: Check for bounding box intersections
         if inter:
             fixedMeshes.append(prt)
         else:
