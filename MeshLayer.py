@@ -14,12 +14,14 @@ class MeshLayer:
         self.parser = parser
         self.file = data["file"]
         self.name = data["name"]
+        #self.color = data["color"] | "grey"
+        self.color = data.get("color", "grey")
         if id is None:
             self.layer_id = parser.get_layer_id(self.name)
         self.layer_id = id
         self.mesh = mesh
 
-        debug("Created layer '{}' with id #{}".format(self.name, self.layer_id ))
+        debug("Created layer '{}' with id #{}".format(self.name, self.layer_id))
 
         if data["mel"] is None:
             if parser.j_data["mel"] is None:
@@ -44,8 +46,6 @@ class MeshLayer:
             self.mel_residual = data["mel_residual"]
 
         self.mel_residual = data["mel_residual"]
-
-
 
         debug("Layer done. MEL: {}/{}/{}".format(self.mel, self.mel_trans, self.mel_residual))
 

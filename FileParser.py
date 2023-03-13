@@ -1,11 +1,17 @@
 import json
 from ZBend import *
+from PyQt6 import QtCore
 from MatrixTransformer import *
 from MeshLayer import *
 import vedo as v
 
-class FileParser:
-    def __init__(self, filename, rcFP=None, rcRender=None):
+
+class FileParser(QtCore.QObject):
+    def __init__(self, filename, rcFP=None, rcRender=None, showProgress=False):
+        super().__init__()
+        self.transformations = None
+        self.meshes = None
+        self.transformer = None
         self.filename = filename
         debug("Reading data from file '{}'".format(filename))
         f = open(filename)
@@ -21,19 +27,39 @@ class FileParser:
 
         self.rcFP = rcFP
         self.rcRender = rcRender
+        self.showProgress = showProgress
+
+    progress = QtCore.pyqtSignal(int)
+    status = QtCore.pyqtSignal(str)
+
+    #def updateParams(self):
+
 
     def parse(self):
-        debug("Found {} layers and {} transformations. Global MEL: [{}/{}/{}]".format(len(self.j_layers), len(self.j_transformations), self.mel, self.mel_trans, self.mel_residual))
+        self.progress.emit(0)
+
+        debug("Found {} layers and {} transformations. Global MEL: [{}/{}/{}]".format(len(self.j_layers),
+                                                                                      len(self.j_transformations),
+                                                                                      self.mel, self.mel_trans,
+                                                                                      self.mel_residual))
         self.transformer = MatrixTransformer(self.rcFP, self.rcRender)
+        self.transformer.status.connect(self.status)
+        self.transformer.progress.connect(self.progress)
         self.meshes = []
         self.transformations = []
+
         for i, layer in enumerate(self.j_layers):
             layerObj = MeshLayer.get_from_JSON(layer, self, i)
-            #mesh = v.load(layer["file"])
-            #layerObj = MeshLayer(mesh, layer, self, i)
+            # mesh = v.load(layer["file"])
+            # layerObj = MeshLayer(mesh, layer, self, i)
             self.layers.append(layerObj)
             self.transformer.add_layer(layerObj)
-            debug("  Found layer #{} '{}' with MEL [{}/{}/{}], reading data from file '{}'".format(i, layer["name"], layerObj.mel, layerObj.mel_trans, layerObj.mel_residual, layer["file"]))
+            debug("  Found layer #{} '{}' with MEL [{}/{}/{}] and color '{}', reading data from file '{}'".format(i, layer["name"],
+                                                                                                   layerObj.mel,
+                                                                                                   layerObj.mel_trans,
+                                                                                                   layerObj.mel_residual,
+                                                                                                   layerObj.color,
+                                                                                                   layer["file"]))
             self.meshes.append(mesh)
 
         meshNumStr = "/".join([str(layer.mesh.npoints) for layer in self.transformer.layers])
@@ -47,29 +73,32 @@ class FileParser:
                 color = tr["color"]
             else:
                 color = None
-            debug("  Found transformation #{} '{}' of type {} with priority {} and color '{}'".format(len(self.transformer.transformations), tr["name"], tr["type"], tr["priority"], color))
-            if (tr["type"] == "ZBend"):
-                if (tr["dir"] == "POSX"):
+            debug("  Found transformation #{} '{}' of type {} with priority {} and color '{}'".format(
+                len(self.transformer.transformations), tr["name"], tr["type"], tr["priority"], color))
+            if tr["type"] == "ZBend":
+                if tr["dir"] == "POSX":
                     dir = DIR.POSX
-                elif (tr["dir"] == "NEGX"):
+                elif tr["dir"] == "NEGX":
                     dir = DIR.NEGX
-                elif (tr["dir"] == "POSY"):
+                elif tr["dir"] == "POSY":
                     dir = DIR.POSY
-                elif (tr["dir"] == "NEGY"):
+                elif tr["dir"] == "NEGY":
                     dir = DIR.NEGY
                 else:
-                    raise ValueError("Direction of ZBend-Transformation not found: {}".format(self.dir))
-
-                trans = ZBend(tr["xmin"], tr["xmax"], tr["ymin"], tr["ymax"], tr["angle"], dir, name=tr["name"])
-                debug("  -> dir={};  angle={};  x = {}...{};  y = {}...{};".format(tr["dir"], tr["angle"], tr["xmin"], tr["xmax"], tr["ymin"], tr["ymax"]))
+                    raise ValueError("Direction of ZBend-Transformation not found: {}".format(tr["dir"]))
+                trans = ZBend(int(tr["xmin"]), int(tr["xmax"]), int(tr["ymin"]), int(tr["ymax"]), int(tr["angle"]), dir,
+                              name=tr["name"])
+                debug("  -> dir={};  angle={};  x = {}...{};  y = {}...{};".format(tr["dir"], tr["angle"], tr["xmin"],
+                                                                                   tr["xmax"], tr["ymin"], tr["ymax"]))
             else:
                 raise TypeError("Unknown transformation type.")
             trans.color = color
             debug("  - Adding Transformation {}".format(trans))
-            #self.transformations.append(trans)
+            # self.transformations.append(trans)
             self.transformer.add_transformation(trans)
 
         debug("\nDone parsing.\n\n")
+        self.progress.emit(100)
 
     def __str__(self):
         pass
@@ -83,16 +112,16 @@ class FileParser:
 
     def visualize(self):
         self.transformer.visualize()
-        #plt.show(self.meshes[0].c("grey"), self.meshes[1].c("orange"), self.transformer.borderEdges, self.transformer.debugOutput)
+        # plt.show(self.meshes[0].c("grey"), self.meshes[1].c("orange"), self.transformer.borderEdges, self.transformer.debugOutput)
 
     def render(self):
         debug("\nRendering...")
         self.transformer.start_transformation()
-        #newPoints = self.transformer.start_transformation()
-        #for i, mesh in enumerate(newPoints):
+        # newPoints = self.transformer.start_transformation()
+        # for i, mesh in enumerate(newPoints):
         #    self.meshes[i].points(mesh)
         #    newFilename = "{}_{}.stl".format(self.filename[:-5], self.j_layers[i]["name"])
         #    debug("Saving layer #{} in '{}'".format(i, newFilename))
-         #   write(self.meshes[i], newFilename)
+        #   write(self.meshes[i], newFilename)
         ret = self.transformer.get_result_mesh()
         return ret

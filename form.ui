@@ -437,6 +437,14 @@
     <string>Render the current model</string>
    </property>
    <property name="shortcut">
+    <string>F8</string>
+   </property>
+  </action>
+  <action name="actionUpdate_Footprint">
+   <property name="text">
+    <string>Update Footprint</string>
+   </property>
+   <property name="shortcut">
     <string>F5</string>
    </property>
   </action>
