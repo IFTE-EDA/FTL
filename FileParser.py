@@ -1,9 +1,13 @@
 import json
 from ZBend import *
+from DirBend import *
+from ZBend import *
 from PyQt6 import QtCore
 from MatrixTransformer import *
 from MeshLayer import *
 import vedo as v
+#from shapely import geometry
+from shapely.geometry import Point, Polygon, LineString, GeometryCollection
 
 
 class FileParser(QtCore.QObject):
@@ -77,6 +81,7 @@ class FileParser(QtCore.QObject):
                 len(self.transformer.transformations), tr["name"], tr["type"], tr["priority"], color))
             if tr["type"] == "ZBend":
                 if tr["dir"] == "POSX":
+                    print("Found POSX")
                     dir = DIR.POSX
                 elif tr["dir"] == "NEGX":
                     dir = DIR.NEGX
@@ -90,6 +95,15 @@ class FileParser(QtCore.QObject):
                               name=tr["name"])
                 debug("  -> dir={};  angle={};  x = {}...{};  y = {}...{};".format(tr["dir"], tr["angle"], tr["xmin"],
                                                                                    tr["xmax"], tr["ymin"], tr["ymax"]))
+            elif tr["type"] == "DirBend":
+
+                #trans = DirBend(poly, baseline, tr["angle"], name=tr["name"])
+                trans = DirBend(tr, name=tr["name"])
+                self.transformer.rcFP.add_debug("Debug_Trans", trans.debugShow(), True)
+                #debug("  -> dir={};  angle={};  x = {}...{};  y = {}...{};".format(tr["dir"], tr["angle"], tr["xmin"], tr["xmax"], tr["ymin"], tr["ymax"]))
+
+
+
             else:
                 raise TypeError("Unknown transformation type.")
             trans.color = color

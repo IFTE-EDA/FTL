@@ -130,6 +130,7 @@ class ZBend(Transformation):
         return Line(self.getBorderlinePts())
 
     def getResidualTransformation(self):
+        print("Getting resiual; my dir is {}".format(self.dir))
         if self.dir == DIR.NEGY:
             r = (self.ymax - self.ymin) / self.angle
             a = self.angle

@@ -40,6 +40,9 @@ class Transformation:
         print("    Transformation {}\n     -> layer {}/{}".format(self, layerId, len(self.mel)))
         return self.meshes[layerId].clone().subdivide(1, 2, self.mel[layerId])
 
+    def getArea(self):
+        return self.getOutline().triangulate().lw(0)
+
     def getAffectedPoints(self):
         raise NotImplementedError("Please implement the function in a new class.")
 

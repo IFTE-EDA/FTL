@@ -100,7 +100,8 @@ class MatrixTransformer(QtCore.QObject):
                 self.status.emit("Visualizing Transformation {}/{}".format(trId, len(self.transformations)))
                 self.update_progress(trId + 1, len(self.transformations))
                 debug("{} meshes found".format(len(tr.meshes)))
-                area = v.Rectangle((tr.xmin, tr.ymin), (tr.xmax, tr.ymax)).extrude(3).z(-1.5).c("green").alpha(0.2)
+                #area = v.Rectangle((tr.xmin, tr.ymin), (tr.xmax, tr.ymax)).extrude(3).z(-1.5).c("green").alpha(0.2)
+                area = tr.getArea().extrude(3).z(-1.5).c("green").alpha(0.2)
                 # self.debugOutput.extend([area, tr.getOutline().c("yellow7")])
                 # borderScope = tr.getBorderScope(4)
                 # plt.show(area, tr.getOutline().c("yellow7"))
@@ -181,6 +182,8 @@ class MatrixTransformer(QtCore.QObject):
                             residualMeshes.append(prt)
                     part = v.merge(fixedMeshes)
 
+                    #TODO: if fixedmesh is Null, there might be a problem with geometries
+
                     if tr.addResidual and len(residualMeshes) > 0:
                         residual = v.merge(residualMeshes)
                         scope_residual = get_contour_scope(residual)
@@ -203,7 +206,7 @@ class MatrixTransformer(QtCore.QObject):
                 self.fixed_scope = get_contour_scope(part)
                 # self.debugOutput.append(self.fixed_scope.clone().c("red").alpha(0.2))
                 # self.rcRender.add_debug("Fixed_scope", self.fixed_scope.clone().c("red").alpha(0.2), False)
-                # TODO accessing fixed_scope auses error
+                # TODO accessing fixed_scope causes error
                 debug("Base layer done.\n")
                 continue
             if onlybaselayer:
