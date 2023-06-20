@@ -110,7 +110,7 @@ class MainWindow(QtWidgets.QMainWindow):
                      (self.actionFileRecent, "document-open"),
                      (self.actionFileSave, "document-save"),
                      (self.actionFileSave_as, "document-save-as"),
-                     (self.actionFileExport, "document-export"),
+                     #(self.actionFileExport, "document-export"),
                      (self.actionFileQuit, "window-close"),
                      (self.actionEditAdd_mesh_layer, "cursor-cross"),
                      (self.actionEditAdd_transformation, "cursor-cross"),
@@ -182,6 +182,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.actionFileOpen.triggered.connect(self.openFileDialog)
         self.actionFileSave.triggered.connect(self.saveFileDialog)
         self.actionFileSave_as.triggered.connect(self.saveAsFileDialog)
+        self.actionFileExportVMAP.triggered.connect(self.exportVMAP)
+        self.actionFileExportSTL.triggered.connect(self.exportSTL)
         self.actionReset_View.triggered.connect(self.resetView)
         # self.actionReset_View.triggered.connect(self.resetView)
         self.actionUpdate_Footprint.triggered.connect(self.worker.parse)
@@ -232,27 +234,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.rcFP = RenderContainer(self.FPPlt)
         self.rcRender = RenderContainer(self.renderPlt)
 
-        # sys.stdout = port(self.wConsole, self)
+        #sys.stdout = port(self.wConsole, self)
 
         if len(sys.argv) > 1:
             self.console("Got file argument from console")
             self.open_file(sys.argv[1])
-
-        """
-        se lf.wLayers
-        for i in range(3):
-            parent = QtWidgets.QTreeWidgetItem(tree)
-            parent.setText(0, "Parent {}".format(i))
-            #parent.setFlags(parent.flags() | Qt.ItemIsTristate | Qt.ItemIsUserCheckable)
-            #arent.setFlags(parent.flags() |  Qt.ItemIsUserCheckable)
-            #parent.setCheckable(True)
-            for x in range(5):
-                child = QtWidgets.QTreeWidgetItem(parent)
-                #child.setFlags(child.flags() | Qt.ItemIsUserCheckable)
-                child.setText(0, "Child {}".format(x))
-                #child.setCheckable(True)
-                child.setCheckState(0, Qt.CheckState.Unchecked)
-        """
 
     """#####################################
     #######  SIGNAL/SLOT DEFINITIONS  ######
@@ -286,6 +272,24 @@ class MainWindow(QtWidgets.QMainWindow):
             self.save_file(file)
         else:
             print("Saving aborted.")
+
+    def exportVMAP(self):
+        file, _ = QFileDialog.getSaveFileName(self, "Save VMAP file", filter="*.h5, *.vmap",
+                                              options=QFileDialog.Option.DontUseNativeDialog)
+        if not len(file):
+            print("VMAP Export aborted.")
+            return
+        if not file.endswith(".h5") or not file.endswith(".vmap"):
+            file = file + ".h5"
+        self.worker.exportFile_VMAP(file)
+
+    def exportSTL(self):
+        file, _ = QFileDialog.getSaveFileName(self, "Save STL file", filter="*.stl",
+                                              options=QFileDialog.Option.DontUseNativeDialog)
+        if not len(file):
+            print("VMAP Export aborted.")
+            return
+        self.worker.exportFile_STEP(file)
 
     def modelItemClicked(self, item):
         self.wParams.blockSignals(True)
@@ -371,25 +375,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.visualize()
         self.rcFP.render()
         # self.update_layer_visibilities()
-        """
-        if name == "Layers":
-            self.rcFP.set_container_visibility(ItemType.Layer, checked)
-        elif name == "Transformations":
-            self.rcFP.set_container_visibility(ItemType.Transformation, checked)
-        elif name == "Debug":
-            self.rcFP.set_container_visibility(ItemType.Debug, checked)
-        else:
-            raise Exception("Unknown container type.")
-        self.rcFP.render()
-
-
-        for i in range(self.wLayers.topLevelItemCount()):
-            parent = self.wLayers.topLevelItem(i)
-            for j in range(parent.childCount()):
-                child = parent.child(j)
-                #print(child.text(0))
-                self.
-        """
 
         self.rcFP.render()
 
@@ -592,10 +577,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.console("SIG received, file parsed sucessfully.")
         self.docName = self.parser.filename
         self.setWindowTitle("FoldTheLine - {}".format(os.path.basename(self.docName)))
-        # self.update_parser()
-        # self.sig_updateParser.emit()
-        # self.parser.visualize()
-        # self.visualize()
 
         """---//   Generate "Layers" View   ///---"""
 
@@ -750,7 +731,6 @@ main.worker.moveToThread(thread)
 
 main.initUi()
 main.show()
-# window = uic.loadUi("form.ui")
 
 
 headerItem = QtWidgets.QTreeWidgetItem()
@@ -758,9 +738,6 @@ item = QtWidgets.QTreeWidgetItem()
 
 main.wLayers.show()
 
-# window.show()
-# widget = MainWindow()
-# widget.show()
 app.exec()
 
 thread.quit()

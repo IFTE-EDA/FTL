@@ -1,4 +1,5 @@
 import numpy as np
+from numpy import sin, cos
 import shapely.geometry
 import shapely.geometry.polygon
 import vedo as v
@@ -14,12 +15,11 @@ global MAX_EDGE_LENGTH
 class ZBend(Transformation):
 
     def __init__(self, xmin, xmax, ymin, ymax, angle, dir, prio=0, addResidual=True, name=None):
-
-        # debug("Transformation created")
+        self.boundaries = shapely.geometry.Polygon([[xmin, ymin], [xmax, ymin], [xmax, ymax], [xmin, ymax]])
+        super().__init__(self.boundaries, prio, addResidual, name)
         self.angle = np.deg2rad(angle)
         self.dir = dir
         # self.boundaries = shapely.geometry.box(xmin, ymin, xmax, ymax)
-        self.boundaries = shapely.geometry.Polygon([[xmin, ymin], [xmax, ymin], [xmax, ymax], [xmin, ymax]])
         self.xmin = xmin
         self.xmax = xmax
         self.ymin = ymin
@@ -28,11 +28,9 @@ class ZBend(Transformation):
         self.addResidual = addResidual
         self.name = name
         self.parent = None
-        # self.points = []
         self.meshes = []
         self.mel = []
 
-        # self.super().__init__(self.boundaries, prio, addResidual, name)
 
     def __repr__(self):
         return "Tr.ZBEND: [D={}; P={}; Res={}; angle={}; x={}->{}, y={}->{}]".format(self.dir, self.prio,
@@ -79,17 +77,6 @@ class ZBend(Transformation):
         elif self.dir == DIR.POSX:
             return [self.xmin + delta, min(self.ymin, self.ymax) - delta, self.xmin - delta,
                     max(self.ymin, self.ymax) + delta]
-
-        """
-        if (self.dir == DIR.NEGY):
-            return [self.xmin - delta, self.ymin + delta, self.xmax + delta, self.ymin - delta]
-        elif (self.dir == DIR.POSY):
-            return [self.xmin - delta, self.ymin - delta, self.xmax + delta, self.ymin + delta]
-        elif (self.dir == DIR.NEGX):
-            return [self.xmin + delta, self.ymin - delta, self.xmin - delta, self.ymax + delta]
-        elif (self.dir == DIR.POSX):
-            return [self.xmin - delta, self.ymin - delta, self.xmin + delta, self.ymax + delta]
-        """
 
     def getOutlinePts(self):
         # pts = self.boundaries.exterior.coords[:-1]
@@ -140,10 +127,8 @@ class ZBend(Transformation):
             newTr[1] = 0, cos(a), -sin(a), -self.ymax * cos(a) + self.ymin + r * (sin(a))
             newTr[2] = 0, sin(a), cos(a), self.ymax * sin(a) - r * (1 - cos(a))
 
-            # newBounds = shapely.geometry.box(self.xmin, self.ymax, self.xmax, self.parent.ymin)
             newBounds = shapely.geometry.box(self.parent.xmin, self.ymax, self.parent.xmax, self.parent.ymin)
             ret = LinearTransformation(newTr, newBounds, self.prio, residual=True)
-            # return LinearTransformation([[1, 0, 0, 10], [0, 1, 0, 0], [0, 0, 1, 5]], newBounds, self.prio)
 
         elif self.dir == DIR.POSY:
             r = (self.ymax - self.ymin) / self.angle
@@ -154,7 +139,6 @@ class ZBend(Transformation):
             newTr[1] = 0, cos(a), -sin(a), -self.ymax * cos(a) + self.ymin + r * (sin(a))
             newTr[2] = 0, sin(a), cos(a), -self.ymax * sin(a) + r * (1 - cos(a))
 
-            # newBounds = shapely.geometry.box(self.xmin, self.ymax, self.xmax, self.parent.ymax)
             newBounds = shapely.geometry.box(self.parent.xmin, self.ymax, self.parent.xmax, self.parent.ymax)
             return LinearTransformation(newTr, newBounds, self.prio, residual=True)
 
@@ -167,7 +151,6 @@ class ZBend(Transformation):
             newTr[1] = 0, 1, 0, 0
             newTr[2] = sin(a), 0, cos(a), -self.xmax * sin(a) + r * (1 - cos(a))
 
-            # newBounds = shapely.geometry.box(self.xmax, self.ymin, 650, -600)
             newBounds = shapely.geometry.box(self.xmax, self.parent.ymin, self.parent.xmin, self.parent.ymax)
             ret = LinearTransformation(newTr, newBounds, self.prio, residual=True)
         elif self.dir == DIR.POSX:
@@ -179,7 +162,6 @@ class ZBend(Transformation):
             newTr[1] = 0, 1, 0, 0
             newTr[2] = sin(a), 0, cos(a), -self.xmax * sin(a) + r * (1 - cos(a))
 
-            # newBounds = shapely.geometry.box(self.xmax, self.ymin, 650, -600)
             newBounds = shapely.geometry.box(self.xmax, self.parent.ymin, self.parent.xmax, self.parent.ymax)
             ret = LinearTransformation(newTr, newBounds, self.prio, residual=True)
         else:
@@ -190,7 +172,6 @@ class ZBend(Transformation):
     def getMatrixAt(self, pt):
         x = pt[0]
         y = pt[1]
-        # z = pt[2]
         mat = np.zeros((3, 4), dtype=float)
         if self.dir == DIR.NEGY:
             r = (self.ymax - self.ymin) / self.angle

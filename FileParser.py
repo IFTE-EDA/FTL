@@ -1,6 +1,7 @@
 import json
 from ZBend import *
 from DirBend import *
+from Spiral import *
 from ZBend import *
 from PyQt6 import QtCore
 from MatrixTransformer import *
@@ -64,7 +65,7 @@ class FileParser(QtCore.QObject):
                                                                                                    layerObj.mel_residual,
                                                                                                    layerObj.color,
                                                                                                    layer["file"]))
-            self.meshes.append(mesh)
+            #self.meshes.append(mesh)
 
         meshNumStr = "/".join([str(layer.mesh.npoints) for layer in self.transformer.layers])
 
@@ -102,7 +103,9 @@ class FileParser(QtCore.QObject):
                 self.transformer.rcFP.add_debug("Debug_Trans", trans.debugShow(), True)
                 #debug("  -> dir={};  angle={};  x = {}...{};  y = {}...{};".format(tr["dir"], tr["angle"], tr["xmin"], tr["xmax"], tr["ymin"], tr["ymax"]))
 
-
+            elif tr["type"] == "Spiral":
+                trans = Spiral(tr, name=tr["name"])
+                self.transformer.rcFP.add_debug("Debug_Trans", trans.debugShow(), True)
 
             else:
                 raise TypeError("Unknown transformation type.")

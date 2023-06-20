@@ -1,5 +1,6 @@
 import vedo as v
 import vtk
+import numpy as np
 from PyQt6 import QtCore
 from PyQt6.QtCore import QObject, QThread, pyqtSignal
 
@@ -32,19 +33,13 @@ class MatrixTransformer(QtCore.QObject):
         self.rcRender = rcRender
 
         self.points = []
-        # self.mesh = []
         self.layers = []
-        # for i, mesh in enumerate(meshes):
-        #    self.mesh.append(mesh)
-        #    self.points.append(mesh.points())
         self.nlayers = 0
         self.transformations = []
         self.mel = None
         self.debugOutput = []
         self.fixed_scope = None
         self.fixed_mesh = []
-
-        # self.bounds = mesh.bounds()
 
         self.fixedPts = []
         self.transformedPts = []
@@ -62,7 +57,6 @@ class MatrixTransformer(QtCore.QObject):
     def add_transformation(self, tr):
         trId = len(self.transformations)
         self.transformations.append(tr)
-        # self.transformedPts.append([])
         tr.parent = self
         if tr.addResidual:
             res = tr.getResidualTransformation()
@@ -89,7 +83,6 @@ class MatrixTransformer(QtCore.QObject):
         self.status.emit("Visualizing...")
         self.progress.emit(0)
         meshes = [l.mesh for l in self.layers]
-        # plt.show(merge(meshes).alpha(1).c("grey").z(-20))
         for layer in self.layers:
             self.rcFP.add_layer(layer.name, layer.mesh.clone().c("grey"))
         trId = 0
@@ -100,38 +93,27 @@ class MatrixTransformer(QtCore.QObject):
                 self.status.emit("Visualizing Transformation {}/{}".format(trId, len(self.transformations)))
                 self.update_progress(trId + 1, len(self.transformations))
                 debug("{} meshes found".format(len(tr.meshes)))
-                #area = v.Rectangle((tr.xmin, tr.ymin), (tr.xmax, tr.ymax)).extrude(3).z(-1.5).c("green").alpha(0.2)
                 area = tr.getArea().extrude(3).z(-1.5).c("green").alpha(0.2)
-                # self.debugOutput.extend([area, tr.getOutline().c("yellow7")])
-                # borderScope = tr.getBorderScope(4)
-                # plt.show(area, tr.getOutline().c("yellow7"))
                 self.rcFP.add_transformation(tr.name + "_outline", tr.getOutline().c("yellow7"))
                 self.rcFP.add_transformation(tr.name + "_area", area.clone(), False)
                 self.rcRender.add_transformation(tr.name + "_area", area.clone(), True)
                 if len(tr.meshes) > 0:
-                    # plt.show(v.merge(tr.meshes).alpha(1).c("blue"))
                     self.rcRender.add_layer(tr.name + "_slice", v.merge(tr.meshes).alpha(1).c("blue"), False)
                 if tr.addResidual:
                     if len(self.transformations[trId + 1].meshes) > 0:
-                        # plt.show(v.merge(self.transformations[trId+1].meshes).alpha(1).c("green"))
-                        # self.debugOutput.append(v.merge(self.transformations[trId + 1].meshes).alpha(1).c("green"))
                         self.rcRender.add_layer(tr.name + "-Res_slice",
                                                 v.merge(self.transformations[trId + 1].meshes).alpha(1).c("green"), False)
-                    # debug("    Skipping residual Transformation #{}: {}\n    -> added {} residual points.".format(trId+1, self.transformations[trId + 1], len(self.transformations[trId + 1].points)))
                     trId += 2  # skip next transformation as we did it as a residual here
                 else:
                     trId += 1  # next transformation
         else:
             print("No Transformations found to visualize.")
         if len(self.fixed_mesh) > 0:
-            # plt.show(v.merge(self.fixed_mesh).alpha(1).c("red"))
             self.rcRender.add_layer("Mesh_Fixed", v.merge(self.fixed_mesh).alpha(1).c("red"), True)
 
     def calculate_assignments(self, onlybaselayer=False):
         scope_residual = None
         for layerId, layer in enumerate(self.layers):
-            # self.status.emit("Calculating Assignments... Layer {}/{}".format(layerId+1, len(self.layers)))
-            # self.update_progress(layerId+1, len(self.transformations))
 
             if layerId == 0:
                 debug("\nCalculating assignments. Layer #0 seen as substrate to generate transformation scopes...")
@@ -148,23 +130,15 @@ class MatrixTransformer(QtCore.QObject):
 
                     outline = tr.getOutline()
                     mesh_transformed, part = cut_with_line(part, outline, closed=True)
-                    # debug(outline)
-                    # self.plotter.show(outline.c("red").lw(4), mesh_transformed.clone().c("blue").z(layerId*100+trId*20), part.clone().c("orange").z(layerId*100+trId*20))
-                    # self.plotter.render()
-                    write(mesh_transformed, "_mesh_transformed.stl")
-                    write(part, "_part.stl")
-                    # olpts = outline.points()
-                    # oleds = outline.edges()
-                    # olpts = list(olpts)
-                    # olpts.append(olpts[0])
-                    # outline.points(olpts)
-                    # outline.edges(oleds)
+
+                    v.write(mesh_transformed, "_mesh_transformed.stl")
+                    v.write(part, "_part.stl")
+
                     ol_gop = tr.getOutlinePts()
                     scope_transformed = get_contour_scope(mesh_transformed)
                     tr.scope = scope_transformed
                     tr.meshes.append(mesh_transformed.clone())
                     tr.mel.append(layer.mel_trans)
-                    # self.debugOutput.append(scope_transformed.clone().c("blue").alpha(0.2))
                     self.rcFP.add_transformation(tr.name + "_mesh", scope_transformed.clone().c("blue").alpha(0.2),
                                                  False)
 
@@ -172,10 +146,8 @@ class MatrixTransformer(QtCore.QObject):
                     residualMeshes = []
                     split = part.split()
                     p0, p1 = tr.getBorderlinePts()
-                    # self.debugOutput.append(Line(tr.getBorderlinePts()).lw(2).c("red"))
-                    self.rcFP.add_debug(tr.name + "_borderline", Line(tr.getBorderlinePts()).lw(2).c("red"), False)
+                    self.rcFP.add_debug(tr.name + "_borderline", v.Line(tr.getBorderlinePts()).lw(2).c("red"), False)
                     for prt in split:
-                        # border = tr.getBorderlinePts()
                         if prt.intersect_with_line(p0, p1).any():
                             fixedMeshes.append(prt)
                         else:
@@ -191,10 +163,8 @@ class MatrixTransformer(QtCore.QObject):
                         self.transformations[trId + 1].meshes.append(residual)
                         self.transformations[trId + 1].mel.append(layer.mel_residual)
 
-                    # debug("    Transformation done. Points fixed: {}; discovered: {}; transformed: {}; residual: {}".format(len(fixedPts), len(discoveredPoints), len(transformedPts), len(residualPts)))
 
                     if tr.addResidual:
-                        # debug("    Skipping residual Transformation #{}: {}\n    -> added {} residual points.".format(trId+1, self.transformations[trId + 1], len(self.transformations[trId + 1].points)))
                         debug("    Skipping residual Transformation #{}: {}\n".format(trId + 1,
                                                                                       self.transformations[trId + 1]))
                         trId += 2  # skip next transformation as we did it as a residual here
@@ -202,10 +172,8 @@ class MatrixTransformer(QtCore.QObject):
                         trId += 1  # next transformation
 
                 self.fixed_mesh.append(part)
-                # self.mel.append(layer.mel)
                 self.fixed_scope = get_contour_scope(part)
-                # self.debugOutput.append(self.fixed_scope.clone().c("red").alpha(0.2))
-                # self.rcRender.add_debug("Fixed_scope", self.fixed_scope.clone().c("red").alpha(0.2), False)
+
                 # TODO accessing fixed_scope causes error
                 debug("Base layer done.\n")
                 continue
@@ -219,20 +187,14 @@ class MatrixTransformer(QtCore.QObject):
                 tr = self.transformations[trId]
                 debug("-> Transformation #{}: {}".format(trId, tr))
 
-                # mesh_fixed, mesh_transformed, mesh_residual = cut_with_line(mesh_fixed, tr.getOutlinePts(), closed=True)
                 mesh_transformed, mesh_fixed, mesh_residual = split_with_transformation(self, mesh_fixed, tr)
 
                 self.debugOutput.append(mesh_transformed.clone().z(20).c("blue"))
-                # if mesh_residual is not None:
-                # self.debugOutput.append(mesh_residual.clone().z(20).c("green"))
-                # self.debugOutput.extend([mesh_transformed.z(20).c("blue"), mesh_fixed.z(20).c("red"), mesh_residual.z(20).c("green")])
 
-                # mesh_transformed, mesh_fixed, mesh_residual = split_with_transformation(self, mesh_fixed, tr)
                 debug("  -> Slice successful.")
                 tr.meshes.append(mesh_transformed.clone())
                 tr.mel.append(layer.mel_trans)
-                # p0, p1 = tr.getBorderlinePts()
-                self.debugOutput.append(Line(tr.getBorderlinePts()).lw(2).c("red"))
+                self.debugOutput.append(v.Line(tr.getBorderlinePts()).lw(2).c("red"))
 
                 if tr.addResidual and mesh_residual is not None and mesh_residual.npoints > 0:
                     debug("  -> Adding residual....")
@@ -241,7 +203,6 @@ class MatrixTransformer(QtCore.QObject):
                     self.debugOutput.append(scope_residual.clone().c("green").alpha(0.2))
 
                 if tr.addResidual:
-                    # debug("    Skipping residual Transformation #{}: {}\n    -> added {} residual points.".format(trId+1, self.transformations[trId + 1], len(self.transformations[trId + 1].points)))
                     debug("    Skipping residual Transformation #{}: {}\n".format(trId + 1,
                                                                                   self.transformations[trId + 1]))
                     trId += 2  # skip next transformation as we did it as a residual here
@@ -252,49 +213,38 @@ class MatrixTransformer(QtCore.QObject):
 
                 debug("    Transformation done.\n")
             if mesh_fixed is not None:
-                # self.debugOutput.append(mesh_fixed.clone().z(20).c("red"))
                 self.fixed_mesh.append(mesh_fixed)
             else:
                 self.fixed_mesh.append(None)
-            # if mesh_fixed is not None:
-            #    self.debugOutput.append(mesh_fixed.clone())
-
-            # debug("---------------------------------------------\n Points fixed: {}; transformed: {}; residual: {}".format(fixedPtCloud.npoints, transformedPtCloud.npoints, residualPtCloud.npoints))
-            # debug("Total Points: {}\n\n".format(fixedPtCloud.npoints + transformedPtCloud.npoints + residualPtCloud.npoints))
 
     def getPointId(self, pt, meshNum):
         # return self.mesh[meshNum].closest_point(pt, 1, return_point_id=True)
         return self.layers[meshNum].mesh.closest_point(pt, 1, return_point_id=True)
 
     def start_transformation(self):
-        # numLayers = len(self.layers)
-        # numTrans = len(self.transformations)
         for tr in self.transformations:
             for meshNum in range(len(tr.meshes)):
-                # self.status.emit("Mesh {}/{}, Transformation {}/{}".format(meshNum+1, numLayers, trId+1, numTrans))
-                # self.update_progress(trId*numLayers + meshNum+1, maxProg)
                 mesh = tr.get_preprocessed_mesh(meshNum)
-                # layer = self.layers[meshNum]
-                points = mesh.points()
-                for pid, pt in enumerate(points):
-                    vec = np.array([pt[0], pt[1], pt[2], 1])
-                    vec = np.dot(tr.getMatrixAt(pt), vec)
-                    # pt[0] = vec[0]
-                    # pt[1] = vec[1]
-                    # pt[2] = vec[2]
-                    points[pid][0] = vec[0]
-                    points[pid][1] = vec[1]
-                    points[pid][2] = vec[2]
-                mesh.points(points)
+                mats = []
+                if tr.transformWholeMesh:                     # Transformation implemented a method to  the whole transformation on its own
+                    mesh = tr.transformMesh(mesh)
+                else:
+                    points = mesh.points()
+                    for pid, pt in enumerate(points):
+                        self.update_progress(pid, len(points))
+                        vec = np.array([pt[0], pt[1], pt[2], 1])
+                        vec = np.dot(tr.getMatrixAt(pt), vec)
+                        points[pid][0] = vec[0]
+                        points[pid][1] = vec[1]
+                        points[pid][2] = vec[2]
+                    mesh.points(points)
                 tr.meshes[meshNum] = mesh
                 self.debugOutput.append(mesh)
-        # return self.points
 
     def get_result_mesh(self):
         for trId, tr in enumerate(self.transformations):
             for meshNum, mesh in enumerate(tr.meshes):
                 print("--------> Got {}_{}-tr'ed".format(self.layers[meshNum].name, tr.name))
-                #self.rcRender.add_layer("{}_{}-tr'ed".format(self.layers[meshNum].name, tr.name), mesh.alpha(1).c("grey"), True)
                 self.rcRender.add_layer("{}_{}-tr'ed".format(self.layers[meshNum].name, tr.name), mesh.alpha(1).c(self.layers[meshNum].color), True)
 
         meshes = [v.merge(tr.meshes) for tr in self.transformations]
@@ -307,7 +257,7 @@ class MatrixTransformer(QtCore.QObject):
 def cut_with_line(mesh, points, invert=False, closed=True, residual=True):
     mesh = mesh.clone()
     pplane = vtk.vtkPolyPlane()
-    if isinstance(points, Points):
+    if isinstance(points, v.Points):
         points = points.points().tolist()
 
     if closed:
@@ -366,15 +316,12 @@ def cut_with_line(mesh, points, invert=False, closed=True, residual=True):
 
     mesh.pointdata.remove("SignedDistances")
     mesh.mapper().SetScalarVisibility(vis)
-    cutoff = Mesh(kpoly)
+    cutoff = v.Mesh(kpoly)
     cutoff.property = vtk.vtkProperty()
     cutoff.property.DeepCopy(mesh.property)
     cutoff.property.DeepCopy(mesh.property)
     cutoff.SetProperty(cutoff.property)
 
-    # ret = [mesh]
-    # ret.append(split[0])#extend(cutoff.split())
-    # ret.append(split[1])
     return mesh, cutoff
 
 
@@ -385,7 +332,6 @@ def split_with_transformation(self, mesh, tr):
     split = part.split()
     debug("  -> Splitting {} parts...".format(len(split)))
     for prt in split:
-        # border = tr.getBorderlinePts()
         inter = len(self.fixed_scope.inside_points(prt.points()).points())
         # debug("    Intersecting points: {}".format(inter))                  # TODO: Check for bounding box intersections
         if inter:

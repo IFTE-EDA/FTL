@@ -1,4 +1,4 @@
-from vedo import *
+import vedo as v
 import shapely
 from shapely.geometry import Point, Polygon, LineString, GeometryCollection
 
@@ -19,6 +19,7 @@ class Transformation:
         self.scope = None
         self.parent = None
         self.name = name
+        self.transformWholeMesh = False
 
     def __str__(self):
         print("Transformation")

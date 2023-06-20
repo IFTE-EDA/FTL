@@ -1,5 +1,4 @@
 import numpy as np
-from numpy import sin, cos
 import shapely
 #from shapely import LineString, Point, Polygon
 from shapely.geometry import Point, Polygon
@@ -11,12 +10,15 @@ from enum import Enum
 import copy
 from Transformation import *
 from LinearTransformation import *
+from DirBend import *
 
 DIR = Enum('DIR', 'NEGY POSY NEGX POSX')#
 global MAX_EDGE_LENGTH
 
 
-class DirBend(Transformation):
+class Spiral(DirBend):
+
+    #def __init__(self, boundaries, baseline, length, angle, prio=0, addResidual=True, name=None):
     def __init__(self, data, prio=0, addResidual=True, name=None):
         self.boundaries_rot = None
         self.prio = prio
@@ -24,16 +26,74 @@ class DirBend(Transformation):
         self.name = name
         self.parent = None
 
+        if "turns" in data:
+            data["angle"] = data["turns"] * 2*np.pi
+        elif "angle" in data:
+            data["turns"] = data["angle"] / (2*np.pi)
+        if "dir" in data:
+            dir2angle = ["POSX", "POSY", "NEGX", "NEGY"]
+            if data["dir"] in dir2angle:
+                self.dir = np.deg2rad(dir2angle.index(data["dir"])*90)
+                print("Direction of Spiralling calculated as {} degrees".format(data["dir"]))
+            else:
+                try:
+                    self.dir = float(data["dir"])
+                except ValueError:
+                    raise ValueError("Value 'dir' for transformation '{}' is not a number.".format(name))
+                # TODO:Check if value is a number
+        else:
+            pass
+            # TODO calculate direction from geometry
+
+        if ("diameter" in data) and ("angle" in data):
+            if "length" in data:
+                raise ValueError("Transformation '{}' overdefined. Expecting exactly 2 of these values: Diameter, length, turns/angle".format(name))   #  TODO: Specify type
+            self.diameter = data["diameter"]
+            self.angle = data["angle"]
+            self.length = np.pi * self.diameter * self.turns
+            print("Calculated length as {}".format(self.length))
+        elif ("diameter" in data) and ("length" in data):
+            if "angle" in data:
+                raise ValueError("Transformation '{}' overdefined. Expecting exactly 2 of these values: Diameter, length, turns/angle".format(name))   #  TODO: Specify type
+            self.diameter = data["diameter"]
+            self.length = data["length"]
+            self.turns = self.length / (self.diameter*np.pi)
+            self.angle = self.turns * 2*np.pi
+            data["angle"] = self.diameter
+            print("Calculated angle as {}".format(np.rad2deg(self.angle)))
+        elif ("length" in data) and ("angle" in data):
+            if "diameter" in data:
+                raise ValueError("Transformation '{}' overdefined. Expecting exactly 2 of these values: Diameter, length, turns/angle".format(name))   #  TODO: Specify type
+            self.angle = data["angle"]
+            self.length = data["length"]
+            self.diameter = self.length / self.angle
+            print("Calculated diameter as {}".format(self.diameter))
+        else:
+            raise ValueError("Transformation '{}' underdefined. Expecting exactly 2 of these values: Diameter, length, turns/angle".format(name))  #  TODO: Specify type
+
         if not "points" in data:  # found point data; prioritize those
-            raise ValueError("Not enough data for Transformation {}".format(self.name))
-        if len(data["points"]) < 4:
-            raise ValueError("Not enough points in points array of transformation {}: {} (expecting 4+)".format(data["name"], len(data["points"])))
+            raise ValueError("No data points found for Transformation '{}'".format(self.name))
+        if len(data["points"]) < 2:
+            raise ValueError("Not enough points in 'points' list of transformation '{}': {} (expecting 2)".format(data["name"], len(data["points"])))
 
-        poly = Polygon([[p["x"], p["y"]] for p in data["points"]])
-        baseline = LineString(((data["points"][0]["x"], data["points"][0]["y"]), (data["points"][1]["x"], data["points"][1]["y"])))
-        self.boundaries = poly
-        super().__init__(self.boundaries, prio, addResidual, name)
+        points = [(p["x"], p["y"]) for p in data["points"]]
+        #baseline = LineString( ( points[0], points[1] ) )
+        dx, dy = self.length * np.array( (np.cos(self.dir), np.sin(self.dir)) )
+        print(dx, dy)
+        points.extend([(p[0] + dx, p[1] + dy) for p in [points[1], points[0]]])
+        data["points"] = [{"x": p[0], "y": p[1]} for p in points]
+        data["angle"] = np.rad2deg(data["angle"])
+        print(points)
+        #baseline = LineString(((data["points"][0]["x"], data["points"][0]["y"]), (data["points"][1]["x"], data["points"][1]["y"])))
+        #poly = Polygon([[p["x"], p["y"]] for p in data["points"]])
+        #poly = Polygon(points)
+        #diff = self.length * np.array((np.cos(self.dir), np.sin(self.dir)))
+        #poly[2] = poly[0] + np.array(diff)
+        #poly[3] = poly[1] + np.array(diff)
 
+        #self.boundaries = poly
+        super().__init__(data, prio, addResidual, name)
+        """
         minx, miny, maxx, maxy = poly.bounds
         bounding_box = shapely.geometry.box(minx, miny, maxx, maxy)
         ax, ay, bx, by = baseline.bounds
@@ -85,6 +145,8 @@ class DirBend(Transformation):
         self.mel = []
         self.transformWholeMesh = True
 
+        # self.super().__init__(self.boundaries, prio, addResidual, name)
+        """
 
     def __repr__(self):
         return "Tr.DirBend: [P={}; Res={}; angle={}; len={}; baseline={}; bounds={}]".format(self.prio, self.addResidual, self.angle, self.length, self.baseline, self.boundaries)
@@ -111,12 +173,25 @@ class DirBend(Transformation):
         pt = Point(point[0], point[1])
         if not pt.disjoint(self.boundaries):
             return True
+        # else:
+        #    debug(pt.__str__() + " out of scope")
 
     def getOutlinePts(self):
+        # pts = self.boundaries.exterior.coords[:-1]
+        # pts[:, 2] = self.parent.zmaxi
         poly = shapely.geometry.polygon.orient(self.boundaries)
+        # debug ("Poly is CCW: {}".format(poly.exterior.is_ccw))
+        # x = self.boundaries.exterior.coords.xy[0][:-1]
+        # y = self.boundaries.exterior.coords.xy[1][:-1]
         x = poly.exterior.coords.xy[0][:-1]
         y = poly.exterior.coords.xy[1][:-1]
+        # x, y = self.boundaries.exterior.coords.xy[:][:-1]
+        # z = [self.parent.zmax] * len(x)
         z = [0] * len(x)
+        # pts = np.zeros((len(x), 3))  # zip(x, y, z)
+        # pts[:][0] = x
+        # pts[:][1] = y
+        # pts[:][2] = z
         pts = list(zip(x, y, z))
 
         return pts
@@ -134,11 +209,12 @@ class DirBend(Transformation):
         return Line(self.getBorderlinePts())
 
     def getResidualTransformation(self, mesh=None):    #TODO
-
         newBounds = shapely.geometry.box(self.pivot[0], self.pivot[1], self.pivot[0]+100, self.pivot[1]+100)
         ret = LinearTransformation(self.newTr, newBounds, self.prio, residual=True, angle=self.z_angle, pivot=self.pivot)
         ret.name = self.name + "-Res"
         return ret
+
+        #return LinearTransformation([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0]], self.boundaries, self.prio)
 
     def transformMesh(self, mesh):
         print("--> Transforming a whole mesh now")
@@ -158,9 +234,9 @@ class DirBend(Transformation):
     def getMatrixAt(self, pt):  #TODO
         x = pt[0]
         y = pt[1]
+        # z = pt[2]
         if x > (self.pivot[0]+self.length):
             return self.newTr
-
 
         mat = np.zeros((3, 4), dtype=float)
 
