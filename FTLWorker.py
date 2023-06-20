@@ -89,7 +89,6 @@ class FTLWorker(QtCore.QObject):
             print(layer.name, layer.file)
             grp = vmt.VMAPMeshGroup(vmap, "/VMAP/GEOMETRY/" + str(i+1))
             grp.writeMesh_vedo(layer.mesh, layer.name)
-            #print(self.main.parser.layers[i].name, self.main.parser.layers[i].file)
 
 
     def exportFile_STL(self, filename: str):

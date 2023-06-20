@@ -68,19 +68,14 @@ class RenderContainer:
             container_visible = getattr(self, name + "_visible")
             items = [[itemLabel, container[itemLabel][1]] for itemLabel in container]
             struct[label] = [items, container_visible]
-            # for itemLabel in container:
-            #    item, visible = container[itemLabel]
         return struct
 
     def render(self):
-        # debug("rendering")
         renderList = []
         self.plotter.clear()
         for name in ["layers", "transformations", "debug"]:
-            # debug("Current Str: {}".format(name))
             container = getattr(self, name)
             container_visible = getattr(self, name + "_visible")
-            # debug("Container: {}".format(container))
             if not container_visible:
                 continue
 
@@ -89,7 +84,6 @@ class RenderContainer:
 
                 if visible:
                     renderList.append(item)
-                    # debug ("Drawing {}.'{}'".format(name, label))
         self.plotter.show(renderList, resetcam=False)
         print("+++ Rendering RC +++")
         self.plotter.render()

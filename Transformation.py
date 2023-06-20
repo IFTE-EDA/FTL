@@ -25,17 +25,12 @@ class Transformation:
         print("Transformation")
 
     def getOutline(self):
-        # pts = self.boundaries.exterior.coords[:-1]
-        # pts[:, 2] = self.parent.zmaxi
         x = self.boundaries.exterior.coords.xy[0][:-1]
         y = self.boundaries.exterior.coords.xy[1][:-1]
-        # x, y = self.boundaries.exterior.coords.xy[:][:-1]
         z = [self.parent.zmax] * len(x)
-        pts = np.zeros((len(x), 3))  # zip(x, y, z)
-        # pts[:][0] = x
-        # pts[:][1] = y
-        # pts[:][2] = z
-        pts = x, y, z
+        #pts = np.zeros((len(x), 3))  # zip(x, y, z)
+        pts = list(zip(x, y, z))
+        return pts
 
     def get_preprocessed_mesh(self, layerId):
         print("    Transformation {}\n     -> layer {}/{}".format(self, layerId, len(self.mel)))

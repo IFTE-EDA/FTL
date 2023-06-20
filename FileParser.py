@@ -65,7 +65,6 @@ class FileParser(QtCore.QObject):
                                                                                                    layerObj.mel_residual,
                                                                                                    layerObj.color,
                                                                                                    layer["file"]))
-            #self.meshes.append(mesh)
 
         meshNumStr = "/".join([str(layer.mesh.npoints) for layer in self.transformer.layers])
 
@@ -98,10 +97,8 @@ class FileParser(QtCore.QObject):
                                                                                    tr["xmax"], tr["ymin"], tr["ymax"]))
             elif tr["type"] == "DirBend":
 
-                #trans = DirBend(poly, baseline, tr["angle"], name=tr["name"])
                 trans = DirBend(tr, name=tr["name"])
                 self.transformer.rcFP.add_debug("Debug_Trans", trans.debugShow(), True)
-                #debug("  -> dir={};  angle={};  x = {}...{};  y = {}...{};".format(tr["dir"], tr["angle"], tr["xmin"], tr["xmax"], tr["ymin"], tr["ymax"]))
 
             elif tr["type"] == "Spiral":
                 trans = Spiral(tr, name=tr["name"])
@@ -129,16 +126,9 @@ class FileParser(QtCore.QObject):
 
     def visualize(self):
         self.transformer.visualize()
-        # plt.show(self.meshes[0].c("grey"), self.meshes[1].c("orange"), self.transformer.borderEdges, self.transformer.debugOutput)
 
     def render(self):
         debug("\nRendering...")
         self.transformer.start_transformation()
-        # newPoints = self.transformer.start_transformation()
-        # for i, mesh in enumerate(newPoints):
-        #    self.meshes[i].points(mesh)
-        #    newFilename = "{}_{}.stl".format(self.filename[:-5], self.j_layers[i]["name"])
-        #    debug("Saving layer #{} in '{}'".format(i, newFilename))
-        #   write(self.meshes[i], newFilename)
         ret = self.transformer.get_result_mesh()
         return ret

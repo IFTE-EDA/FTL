@@ -79,21 +79,10 @@ class ZBend(Transformation):
                     max(self.ymin, self.ymax) + delta]
 
     def getOutlinePts(self):
-        # pts = self.boundaries.exterior.coords[:-1]
-        # pts[:, 2] = self.parent.zmaxi
         poly = shapely.geometry.polygon.orient(self.boundaries)
-        # debug ("Poly is CCW: {}".format(poly.exterior.is_ccw))
-        # x = self.boundaries.exterior.coords.xy[0][:-1]
-        # y = self.boundaries.exterior.coords.xy[1][:-1]
         x = poly.exterior.coords.xy[0][:-1]
         y = poly.exterior.coords.xy[1][:-1]
-        # x, y = self.boundaries.exterior.coords.xy[:][:-1]
-        # z = [self.parent.zmax] * len(x)
         z = [0] * len(x)
-        # pts = np.zeros((len(x), 3))  # zip(x, y, z)
-        # pts[:][0] = x
-        # pts[:][1] = y
-        # pts[:][2] = z
         pts = list(zip(x, y, z))
 
         return pts
@@ -114,7 +103,7 @@ class ZBend(Transformation):
         return pts
 
     def getBorderline(self):
-        return Line(self.getBorderlinePts())
+        return v.Line(self.getBorderlinePts())
 
     def getResidualTransformation(self):
         print("Getting resiual; my dir is {}".format(self.dir))

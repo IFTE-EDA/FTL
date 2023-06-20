@@ -47,14 +47,6 @@ class port:
         pass
 
 
-# from PySide6.QtWidgets import QApplication, QMainWindow
-
-# Important:
-# You need to run the following command to generate the ui_form.py file
-#     pyside6-uic form.ui -o ui_form.py, or
-#     pyside2-uic form.ui -o ui_form.py
-# from ui_form import Ui_MainWindow
-
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -87,24 +79,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.layers_fp = []
         self.layers_render = []
 
-        """btn_icons = [   (self.actionFileNew, "SP_FileIcon"),
-                        (self.actionFileOpen, "SP_DirIcon"),
-                        (self.actionFileRecent, "SP_DirIcon"),
-                        (self.actionFileSave, "SP_DialogSaveButton"),
-                        (self.actionFileSave_as, "SP_DialogSaveButton"),
-                        (self.actionFileExport, "SP_ArrowForward"),
-                        (self.actionFileQuit, "SP_BrowserStop"),
-                        (self.actionEditAdd_mesh_layer, "SP_MediaPlay"),
-                        (self.actionEditAdd_transformation, "SP_MediaPlay"),
-                        (self.actionToolsFreeCAD, "SP_TitleBarMenuButton"),
-                        (self.actionToolsKiCAD, "SP_TitleBarMenuButton"),
-                        (self.actionHelpAbout, "SP_MessageBoxQuestion"),
-                        (self.actionHelpDocumentation, "SP_MessageBoxQuestion"),
-                        (self.actionReset_View, "SP_DialogOkButton"),
-                        (self.actionRender, "SP_DialogHelpButton"),
-                        (self.bConsClear, "SP_BrowserStop"),
-                        (self.bConsAutoscroll, "SP_ArrowDown"),
-                        (self.bConsC, "SP_DialogSaveButton")]"""
         btn_icons = [(self.actionFileNew, "document-new"),
                      (self.actionFileOpen, "document-open"),
                      (self.actionFileRecent, "document-open"),

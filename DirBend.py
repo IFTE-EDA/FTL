@@ -24,7 +24,7 @@ class DirBend(Transformation):
         self.name = name
         self.parent = None
 
-        if not "points" in data:  # found point data; prioritize those
+        if "points" not in data:  # found point data; prioritize those
             raise ValueError("Not enough data for Transformation {}".format(self.name))
         if len(data["points"]) < 4:
             raise ValueError("Not enough points in points array of transformation {}: {} (expecting 4+)".format(data["name"], len(data["points"])))
@@ -59,7 +59,6 @@ class DirBend(Transformation):
         distPoints = [(dists[i], poly.exterior.coords[i]) for i in range(len(poly.exterior.coords)) if dists[i] > 0]
 
         points_sorted_by_distance = sorted(distPoints, key=lambda x: x[0])
-        #length = self.extLine.distance(points_sorted_by_distance[0])  #TODO
         length = points_sorted_by_distance[0][0]
         print(">>min: {}".format(length))
         self.projPoint, _ = nearest_points(self.extLine, Point(points_sorted_by_distance[0][1]))
