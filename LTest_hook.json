@@ -1,48 +1,48 @@
 {
-	"version": 0.1,
-	"mel":			4,
-	"mel_trans":	2,
-	"mel_residual":	4,
-	"layers": [
-		{
-			"name":			"PCB",
-			"file":			"LTest_hook_board.stl",
-			"mel":			3,
-			"mel_trans":	1,
-			"mel_residual":	3
-		},
-		{
-			"name":			"Copper",
-			"file":			"LTest_hook_trace.stl",
-			"mel":			3,
-			"mel_trans":	1,
-			"mel_residual":	3
-		}
-	],
-	"transformations": [
-		{
-			"name":			"TR1_X",
-			"priority":		0,
-			"type":			"ZBend",
-			"dir":			"POSX",
-			"angle":		180,
-			"xmin":			120,
-			"xmax":			160,
-			"ymin":			-62,
-			"ymax":			-40,
-			"color":		"blue"
-		},
-		{
-			"name":			"TR2_Y",
-			"priority":		0,
-			"type":			"ZBend",
-			"dir":			"NEGY",
-			"angle":		180,
-			"xmin":			42,
-			"xmax":			63,
-			"ymin":			-100,
-			"ymax":			-130,
-			"color":		"orange"
-		}
-	]
+    "version": 0.1,
+    "mel": 4,
+    "mel_trans": 2,
+    "mel_residual": 4,
+    "layers": [
+        {
+            "name": "PCB",
+            "file": "LTest_hook_board.stl",
+            "mel": 3,
+            "mel_trans": 1,
+            "mel_residual": 3
+        },
+        {
+            "name": "Copper",
+            "file": "LTest_hook_trace.stl",
+            "mel": 3,
+            "mel_trans": 1,
+            "mel_residual": 3
+        }
+    ],
+    "transformations": [
+        {
+            "name": "TR1_X",
+            "priority": 0,
+            "type": "ZBend",
+            "dir": "POSX",
+            "angle": 180,
+            "xmin": 120,
+            "xmax": "180",
+            "ymin": -62,
+            "ymax": -40,
+            "color": "blue"
+        },
+        {
+            "name": "TR2_Y",
+            "priority": 0,
+            "type": "ZBend",
+            "dir": "NEGY",
+            "angle": 180,
+            "xmin": 42,
+            "xmax": 63,
+            "ymin": -100,
+            "ymax": -130,
+            "color": "orange"
+        }
+    ]
 }

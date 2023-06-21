@@ -226,16 +226,17 @@
      <height>22</height>
     </rect>
    </property>
-   <widget class="QMenu" name="menuTestapp">
+   <widget class="QMenu" name="menuFile">
     <property name="title">
-     <string>Testapp</string>
+     <string>File</string>
     </property>
     <addaction name="actionFileNew"/>
     <addaction name="actionFileOpen"/>
     <addaction name="actionFileRecent"/>
     <addaction name="actionFileSave"/>
     <addaction name="actionFileSave_as"/>
-    <addaction name="actionFileExport"/>
+    <addaction name="actionFileExportVMAP"/>
+    <addaction name="actionFileExportSTL"/>
     <addaction name="actionFileQuit"/>
    </widget>
    <widget class="QMenu" name="menuEdit">
@@ -262,7 +263,7 @@
     <addaction name="actionHelpAbout"/>
     <addaction name="actionHelpDocumentation"/>
    </widget>
-   <addaction name="menuTestapp"/>
+   <addaction name="menuFile"/>
    <addaction name="menuEdit"/>
    <addaction name="menuTools"/>
    <addaction name="menuHelp"/>
@@ -394,13 +395,13 @@
     <string>Ctrl+Shift+T</string>
    </property>
   </action>
-  <action name="actionFileExport">
+  <action name="actionFileExportVMAP">
    <property name="icon">
     <iconset theme="document-print-preview">
      <normaloff>.</normaloff>.</iconset>
    </property>
    <property name="text">
-    <string>Export</string>
+    <string>Export VMAP</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+E</string>
@@ -437,7 +438,27 @@
     <string>Render the current model</string>
    </property>
    <property name="shortcut">
+    <string>F8</string>
+   </property>
+  </action>
+  <action name="actionUpdate_Footprint">
+   <property name="text">
+    <string>Update Footprint</string>
+   </property>
+   <property name="shortcut">
     <string>F5</string>
+   </property>
+  </action>
+  <action name="actionFileExportSTL">
+   <property name="icon">
+    <iconset>
+     <normaloff>icons/document-export.svg</normaloff>icons/document-export.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Export STEP</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+E</string>
    </property>
   </action>
  </widget>

@@ -5,6 +5,7 @@ import MeshLayer
 
 ItemType = Enum('ItemType', 'Layer Transformation Debug')
 
+
 class RenderContainer:
     def __init__(self, plt=None):
         if plt is None:
@@ -19,20 +20,20 @@ class RenderContainer:
 
     def add_layer(self, label, item, vis=True):
         self.layers[label] = [item, vis]
-        #debug("Adding to layers: {}={} ({})".format(label, item, vis))
+        # debug("Adding to layers: {}={} ({})".format(label, item, vis))
 
     def add_transformation(self, label, item, vis=True):
         self.transformations[label] = [item, vis]
-        #debug("Adding to transformations: {}={} ({})".format(label, item, vis))
+        # debug("Adding to transformations: {}={} ({})".format(label, item, vis))
 
     def add_debug(self, label, item, vis=True):
         self.debug[label] = [item, vis]
-        #debug("Adding to debug: {}={} ({})".format(label, item, vis))
+        # debug("Adding to debug: {}={} ({})".format(label, item, vis))
 
     def add_item(self, item_type, label, item, vis=True):
         container = self.get_container(item_type)
         container[label] = [item, vis]
-        #debug ("Adding to {}: {}={}".format(container))
+        # debug ("Adding to {}: {}={}".format(container))
 
     def set_container_visibility(self, item_type, vis):
         if item_type == ItemType.Layer:
@@ -67,19 +68,14 @@ class RenderContainer:
             container_visible = getattr(self, name + "_visible")
             items = [[itemLabel, container[itemLabel][1]] for itemLabel in container]
             struct[label] = [items, container_visible]
-            #for itemLabel in container:
-            #    item, visible = container[itemLabel]
         return struct
 
     def render(self):
-        #debug("rendering")
         renderList = []
         self.plotter.clear()
         for name in ["layers", "transformations", "debug"]:
-            #debug("Current Str: {}".format(name))
             container = getattr(self, name)
-            container_visible = getattr(self, name+"_visible")
-            #debug("Container: {}".format(container))
+            container_visible = getattr(self, name + "_visible")
             if not container_visible:
                 continue
 
@@ -88,8 +84,8 @@ class RenderContainer:
 
                 if visible:
                     renderList.append(item)
-                    #debug ("Drawing {}.'{}'".format(name, label))
         self.plotter.show(renderList, resetcam=False)
+        print("+++ Rendering RC +++")
         self.plotter.render()
 
     def clear(self):

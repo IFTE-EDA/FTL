@@ -8,6 +8,8 @@ from LinearTransformation import *
 from FileParser import FileParser
 from RenderContainer import *
 
+import VMeshTools as vmt
+
 
 class FTLWorker(QtCore.QObject):
     def __init__(self, main):
@@ -35,6 +37,15 @@ class FTLWorker(QtCore.QObject):
         self.fileOpened.emit()
         print("File opened.")
 
+    def updateModel(self):
+        print("(Re)parsing...")
+        main = self.main
+        main.parser.parse()
+        # main.visualize()
+        self.status.emit("File parsed successfully.")
+        self.progress.emit(100)
+        print("(Re)parsed.")
+
     def parse(self, signal=True):
         print("(Re)parsing...")
         main = self.main
@@ -46,7 +57,6 @@ class FTLWorker(QtCore.QObject):
         if signal:
             self.parsingFinished.emit()
         print("(Re)parsed.")
-        #main.resetView()
 
     def visualize(self):
         print("Visualizing...")
@@ -67,8 +77,19 @@ class FTLWorker(QtCore.QObject):
 
     def updateParser(self):
         print("Updating assignments...")
-        self.main.parser.calculate_assignments()
         self.status.emit("Transformations updated.")
         self.progress.emit(100)
         self.updatingFinished.emit()
         print("Assignments updated.")
+
+    def exportFile_VMAP(self, filename: str):
+        vmap = vmt.VMAPFileHandler(filename)
+        print("Filename:", filename)
+        for i, layer in enumerate(self.main.parser.layers):
+            print(layer.name, layer.file)
+            grp = vmt.VMAPMeshGroup(vmap, "/VMAP/GEOMETRY/" + str(i+1))
+            grp.writeMesh_vedo(layer.mesh, layer.name)
+
+
+    def exportFile_STL(self, filename: str):
+        raise NotImplementedError("Not implemented yet.")

@@ -21,7 +21,6 @@ if len(sys.argv) < 2:
 if not os.path.isfile(sys.argv[1]):
     sys.exit("File not found: {}".format(sys.argv[1]))
 
-#parser = FileParser("LTest_hook.json")
 parser = FileParser(sys.argv[1])
 
 parser.parse()
