@@ -8,7 +8,7 @@ from LinearTransformation import *
 from FileParser import FileParser
 from RenderContainer import *
 
-import VMeshTools as vmt
+import VMeshTools.VMeshTools as vmt
 
 
 class FTLWorker(QtCore.QObject):
@@ -83,12 +83,16 @@ class FTLWorker(QtCore.QObject):
         print("Assignments updated.")
 
     def exportFile_VMAP(self, filename: str):
-        vmap = vmt.VMAPFileHandler(filename)
+        meshes = self.main.parser.transformer.getTransformedMeshList()
         print("Filename:", filename)
-        for i, layer in enumerate(self.main.parser.layers):
-            print(layer.name, layer.file)
+        vmap = vmt.VMAPFileHandler(filename)
+        for i, (name, mesh) in enumerate(meshes.items()):
+            print(name)
             grp = vmt.VMAPMeshGroup(vmap, "/VMAP/GEOMETRY/" + str(i+1))
-            grp.writeMesh_vedo(layer.mesh, layer.name)
+            grp.writeMesh_vedo(mesh, name)
+        print("VMAP export done.")
+        #v.show(meshes["PCB"], meshes["Copper"])
+        v.show(v.Points(meshes["PCB"].points()))
 
 
     def exportFile_STL(self, filename: str):

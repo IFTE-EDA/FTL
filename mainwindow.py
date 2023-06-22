@@ -261,7 +261,7 @@ class MainWindow(QtWidgets.QMainWindow):
         file, _ = QFileDialog.getSaveFileName(self, "Save STL file", filter="*.stl",
                                               options=QFileDialog.Option.DontUseNativeDialog)
         if not len(file):
-            print("VMAP Export aborted.")
+            print("STL Export aborted.")
             return
         self.worker.exportFile_STEP(file)
 

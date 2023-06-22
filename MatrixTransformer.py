@@ -224,7 +224,7 @@ class MatrixTransformer(QtCore.QObject):
     def start_transformation(self):
         for tr in self.transformations:
             for meshNum in range(len(tr.meshes)):
-                mesh = tr.get_preprocessed_mesh(meshNum)
+                mesh = tr.get_preprocessed_mesh(meshNum).clean()
                 mats = []
                 if tr.transformWholeMesh:                     # Transformation implemented a method to  the whole transformation on its own
                     mesh = tr.transformMesh(mesh)
@@ -252,6 +252,17 @@ class MatrixTransformer(QtCore.QObject):
         meshes.append(v.merge(self.fixed_mesh))
         ret = v.merge(meshes)
         return ret
+
+    def getTransformedMeshList(self):
+        meshes = {e.name: None for e in self.layers}
+        print(meshes)
+        for meshNum in range(self.nlayers):
+            layer = [tr.meshes[meshNum] for tr in self.transformations]
+            layer.append(self.fixed_mesh[meshNum])
+            print("{} meshes in '{}'".format(len(layer), self.layers[meshNum].name))
+            meshes[self.layers[meshNum].name] = v.merge(layer)
+        print(meshes)
+        return meshes
 
 
 def cut_with_line(mesh, points, invert=False, closed=True, residual=True):
@@ -327,6 +338,7 @@ def cut_with_line(mesh, points, invert=False, closed=True, residual=True):
 
 def split_with_transformation(self, mesh, tr):
     mesh_transformed, part = cut_with_line(mesh.clone(), tr.getOutline())
+    #mesh_transformed = mesh_transformed.clean()
     fixedMeshes = []
     residualMeshes = []
     split = part.split()
