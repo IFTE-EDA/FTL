@@ -6,6 +6,7 @@ from MatrixTransformer import *
 from enum import Enum
 import copy
 from Transformation import *
+import os
 
 
 class MeshLayer:
@@ -51,6 +52,8 @@ class MeshLayer:
 
     @classmethod
     def get_from_JSON(cls, data, parser=None, id=None):
+        if not os.path.isfile(data["file"]):
+            raise Exception("File not found:", data["file"])
         mesh = v.load(data["file"]).subdivide(0, 2, mel=2).clean()
         inst = cls(mesh, data, parser, id)
         return inst

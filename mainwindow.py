@@ -229,6 +229,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def importKiCAD(self):
         file, _ = QFileDialog.getOpenFileName(self, "Pick a KiCAD PCB", filter="*.kicad_pcb",
                                               options=QFileDialog.Option.DontUseNativeDialog)
+        self.new_file()
         self.worker.importKiCAD(file)
 
     def openFileDialog(self):
@@ -515,6 +516,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.projectFilename = file
 
         # self.parser.parse()
+        os.chdir(os.path.dirname(file))
         self.sig_parseFile.emit(file)
         print("Sent signal to open file...")
 

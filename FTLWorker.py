@@ -7,8 +7,12 @@ from ZBend import *
 from LinearTransformation import *
 from FileParser import FileParser
 from RenderContainer import *
-
+import subprocess
+import os
+from pathlib import Path
+import shutil
 import VMeshTools.VMeshTools as vmt
+from PyQt6.QtWidgets import QFileDialog
 
 
 class FTLWorker(QtCore.QObject):
@@ -106,5 +110,38 @@ class FTLWorker(QtCore.QObject):
         print("STL export done.")
 
     def importKiCAD(self, filename: str):
-        pass
-        #TODO
+        if not os.path.isfile(filename):
+            raise Exception("File not found:", filename)
+        self.status.emit("Converting KiCAD file...")
+        self.progress.emit(10)
+        subprocess.call(["python", "kicad2STL.py", filename])
+        self.status.emit("Preparing project file...")
+        self.progress.emit(60)
+        savefile, _ = QFileDialog.getSaveFileName(self.main, "Save project file", filter="*.json",
+                                              options=QFileDialog.Option.DontUseNativeDialog)
+        projName = Path(savefile).stem
+        projDir = Path(savefile).parent
+        boardFilename = projName + "_board.stl"
+        coppersFilename = projName + "_coppers.stl"
+
+        if not savefile.endswith(".json"):
+            savefile = str(projDir) + "/" + projName + ".json"
+        #shutil.copy2("_template_.json", savefile)
+        print("Saving to project '{}' in directory {}".format(projName, projDir))
+
+        search = ["{BOARDFILE}", "{COPPERFILE}"]
+        replace = [boardFilename, coppersFilename]
+
+        shutil.move("STL/board_solid.stl", str(projDir) + "/" + boardFilename)
+        shutil.move("STL/coppers_fuse.stl", str(projDir) + "/" + coppersFilename)
+
+        with open("_template_.json", 'r') as file:
+            data = file.read()
+            for i, token in enumerate(search):
+                data = data.replace(token, replace[i])
+        with open(savefile, 'w') as file:
+            file.write(data)
+        self.main.open_file(savefile)
+        self.status.emit("File imported.")
+        self.progress.emit(0)
+
