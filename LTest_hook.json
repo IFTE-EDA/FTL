@@ -7,6 +7,7 @@
         {
             "name": "PCB",
             "file": "LTest_hook_board.stl",
+			"color": "green",
             "mel": 3,
             "mel_trans": 1,
             "mel_residual": 3
@@ -14,6 +15,7 @@
         {
             "name": "Copper",
             "file": "LTest_hook_trace.stl",
+			"color": "orange",
             "mel": 3,
             "mel_trans": 1,
             "mel_residual": 3

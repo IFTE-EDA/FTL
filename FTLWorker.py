@@ -92,8 +92,19 @@ class FTLWorker(QtCore.QObject):
             grp.writeMesh_vedo(mesh, name)
         print("VMAP export done.")
         #v.show(meshes["PCB"], meshes["Copper"])
-        v.show(v.Points(meshes["PCB"].points()))
+        #v.show(v.Points(meshes["PCB"].points()))
 
 
-    def exportFile_STL(self, filename: str):
-        raise NotImplementedError("Not implemented yet.")
+    def exportFile_STL(self, filename_f: str):
+        if not "{}" in filename_f:
+            raise Exception("Filename does not contain formatting brackets:", filename_f)
+        meshes = self.main.parser.transformer.getTransformedMeshList()
+        for i, (name, mesh) in enumerate(meshes.items()):
+            filename = filename_f.format(name)
+            print("Exporting '{}'...".format(filename))
+            mesh.write(filename)
+        print("STL export done.")
+
+    def importKiCAD(self, filename: str):
+        pass
+        #TODO

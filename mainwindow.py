@@ -82,9 +82,11 @@ class MainWindow(QtWidgets.QMainWindow):
         btn_icons = [(self.actionFileNew, "document-new"),
                      (self.actionFileOpen, "document-open"),
                      (self.actionFileRecent, "document-open"),
+                     (self.actionFileImportKiCAD, "document-open"),
                      (self.actionFileSave, "document-save"),
                      (self.actionFileSave_as, "document-save-as"),
-                     #(self.actionFileExport, "document-export"),
+                     (self.actionFileExportVMAP, "document-export"),
+                     (self.actionFileExportSTL, "document-export"),
                      (self.actionFileQuit, "window-close"),
                      (self.actionEditAdd_mesh_layer, "cursor-cross"),
                      (self.actionEditAdd_transformation, "cursor-cross"),
@@ -154,6 +156,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.actionFileQuit.triggered.connect(self.close)
         self.actionFileNew.triggered.connect(self.new_file)
         self.actionFileOpen.triggered.connect(self.openFileDialog)
+        self.actionFileImportKiCAD.triggered.connect(self.importKiCAD)
         self.actionFileSave.triggered.connect(self.saveFileDialog)
         self.actionFileSave_as.triggered.connect(self.saveAsFileDialog)
         self.actionFileExportVMAP.triggered.connect(self.exportVMAP)
@@ -223,6 +226,11 @@ class MainWindow(QtWidgets.QMainWindow):
     sig_render = QtCore.pyqtSignal()
     sig_updateParser = QtCore.pyqtSignal()
 
+    def importKiCAD(self):
+        file, _ = QFileDialog.getOpenFileName(self, "Pick a KiCAD PCB", filter="*.kicad_pcb",
+                                              options=QFileDialog.Option.DontUseNativeDialog)
+        self.worker.importKiCAD(file)
+
     def openFileDialog(self):
         file, _ = QFileDialog.getOpenFileName(self, "Pick a FTL file", "LTest_hook.json", filter="*.json",
                                               options=QFileDialog.Option.DontUseNativeDialog)
@@ -253,7 +261,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if not len(file):
             print("VMAP Export aborted.")
             return
-        if not file.endswith(".h5") or not file.endswith(".vmap"):
+        if not file.endswith(".h5") and not file.endswith(".vmap"):
             file = file + ".h5"
         self.worker.exportFile_VMAP(file)
 
@@ -263,7 +271,12 @@ class MainWindow(QtWidgets.QMainWindow):
         if not len(file):
             print("STL Export aborted.")
             return
-        self.worker.exportFile_STEP(file)
+        if not file.endswith(".stl"):
+            file = file + "_{}.stl"
+        else:
+            file = file[:-4] + "_{}.stl"
+        print("Saving STLs to " + file.format("<LAYER>"))
+        self.worker.exportFile_STL(file)
 
     def modelItemClicked(self, item):
         self.wParams.blockSignals(True)

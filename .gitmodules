@@ -1,0 +1,4 @@
+[submodule "VMeshTools"]
+	path = VMeshTools
+	url = https://github.com/IFTE-EDA/VMeshTools
+	branch = dev

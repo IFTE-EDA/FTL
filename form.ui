@@ -233,6 +233,7 @@
     <addaction name="actionFileNew"/>
     <addaction name="actionFileOpen"/>
     <addaction name="actionFileRecent"/>
+    <addaction name="actionFileImportKiCAD"/>
     <addaction name="actionFileSave"/>
     <addaction name="actionFileSave_as"/>
     <addaction name="actionFileExportVMAP"/>
@@ -311,9 +312,6 @@
    </property>
    <property name="text">
     <string>Recent files</string>
-   </property>
-   <property name="shortcut">
-    <string>Ctrl+E</string>
    </property>
   </action>
   <action name="actionFileSave">
@@ -457,8 +455,19 @@
    <property name="text">
     <string>Export STEP</string>
    </property>
+   <property name="toolTip">
+    <string>Export STL</string>
+   </property>
    <property name="shortcut">
     <string>Ctrl+Shift+E</string>
+   </property>
+  </action>
+  <action name="actionFileImportKiCAD">
+   <property name="text">
+    <string>Import KiCAD PCB</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+I</string>
    </property>
   </action>
  </widget>
