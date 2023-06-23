@@ -23,6 +23,8 @@ from ZBend import *
 from LinearTransformation import *
 from FileParser import FileParser
 from RenderContainer import *
+
+from FTLPreferencesDialog import FTLPreferencesDialog
 from FTLWorker import *
 
 global MODE_GUI
@@ -153,7 +155,6 @@ class MainWindow(QtWidgets.QMainWindow):
         #############################
         """
 
-        self.actionFileQuit.triggered.connect(self.close)
         self.actionFileNew.triggered.connect(self.new_file)
         self.actionFileOpen.triggered.connect(self.openFileDialog)
         self.actionFileImportKiCAD.triggered.connect(self.importKiCAD)
@@ -161,6 +162,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.actionFileSave_as.triggered.connect(self.saveAsFileDialog)
         self.actionFileExportVMAP.triggered.connect(self.exportVMAP)
         self.actionFileExportSTL.triggered.connect(self.exportSTL)
+        self.actionFilePreferences.triggered.connect(self.showPreferences)
+        self.actionFileQuit.triggered.connect(self.close)
+
         self.actionReset_View.triggered.connect(self.resetView)
         # self.actionReset_View.triggered.connect(self.resetView)
         self.actionUpdate_Footprint.triggered.connect(self.worker.parse)
@@ -278,6 +282,10 @@ class MainWindow(QtWidgets.QMainWindow):
             file = file[:-4] + "_{}.stl"
         print("Saving STLs to " + file.format("<LAYER>"))
         self.worker.exportFile_STL(file)
+
+    def showPreferences(self):
+        prefDialog = FTLPreferencesDialog(self)
+        prefDialog.exec()
 
     def modelItemClicked(self, item):
         self.wParams.blockSignals(True)

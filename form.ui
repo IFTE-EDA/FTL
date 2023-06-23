@@ -238,6 +238,7 @@
     <addaction name="actionFileSave_as"/>
     <addaction name="actionFileExportVMAP"/>
     <addaction name="actionFileExportSTL"/>
+    <addaction name="actionFilePreferences"/>
     <addaction name="actionFileQuit"/>
    </widget>
    <widget class="QMenu" name="menuEdit">
@@ -468,6 +469,11 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+I</string>
+   </property>
+  </action>
+  <action name="actionFilePreferences">
+   <property name="text">
+    <string>Preferences</string>
    </property>
   </action>
  </widget>

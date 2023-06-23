@@ -145,3 +145,4 @@ class FTLWorker(QtCore.QObject):
         self.status.emit("File imported.")
         self.progress.emit(0)
 
+
