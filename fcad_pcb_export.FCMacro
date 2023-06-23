@@ -1,0 +1,31 @@
+from fcad_pcb import kicad
+import Import
+import sys
+
+filename = sys.argv[2]
+
+#pcbpath = r"E:\Dokumente\KiCad\Projects\Striptest_v\Striptest.kicad_pcb"
+#pcbpath = r"E:\Dokumente\KiCad\Projects\UC_Philips.kicad_pcb"
+
+if not os.path.isfile(filename):
+	raise Exception("File not found:", filename)
+
+print("Opening", filename)
+fcadDoc = FreeCAD.newDocument("FCAD_PCB")
+#Gui.activeDocument().activeView().viewDefaultOrientation()
+print("Doc active; opening KiCAD file")
+pcb = kicad.KicadFcad(filename)
+pcbObjs = pcb.make(copper_thickness=0.018, board_thickness=0.1, combo=False, fuseCoppers=True )
+#visObj = [i for i in doc.Objects if i.ViewObject.isVisible()]
+topObjectsColor = []
+print(pcbObjs)
+for obj in pcbObjs:
+	#if obj.ViewObject.isVisible():
+		#numfaces = len(obj.Shape.Faces)
+		#rgb = (1.0,1.0,0.0) # yellow
+		#colors = [rgb for i in range(numfaces)]
+		#topObjectsColor.append((obj, colors))
+		#Import.export(topObjectsColor, r"E:\Dokumente\Python\FTL\_{}_.step".format(obj.Name))
+	#Import.export([obj],"STEP/{}.step".format(obj.Name))
+	obj.Shape.exportStl("STL/{}.stl".format(obj.Name))
+#print(visObj)
