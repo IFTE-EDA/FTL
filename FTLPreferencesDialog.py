@@ -4,6 +4,7 @@ from PyQt6 import uic
 from PyQt5 import QtWidgets, QtCore
 from PyQt5.QtCore import Qt
 from PyQt6.QtWidgets import QWidget, QApplication, QMainWindow, QDialog, QListWidgetItem, QFileDialog, QMessageBox
+from FTLKiCAD import KiCADPathManager
 
 
 class FTLPreferencesDialog(QDialog):
@@ -12,6 +13,8 @@ class FTLPreferencesDialog(QDialog):
         uic.loadUi('preferences.ui', self)
 
         self.pbFCPath.pressed.connect(self.chooseFC)
+        self.pbKCPath.pressed.connect(self.chooseKC)
+        self.pbKCUPath.pressed.connect(self.chooseKCU)
         self.buttonBox.accepted.connect(self.save)
 
         with open("preferences.json") as f:
@@ -24,6 +27,12 @@ class FTLPreferencesDialog(QDialog):
             raise Exception("'preferences.json' not found")
 
         self.leFCPath.setText(self.prefs["freecadPath"])
+        self.leKCPath.setText(self.prefs["kicadPath"])
+        self.leKCUPath.setText(self.prefs["kicadUserPath"])
+
+        kicadMgr = KiCADPathManager(self.prefs["kicadUserPath"])
+        print(kicadMgr.paths)
+        print(kicadMgr.resolvePath("${ESPRESSIF_3D_MODELS}/Connector_PinHeader_2.54mm.3dshapes/PinHeader_1x03_P2.54mm_Vertical.wrl"))
 
     def chooseFC(self):
         filename, _ = QFileDialog.getOpenFileName(self, "Path to FreeCADCmd.exe", "", filter="*.exe",
@@ -37,6 +46,32 @@ class FTLPreferencesDialog(QDialog):
             mb.exec()
         self.leFCPath.setText(filename)
         self.prefs["freecadPath"] = filename
+
+    def chooseKC(self):
+        filename = QFileDialog.getExistingDirectory(self, "KiCAD base directory", "",
+                                                    options=QFileDialog.Option.DontUseNativeDialog)
+        if filename == "":
+            return False
+        if not os.path.isdir(filename):
+            mb = QMessageBox(self)
+            mb.setWindowTitle("Path invalid")
+            mb.setText("Directory not found or is not a KiCAD base directory: " + filename)
+            mb.exec()
+        self.leKCPath.setText(filename)
+        self.prefs["kicadPath"] = filename
+
+    def chooseKCU(self):
+        filename = QFileDialog.getExistingDirectory(self, "KiCAD user directory", "",
+                                                  options=QFileDialog.Option.DontUseNativeDialog)
+        if filename == "":
+            return False
+        if not os.path.isdir(filename):
+            mb = QMessageBox(self)
+            mb.setWindowTitle("Path invalid")
+            mb.setText("Directory not found or is not a KiCAD user directory: " + filename)
+            mb.exec()
+        self.leKCUPath.setText(filename)
+        self.prefs["kicadUserPath"] = filename
 
     def save(self):
         json_object = json.dumps(self.prefs, indent=4)
