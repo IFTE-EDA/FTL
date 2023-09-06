@@ -42,6 +42,7 @@ pillow==10.0.0
     # via matplotlib
 pluggy==1.3.0
     # via pytest
+pre-commit==3.4.0
 pygments==2.16.1
     # via vedo
 pyparsing==3.0.9
