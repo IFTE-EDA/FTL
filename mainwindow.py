@@ -24,7 +24,7 @@ from LinearTransformation import *
 from FileParser import FileParser
 from RenderContainer import *
 
-from FTLPreferencesDialog import FTLPreferencesDialog
+from dialogs.FTLPreferencesDialog import FTLPreferencesDialog
 from FTLWorker import *
 
 global MODE_GUI
