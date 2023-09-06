@@ -1,0 +1,12 @@
+gmsh==4.11.1
+h5py==3.8.0
+numpy==1.25.2
+PyQt5==5.15.9
+PyQt5_sip==12.11.0
+PyQt6==6.5.2
+PyQt6_sip==13.5.1
+pytest==7.3.2
+setuptools==68.1.2
+Shapely==2.0.1
+vedo==2023.4.4
+vtk==9.2.6
