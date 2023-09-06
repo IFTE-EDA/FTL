@@ -2,9 +2,6 @@
 	path = VMeshTools
 	url = https://github.com/IFTE-EDA/VMeshTools
 	branch = dev
-[submodule "pyuff"]
-	path = pyuff
-	url = https://github.com/nico-arnold/pyuff.git
 [submodule "pyUNV"]
 	path = pyUNV
 	url = https://github.com/nico-arnold/pyUNV.git
