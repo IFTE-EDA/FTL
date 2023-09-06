@@ -10,7 +10,7 @@ from FTLKiCAD import KiCADPathManager
 class FTLPreferencesDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
-        uic.loadUi('preferences.ui', self)
+        uic.loadUi('ui/preferences.ui', self)
 
         self.pbFCPath.pressed.connect(self.chooseFC)
         self.pbKCPath.pressed.connect(self.chooseKC)

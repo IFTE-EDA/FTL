@@ -72,7 +72,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.wConsole = None
         self.wGrafTab = None
         self.wLayers = None
-        uic.loadUi('form.ui', self)
+        uic.loadUi('ui/form.ui', self)
         self.worker = FTLWorker(self)
         self.parser = None
         self.autoscroll = True
