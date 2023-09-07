@@ -56,7 +56,7 @@ class MatrixTransformer(QtCore.QObject):
 
     def add_transformation(self, tr):
         # trId = len(self.transformations)
-        # self.transformations.append(tr)
+        self.transformations.append(tr)
         tr.parent = self
         if tr.addResidual:
             res = tr.getResidualTransformation()
