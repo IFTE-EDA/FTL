@@ -1,13 +1,14 @@
 import json
-from ZBend import *
-from DirBend import *
-from Spiral import *
-from ZBend import *
+from ZBend import ZBend
+from DirBend import DirBend
+from Spiral import Spiral
 from PyQt6 import QtCore
-from MatrixTransformer import *
-from MeshLayer import *
+from MatrixTransformer import debug, MatrixTransformer
+from ZBend import DIR
+from MeshLayer import MeshLayer
 import vedo as v
-#from shapely import geometry
+
+# from shapely import geometry
 from shapely.geometry import Point, Polygon, LineString, GeometryCollection
 
 
@@ -37,16 +38,20 @@ class FileParser(QtCore.QObject):
     progress = QtCore.pyqtSignal(int)
     status = QtCore.pyqtSignal(str)
 
-    #def updateParams(self):
-
+    # def updateParams(self):
 
     def parse(self):
         self.progress.emit(0)
 
-        debug("Found {} layers and {} transformations. Global MEL: [{}/{}/{}]".format(len(self.j_layers),
-                                                                                      len(self.j_transformations),
-                                                                                      self.mel, self.mel_trans,
-                                                                                      self.mel_residual))
+        debug(
+            "Found {} layers and {} transformations. Global MEL: [{}/{}/{}]".format(
+                len(self.j_layers),
+                len(self.j_transformations),
+                self.mel,
+                self.mel_trans,
+                self.mel_residual,
+            )
+        )
         self.transformer = MatrixTransformer(self.rcFP, self.rcRender)
         self.transformer.status.connect(self.status)
         self.transformer.progress.connect(self.progress)
@@ -59,16 +64,27 @@ class FileParser(QtCore.QObject):
             # layerObj = MeshLayer(mesh, layer, self, i)
             self.layers.append(layerObj)
             self.transformer.add_layer(layerObj)
-            debug("  Found layer #{} '{}' with MEL [{}/{}/{}] and color '{}', reading data from file '{}'".format(i, layer["name"],
-                                                                                                   layerObj.mel,
-                                                                                                   layerObj.mel_trans,
-                                                                                                   layerObj.mel_residual,
-                                                                                                   layerObj.color,
-                                                                                                   layer["file"]))
+            debug(
+                "  Found layer #{} '{}' with MEL [{}/{}/{}] and color '{}', reading data from file '{}'".format(
+                    i,
+                    layer["name"],
+                    layerObj.mel,
+                    layerObj.mel_trans,
+                    layerObj.mel_residual,
+                    layerObj.color,
+                    layer["file"],
+                )
+            )
 
-        meshNumStr = "/".join([str(layer.mesh.npoints) for layer in self.transformer.layers])
+        meshNumStr = "/".join(
+            [str(layer.mesh.npoints) for layer in self.transformer.layers]
+        )
 
-        debug("Transformer created. Imported {} layers with {} points.".format(self.transformer.nlayers, meshNumStr))
+        debug(
+            "Transformer created. Imported {} layers with {} points.".format(
+                self.transformer.nlayers, meshNumStr
+            )
+        )
 
         debug("\nAll layers imported. Reading transformations...")
 
@@ -77,8 +93,15 @@ class FileParser(QtCore.QObject):
                 color = tr["color"]
             else:
                 color = None
-            debug("  Found transformation #{} '{}' of type {} with priority {} and color '{}'".format(
-                len(self.transformer.transformations), tr["name"], tr["type"], tr["priority"], color))
+            debug(
+                "  Found transformation #{} '{}' of type {} with priority {} and color '{}'".format(
+                    len(self.transformer.transformations),
+                    tr["name"],
+                    tr["type"],
+                    tr["priority"],
+                    color,
+                )
+            )
             if tr["type"] == "ZBend":
                 if tr["dir"] == "POSX":
                     print("Found POSX")
@@ -90,19 +113,41 @@ class FileParser(QtCore.QObject):
                 elif tr["dir"] == "NEGY":
                     dir = DIR.NEGY
                 else:
-                    raise ValueError("Direction of ZBend-Transformation not found: {}".format(tr["dir"]))
-                trans = ZBend(int(tr["xmin"]), int(tr["xmax"]), int(tr["ymin"]), int(tr["ymax"]), int(tr["angle"]), dir,
-                              name=tr["name"])
-                debug("  -> dir={};  angle={};  x = {}...{};  y = {}...{};".format(tr["dir"], tr["angle"], tr["xmin"],
-                                                                                   tr["xmax"], tr["ymin"], tr["ymax"]))
+                    raise ValueError(
+                        "Direction of ZBend-Transformation not found: {}".format(
+                            tr["dir"]
+                        )
+                    )
+                trans = ZBend(
+                    int(tr["xmin"]),
+                    int(tr["xmax"]),
+                    int(tr["ymin"]),
+                    int(tr["ymax"]),
+                    int(tr["angle"]),
+                    dir,
+                    name=tr["name"],
+                )
+                debug(
+                    "  -> dir={};  angle={};  x = {}...{};  y = {}...{};".format(
+                        tr["dir"],
+                        tr["angle"],
+                        tr["xmin"],
+                        tr["xmax"],
+                        tr["ymin"],
+                        tr["ymax"],
+                    )
+                )
             elif tr["type"] == "DirBend":
-
                 trans = DirBend(tr, name=tr["name"])
-                self.transformer.rcFP.add_debug("Debug_Trans", trans.debugShow(), True)
+                self.transformer.rcFP.add_debug(
+                    "Debug_Trans", trans.debugShow(), True
+                )
 
             elif tr["type"] == "Spiral":
                 trans = Spiral(tr, name=tr["name"])
-                self.transformer.rcFP.add_debug("Debug_Trans", trans.debugShow(), True)
+                self.transformer.rcFP.add_debug(
+                    "Debug_Trans", trans.debugShow(), True
+                )
 
             else:
                 raise TypeError("Unknown transformation type.")

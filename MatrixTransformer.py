@@ -4,18 +4,18 @@ import numpy as np
 from PyQt6 import QtCore
 from PyQt6.QtCore import QObject, QThread, pyqtSignal
 
+from Transformation import Transformation
+from RenderContainer import RenderContainer
+
 MODE_GUI = False
 
 
 def debug(str):
     if MODE_GUI:
-        main.console(str)
+        # main.console(str)
+        print(str)
     else:
         print(str)
-
-
-from Transformation import *
-from RenderContainer import *
 
 
 class MatrixTransformer(QtCore.QObject):
@@ -55,8 +55,8 @@ class MatrixTransformer(QtCore.QObject):
         self.progress.emit(int(cur / max * 100))
 
     def add_transformation(self, tr):
-        trId = len(self.transformations)
-        self.transformations.append(tr)
+        # trId = len(self.transformations)
+        # self.transformations.append(tr)
         tr.parent = self
         if tr.addResidual:
             res = tr.getResidualTransformation()
@@ -79,10 +79,12 @@ class MatrixTransformer(QtCore.QObject):
         self.nlayers += 1
 
     def visualize(self):
-        debug("\n-------------------------\n-----  VISUALIZING  -----\n-------------------------")
+        debug(
+            "\n-------------------------\n-----  VISUALIZING  -----\n-------------------------"
+        )
         self.status.emit("Visualizing...")
         self.progress.emit(0)
-        meshes = [l.mesh for l in self.layers]
+        # meshes = [layer.mesh for layer in self.layers]
         for layer in self.layers:
             self.rcFP.add_layer(layer.name, layer.mesh.clone().c("grey"))
         trId = 0
@@ -90,63 +92,101 @@ class MatrixTransformer(QtCore.QObject):
             while trId < len(self.transformations):
                 tr = self.transformations[trId]
                 debug(tr)
-                self.status.emit("Visualizing Transformation {}/{}".format(trId, len(self.transformations)))
+                self.status.emit(
+                    "Visualizing Transformation {}/{}".format(
+                        trId, len(self.transformations)
+                    )
+                )
                 self.update_progress(trId + 1, len(self.transformations))
                 debug("{} meshes found".format(len(tr.meshes)))
                 area = tr.getArea().extrude(3).z(-1.5).c("green").alpha(0.2)
-                self.rcFP.add_transformation(tr.name + "_outline", tr.getOutline().c("yellow7"))
-                self.rcFP.add_transformation(tr.name + "_area", area.clone(), False)
-                self.rcRender.add_transformation(tr.name + "_area", area.clone(), True)
+                self.rcFP.add_transformation(
+                    tr.name + "_outline", tr.getOutline().c("yellow7")
+                )
+                self.rcFP.add_transformation(
+                    tr.name + "_area", area.clone(), False
+                )
+                self.rcRender.add_transformation(
+                    tr.name + "_area", area.clone(), True
+                )
                 if len(tr.meshes) > 0:
-                    self.rcRender.add_layer(tr.name + "_slice", v.merge(tr.meshes).alpha(1).c("blue"), False)
+                    self.rcRender.add_layer(
+                        tr.name + "_slice",
+                        v.merge(tr.meshes).alpha(1).c("blue"),
+                        False,
+                    )
                 if tr.addResidual:
                     if len(self.transformations[trId + 1].meshes) > 0:
-                        self.rcRender.add_layer(tr.name + "-Res_slice",
-                                                v.merge(self.transformations[trId + 1].meshes).alpha(1).c("green"), False)
+                        self.rcRender.add_layer(
+                            tr.name + "-Res_slice",
+                            v.merge(self.transformations[trId + 1].meshes)
+                            .alpha(1)
+                            .c("green"),
+                            False,
+                        )
                     trId += 2  # skip next transformation as we did it as a residual here
                 else:
                     trId += 1  # next transformation
         else:
             print("No Transformations found to visualize.")
         if len(self.fixed_mesh) > 0:
-            self.rcRender.add_layer("Mesh_Fixed", v.merge(self.fixed_mesh).alpha(1).c("red"), True)
+            self.rcRender.add_layer(
+                "Mesh_Fixed", v.merge(self.fixed_mesh).alpha(1).c("red"), True
+            )
 
     def calculate_assignments(self, onlybaselayer=False):
         scope_residual = None
         for layerId, layer in enumerate(self.layers):
-
             if layerId == 0:
-                debug("\nCalculating assignments. Layer #0 seen as substrate to generate transformation scopes...")
+                debug(
+                    "\nCalculating assignments. Layer #0 seen as substrate to generate transformation scopes..."
+                )
                 part = layer.mesh.clone()
                 trId = 0
                 while trId < len(self.transformations):
                     tr = self.transformations[trId]
                     debug("-> Transformation #{}: {}".format(trId, tr))
-                    self.status.emit("Calculating Assignments... Layer {}/{}, Transformation {}/{}".format(layerId + 1,
-                                                                                                           len(self.layers),
-                                                                                                           trId + 1,
-                                                                                                           len(self.transformations)))
-                    self.update_progress(layerId * len(self.layers) + trId, len(self.transformations))
+                    self.status.emit(
+                        "Calculating Assignments... Layer {}/{}, Transformation {}/{}".format(
+                            layerId + 1,
+                            len(self.layers),
+                            trId + 1,
+                            len(self.transformations),
+                        )
+                    )
+                    self.update_progress(
+                        layerId * len(self.layers) + trId,
+                        len(self.transformations),
+                    )
 
                     outline = tr.getOutline()
-                    mesh_transformed, part = cut_with_line(part, outline, closed=True)
+                    mesh_transformed, part = cut_with_line(
+                        part, outline, closed=True
+                    )
 
                     v.write(mesh_transformed, "_mesh_transformed.stl")
                     v.write(part, "_part.stl")
 
-                    ol_gop = tr.getOutlinePts()
+                    # ol_gop = tr.getOutlinePts()
                     scope_transformed = get_contour_scope(mesh_transformed)
                     tr.scope = scope_transformed
                     tr.meshes.append(mesh_transformed.clone())
                     tr.mel.append(layer.mel_trans)
-                    self.rcFP.add_transformation(tr.name + "_mesh", scope_transformed.clone().c("blue").alpha(0.2),
-                                                 False)
+                    self.rcFP.add_transformation(
+                        tr.name + "_mesh",
+                        scope_transformed.clone().c("blue").alpha(0.2),
+                        False,
+                    )
 
                     fixedMeshes = []
                     residualMeshes = []
                     split = part.split()
                     p0, p1 = tr.getBorderlinePts()
-                    self.rcFP.add_debug(tr.name + "_borderline", v.Line(tr.getBorderlinePts()).lw(2).c("red"), False)
+                    self.rcFP.add_debug(
+                        tr.name + "_borderline",
+                        v.Line(tr.getBorderlinePts()).lw(2).c("red"),
+                        False,
+                    )
                     for prt in split:
                         if prt.intersect_with_line(p0, p1).any():
                             fixedMeshes.append(prt)
@@ -154,19 +194,23 @@ class MatrixTransformer(QtCore.QObject):
                             residualMeshes.append(prt)
                     part = v.merge(fixedMeshes)
 
-                    #TODO: if fixedmesh is Null, there might be a problem with geometries
+                    # TODO: if fixedmesh is Null, there might be a problem with geometries
 
                     if tr.addResidual and len(residualMeshes) > 0:
                         residual = v.merge(residualMeshes)
                         scope_residual = get_contour_scope(residual)
                         self.transformations[trId + 1].scope = scope_residual
                         self.transformations[trId + 1].meshes.append(residual)
-                        self.transformations[trId + 1].mel.append(layer.mel_residual)
-
+                        self.transformations[trId + 1].mel.append(
+                            layer.mel_residual
+                        )
 
                     if tr.addResidual:
-                        debug("    Skipping residual Transformation #{}: {}\n".format(trId + 1,
-                                                                                      self.transformations[trId + 1]))
+                        debug(
+                            "    Skipping residual Transformation #{}: {}\n".format(
+                                trId + 1, self.transformations[trId + 1]
+                            )
+                        )
                         trId += 2  # skip next transformation as we did it as a residual here
                     else:
                         trId += 1  # next transformation
@@ -179,7 +223,11 @@ class MatrixTransformer(QtCore.QObject):
                 continue
             if onlybaselayer:
                 break
-            debug("Calculating {} assignments for layer #{}".format(len(self.transformations), layerId))
+            debug(
+                "Calculating {} assignments for layer #{}".format(
+                    len(self.transformations), layerId
+                )
+            )
 
             mesh_fixed = layer.mesh.clone()
             trId = 0
@@ -187,24 +235,43 @@ class MatrixTransformer(QtCore.QObject):
                 tr = self.transformations[trId]
                 debug("-> Transformation #{}: {}".format(trId, tr))
 
-                mesh_transformed, mesh_fixed, mesh_residual = split_with_transformation(self, mesh_fixed, tr)
+                (
+                    mesh_transformed,
+                    mesh_fixed,
+                    mesh_residual,
+                ) = split_with_transformation(self, mesh_fixed, tr)
 
-                self.debugOutput.append(mesh_transformed.clone().z(20).c("blue"))
+                self.debugOutput.append(
+                    mesh_transformed.clone().z(20).c("blue")
+                )
 
                 debug("  -> Slice successful.")
                 tr.meshes.append(mesh_transformed.clone())
                 tr.mel.append(layer.mel_trans)
-                self.debugOutput.append(v.Line(tr.getBorderlinePts()).lw(2).c("red"))
+                self.debugOutput.append(
+                    v.Line(tr.getBorderlinePts()).lw(2).c("red")
+                )
 
-                if tr.addResidual and mesh_residual is not None and mesh_residual.npoints > 0:
+                if (
+                    tr.addResidual
+                    and mesh_residual is not None
+                    and mesh_residual.npoints > 0
+                ):
                     debug("  -> Adding residual....")
                     self.transformations[trId + 1].meshes.append(mesh_residual)
-                    self.transformations[trId + 1].mel.append(layer.mel_residual)
-                    self.debugOutput.append(scope_residual.clone().c("green").alpha(0.2))
+                    self.transformations[trId + 1].mel.append(
+                        layer.mel_residual
+                    )
+                    self.debugOutput.append(
+                        scope_residual.clone().c("green").alpha(0.2)
+                    )
 
                 if tr.addResidual:
-                    debug("    Skipping residual Transformation #{}: {}\n".format(trId + 1,
-                                                                                  self.transformations[trId + 1]))
+                    debug(
+                        "    Skipping residual Transformation #{}: {}\n".format(
+                            trId + 1, self.transformations[trId + 1]
+                        )
+                    )
                     trId += 2  # skip next transformation as we did it as a residual here
                 else:
                     trId += 1  # next transformation
@@ -219,14 +286,18 @@ class MatrixTransformer(QtCore.QObject):
 
     def getPointId(self, pt, meshNum):
         # return self.mesh[meshNum].closest_point(pt, 1, return_point_id=True)
-        return self.layers[meshNum].mesh.closest_point(pt, 1, return_point_id=True)
+        return self.layers[meshNum].mesh.closest_point(
+            pt, 1, return_point_id=True
+        )
 
     def start_transformation(self):
         for tr in self.transformations:
             for meshNum in range(len(tr.meshes)):
                 mesh = tr.get_preprocessed_mesh(meshNum).clean()
-                mats = []
-                if tr.transformWholeMesh:                     # Transformation implemented a method to  the whole transformation on its own
+                # mats = []
+                if (
+                    tr.transformWholeMesh
+                ):  # Transformation implemented a method to  the whole transformation on its own
                     mesh = tr.transformMesh(mesh)
                 else:
                     points = mesh.points()
@@ -244,8 +315,16 @@ class MatrixTransformer(QtCore.QObject):
     def get_result_mesh(self):
         for trId, tr in enumerate(self.transformations):
             for meshNum, mesh in enumerate(tr.meshes):
-                print("--------> Got {}_{}-tr'ed".format(self.layers[meshNum].name, tr.name))
-                self.rcRender.add_layer("{}_{}-tr'ed".format(self.layers[meshNum].name, tr.name), mesh.alpha(1).c(self.layers[meshNum].color), True)
+                print(
+                    "--------> Got {}_{}-tr'ed".format(
+                        self.layers[meshNum].name, tr.name
+                    )
+                )
+                self.rcRender.add_layer(
+                    "{}_{}-tr'ed".format(self.layers[meshNum].name, tr.name),
+                    mesh.alpha(1).c(self.layers[meshNum].color),
+                    True,
+                )
 
         meshes = [v.merge(tr.meshes) for tr in self.transformations]
         meshes = [e for e in meshes if e is not None]
@@ -259,7 +338,11 @@ class MatrixTransformer(QtCore.QObject):
         for meshNum in range(self.nlayers):
             layer = [tr.meshes[meshNum] for tr in self.transformations]
             layer.append(self.fixed_mesh[meshNum])
-            print("{} meshes in '{}'".format(len(layer), self.layers[meshNum].name))
+            print(
+                "{} meshes in '{}'".format(
+                    len(layer), self.layers[meshNum].name
+                )
+            )
             meshes[self.layers[meshNum].name] = v.merge(layer)
         print(meshes)
         return meshes
@@ -338,7 +421,7 @@ def cut_with_line(mesh, points, invert=False, closed=True, residual=True):
 
 def split_with_transformation(self, mesh, tr):
     mesh_transformed, part = cut_with_line(mesh.clone(), tr.getOutline())
-    #mesh_transformed = mesh_transformed.clean()
+    # mesh_transformed = mesh_transformed.clean()
     fixedMeshes = []
     residualMeshes = []
     split = part.split()
@@ -359,6 +442,6 @@ def split_with_transformation(self, mesh, tr):
 def get_contour_scope(mesh):
     newMesh = mesh.clone()
     newMesh.clean()
-    contour = newMesh.project_on_plane('z')
+    contour = newMesh.project_on_plane("z")
     extrude = contour.clean().extrude(4, cap=True).z(-2)
     return extrude

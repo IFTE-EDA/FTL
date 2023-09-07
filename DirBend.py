@@ -1,18 +1,18 @@
 import numpy as np
 from numpy import sin, cos
 import shapely
-#from shapely import LineString, Point, Polygon
-from shapely.geometry import Point, Polygon
+
+from shapely import Point, Polygon, LineString
 import shapely.geometry.polygon
 from shapely import affinity
 from shapely.ops import nearest_points
 import vedo as v
 from enum import Enum
 import copy
-from Transformation import *
-from LinearTransformation import *
+from Transformation import Transformation
+from LinearTransformation import LinearTransformation
 
-DIR = Enum('DIR', 'NEGY POSY NEGX POSX')#
+DIR = Enum("DIR", "NEGY POSY NEGX POSX")  #
 global MAX_EDGE_LENGTH
 
 
@@ -25,57 +25,92 @@ class DirBend(Transformation):
         self.parent = None
 
         if "points" not in data:  # found point data; prioritize those
-            raise ValueError("Not enough data for Transformation {}".format(self.name))
+            raise ValueError(
+                "Not enough data for Transformation {}".format(self.name)
+            )
         if len(data["points"]) < 4:
-            raise ValueError("Not enough points in points array of transformation {}: {} (expecting 4+)".format(data["name"], len(data["points"])))
+            raise ValueError(
+                "Not enough points in points array of transformation {}: {} (expecting 4+)".format(
+                    data["name"], len(data["points"])
+                )
+            )
 
         poly = Polygon([[p["x"], p["y"]] for p in data["points"]])
-        baseline = LineString(((data["points"][0]["x"], data["points"][0]["y"]), (data["points"][1]["x"], data["points"][1]["y"])))
+        baseline = LineString(
+            (
+                (data["points"][0]["x"], data["points"][0]["y"]),
+                (data["points"][1]["x"], data["points"][1]["y"]),
+            )
+        )
         self.boundaries = poly
         super().__init__(self.boundaries, prio, addResidual, name)
 
         minx, miny, maxx, maxy = poly.bounds
-        bounding_box = shapely.geometry.box(minx, miny, maxx, maxy)
+        # bounding_box = shapely.geometry.box(minx, miny, maxx, maxy)
         ax, ay, bx, by = baseline.bounds
         self.pivot = list(poly.exterior.coords[0])
         self.pivot.append(0)
         if ax == bx:  # vertical line
-            extended_line = LineString([(ax, miny), (ax, maxy)])
+            self.extLine = LineString([(ax, miny), (ax, maxy)])
         elif ay == by:  # horizonthal line
-            extended_line = LineString([(minx, ay), (maxx, ay)])
+            self.extLine = LineString([(minx, ay), (maxx, ay)])
         else:
             # linear equation: y = k*x + m
             m = -(ay - by) / (ax - bx)
-            n = ay - m * ax + (by-ay)
+            n = ay - m * ax + (by - ay)
             y0 = m * minx + n
             y1 = m * maxx + n
             x0 = (miny - n) / m
             x1 = (maxy - n) / m
-            print ("m: {}; n: {}; P1({}, {}), 2({}, {})".format(m, n, x0, y0, x1, y1))
-            print("Angle is {}".format(np.arctan(m)/(2*np.pi)*360))
+            print(
+                "m: {}; n: {}; P1({}, {}), 2({}, {})".format(
+                    m, n, x0, y0, x1, y1
+                )
+            )
+            print("Angle is {}".format(np.arctan(m) / (2 * np.pi) * 360))
             self.extLine = LineString((Point(minx, y0), Point(maxx, y1)))
 
         dists = [self.extLine.distance(Point(p)) for p in poly.exterior.coords]
-        distPoints = [(dists[i], poly.exterior.coords[i]) for i in range(len(poly.exterior.coords)) if dists[i] > 0]
+        distPoints = [
+            (dists[i], poly.exterior.coords[i])
+            for i in range(len(poly.exterior.coords))
+            if dists[i] > 0
+        ]
 
         points_sorted_by_distance = sorted(distPoints, key=lambda x: x[0])
         length = points_sorted_by_distance[0][0]
         print(">>min: {}".format(length))
-        self.projPoint, _ = nearest_points(self.extLine, Point(points_sorted_by_distance[0][1]))
-        self.ortho = LineString([self.projPoint, Point(points_sorted_by_distance[0][1])])
+        self.projPoint, _ = nearest_points(
+            self.extLine, Point(points_sorted_by_distance[0][1])
+        )
+        self.ortho = LineString(
+            [self.projPoint, Point(points_sorted_by_distance[0][1])]
+        )
         print(self.projPoint)
 
         self.angle = np.deg2rad(data["angle"])
-        self.z_angle = np.arctan((bx-ax)/(ay-by))
+        self.z_angle = np.arctan((bx - ax) / (ay - by))
         print("Z_ANGLE: {}".format(np.rad2deg(self.z_angle)))
-        self.boundaries_rot = affinity.rotate(poly, self.z_angle, origin=self.pivot, use_radians=True)
+        self.boundaries_rot = affinity.rotate(
+            poly, self.z_angle, origin=self.pivot, use_radians=True
+        )
 
         r = length / self.angle
         a = self.angle
         self.newTr = np.zeros((3, 4), dtype=float)
-        self.newTr[0] = cos(a), 0, -sin(a), -(self.pivot[0]+length) * cos(a) + self.pivot[0] + r * (sin(a))
+        self.newTr[0] = (
+            cos(a),
+            0,
+            -sin(a),
+            -(self.pivot[0] + length) * cos(a) + self.pivot[0] + r * (sin(a)),
+        )
         self.newTr[1] = 0, 1, 0, 0
-        self.newTr[2] = sin(a), 0, cos(a), -(self.pivot[0]+length) * sin(a) + r * (1 - cos(a))
+        self.newTr[2] = (
+            sin(a),
+            0,
+            cos(a),
+            -(self.pivot[0] + length) * sin(a) + r * (1 - cos(a)),
+        )
 
         self.baseline = baseline
         self.length = length
@@ -84,12 +119,25 @@ class DirBend(Transformation):
         self.mel = []
         self.transformWholeMesh = True
 
-
     def __repr__(self):
-        return "Tr.DirBend: [P={}; Res={}; angle={}; len={}; baseline={}; bounds={}]".format(self.prio, self.addResidual, self.angle, self.length, self.baseline, self.boundaries)
+        return "Tr.DirBend: [P={}; Res={}; angle={}; len={}; baseline={}; bounds={}]".format(
+            self.prio,
+            self.addResidual,
+            self.angle,
+            self.length,
+            self.baseline,
+            self.boundaries,
+        )
 
     def __str__(self):
-        return "Tr.DirBend: [P={}; Res={}; angle={}; len={}; baseline={}; bounds={}]".format(self.prio, self.addResidual, self.angle, self.length, self.baseline, self.boundaries)
+        return "Tr.DirBend: [P={}; Res={}; angle={}; len={}; baseline={}; bounds={}]".format(
+            self.prio,
+            self.addResidual,
+            self.angle,
+            self.length,
+            self.baseline,
+            self.boundaries,
+        )
 
     def debugShow(self):
         def getPoints(obj):
@@ -130,12 +178,23 @@ class DirBend(Transformation):
         return pts
 
     def getBorderline(self):
-        return Line(self.getBorderlinePts())
+        return v.Line(self.getBorderlinePts())
 
-    def getResidualTransformation(self, mesh=None):    #TODO
-
-        newBounds = shapely.geometry.box(self.pivot[0], self.pivot[1], self.pivot[0]+100, self.pivot[1]+100)
-        ret = LinearTransformation(self.newTr, newBounds, self.prio, residual=True, angle=self.z_angle, pivot=self.pivot)
+    def getResidualTransformation(self, mesh=None):  # TODO
+        newBounds = shapely.geometry.box(
+            self.pivot[0],
+            self.pivot[1],
+            self.pivot[0] + 100,
+            self.pivot[1] + 100,
+        )
+        ret = LinearTransformation(
+            self.newTr,
+            newBounds,
+            self.prio,
+            residual=True,
+            angle=self.z_angle,
+            pivot=self.pivot,
+        )
         ret.name = self.name + "-Res"
         return ret
 
@@ -154,12 +213,11 @@ class DirBend(Transformation):
         mesh.rotate_z(-self.z_angle, rad=True, around=self.pivot)
         return mesh
 
-    def getMatrixAt(self, pt):  #TODO
+    def getMatrixAt(self, pt):  # TODO
         x = pt[0]
         y = pt[1]
-        if x > (self.pivot[0]+self.length):
+        if x > (self.pivot[0] + self.length):
             return self.newTr
-
 
         mat = np.zeros((3, 4), dtype=float)
 

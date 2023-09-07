@@ -1,9 +1,9 @@
 from enum import Enum
 import vedo as v
-from Transformation import *
-import MeshLayer
+from Transformation import Transformation
+from MeshLayer import MeshLayer
 
-ItemType = Enum('ItemType', 'Layer Transformation Debug')
+ItemType = Enum("ItemType", "Layer Transformation Debug")
 
 
 class RenderContainer:
@@ -61,12 +61,18 @@ class RenderContainer:
 
     def get_struct(self):
         struct = {}
-        labels = {"layers": "Layers", "transformations": "Transformations", "debug": "Debug"}
+        labels = {
+            "layers": "Layers",
+            "transformations": "Transformations",
+            "debug": "Debug",
+        }
         for name in labels:
             label = labels[name]
             container = getattr(self, name)
             container_visible = getattr(self, name + "_visible")
-            items = [[itemLabel, container[itemLabel][1]] for itemLabel in container]
+            items = [
+                [itemLabel, container[itemLabel][1]] for itemLabel in container
+            ]
             struct[label] = [items, container_visible]
         return struct
 

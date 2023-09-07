@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 from string import Template
 
+
 class KiCADPathManager:
     def __init__(self, kcuPath: str):
         if os.path.isfile(kcuPath):
@@ -26,12 +27,15 @@ class KiCADPathManager:
         if pathName in self.paths:
             return self.paths[pathName]
         else:
-            raise IndexError("Path not found in configuration file '{}': {}".format(self.confFile, pathName))
+            raise IndexError(
+                "Path not found in configuration file '{}': {}".format(
+                    self.confFile, pathName
+                )
+            )
 
     def resolvePath(self, path: str):
-        if (path.startswith('$')):
-            #return os.path(path[1:].format(**self.paths))
+        if path.startswith("$"):
+            # return os.path(path[1:].format(**self.paths))
             return str(Path(path[1:].format(**self.paths)))
         else:
             return path
-

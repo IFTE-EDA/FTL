@@ -1,11 +1,20 @@
 import numpy as np
 import vedo as v
-from Transformation import *
+from shapely import Point
+from Transformation import Transformation
 
 
 class LinearTransformation(Transformation):
-
-    def __init__(self, mat, bounds, prio=0, residual=False, name=None, angle=0, pivot=None):
+    def __init__(
+        self,
+        mat,
+        bounds,
+        prio=0,
+        residual=False,
+        name=None,
+        angle=0,
+        pivot=None,
+    ):
         # super().__init__(bounds, prio, not residual, name=name)
         super().__init__(bounds, prio, False)
         self.name = name
@@ -21,10 +30,14 @@ class LinearTransformation(Transformation):
             self.transformWholeMesh = True
 
     def __repr__(self):
-        return "Tr.Lin: [P={}; Res={}; bounds: {}]".format(self.prio, self.addResidual, self.boundaries)
+        return "Tr.Lin: [P={}; Res={}; bounds: {}]".format(
+            self.prio, self.addResidual, self.boundaries
+        )
 
     def __str__(self):
-        return "Tr.Lin: [P={}; Res={}; bounds: {}]".format(self.prio, self.addResidual, self.boundaries)
+        return "Tr.Lin: [P={}; Res={}; bounds: {}]".format(
+            self.prio, self.addResidual, self.boundaries
+        )
 
     def isInScope(self, point):
         pt = Point(point[0], point[1])

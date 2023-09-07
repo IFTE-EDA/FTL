@@ -1,6 +1,7 @@
 import json
 import time
 import os.path
+
 # This Python file uses the following encoding: utf-8
 import sys
 from PyQt6 import uic
@@ -9,23 +10,24 @@ from PyQt6.QtWidgets import QFileDialog, QStyle, QTreeWidgetItem
 from PyQt6 import QtCore
 from PyQt6.QtCore import Qt
 from PyQt6 import QtGui
+
 # from PyQt6 import Qt
-import sys
 import PyQt6
 
 from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
+
 # from vedo import Mesh, dataurl, Plotter
 import vedo as v
 
-from MatrixTransformer import *
-from Transformation import *
-from ZBend import *
-from LinearTransformation import *
+from MatrixTransformer import MatrixTransformer, debug
+from Transformation import Transformation
+from ZBend import ZBend
+from LinearTransformation import LinearTransformation
 from FileParser import FileParser
-from RenderContainer import *
+from RenderContainer import RenderContainer, ItemType
 
 from dialogs.FTLPreferencesDialog import FTLPreferencesDialog
-from FTLWorker import *
+from FTLWorker import FTLWorker
 
 global MODE_GUI
 MODE_GUI = True
@@ -42,7 +44,7 @@ class port:
         self.view.insertPlainText(*args)
         self.f.write(*args)
         self.f.flush()
-        if (self.parent.autoscroll):
+        if self.parent.autoscroll:
             self.scroll.setValue(self.scroll.maximum())
 
     def flush(self):
@@ -72,7 +74,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.wConsole = None
         self.wGrafTab = None
         self.wLayers = None
-        uic.loadUi('ui/form.ui', self)
+        uic.loadUi("ui/form.ui", self)
         self.worker = FTLWorker(self)
         self.parser = None
         self.autoscroll = True
@@ -81,43 +83,46 @@ class MainWindow(QtWidgets.QMainWindow):
         self.layers_fp = []
         self.layers_render = []
 
-        btn_icons = [(self.actionFileNew, "document-new"),
-                     (self.actionFileOpen, "document-open"),
-                     (self.actionFileRecent, "document-open"),
-                     (self.actionFileImportKiCAD, "document-open"),
-                     (self.actionFileSave, "document-save"),
-                     (self.actionFileSave_as, "document-save-as"),
-                     (self.actionFileExportVMAP, "document-export"),
-                     (self.actionFileExportSTL, "document-export"),
-                     (self.actionFileQuit, "window-close"),
-                     (self.actionEditAdd_mesh_layer, "cursor-cross"),
-                     (self.actionEditAdd_transformation, "cursor-cross"),
-                     (self.actionToolsFreeCAD, "freecad.png"),
-                     (self.actionToolsKiCAD, "kicadlogo.png"),
-                     (self.actionHelpAbout, "help-about"),
-                     (self.actionHelpDocumentation, "help-whatsthis"),
-                     (self.actionReset_View, "zoom-fit-best"),
-                     (self.actionRender, "run-build-install-root"),
-                     (self.actionUpdate_Footprint, "run-build-configure"),
-                     (self.bConsClear, "edit-clear-history"),
-                     (self.bConsAutoscroll, "gnumeric-format-valign-bottom"),
-                     (self.bConsC, "edit-copy")]
-        tbActions = [self.actionFileNew,
-                     self.actionFileOpen,
-                     # self.actionFileRecent,
-                     self.actionFileSave,
-                     # self.actionFileSave_as,
-                     # self.actionFileExport,
-                     self.actionFileQuit,
-                     self.actionEditAdd_mesh_layer,
-                     # self.actionEditAdd_transformation,
-                     self.actionToolsFreeCAD,
-                     self.actionToolsKiCAD,
-                     self.actionReset_View,
-                     self.actionUpdate_Footprint,
-                     self.actionRender
-                     # self.actionToolsKiCAD
-                     ]
+        btn_icons = [
+            (self.actionFileNew, "document-new"),
+            (self.actionFileOpen, "document-open"),
+            (self.actionFileRecent, "document-open"),
+            (self.actionFileImportKiCAD, "document-open"),
+            (self.actionFileSave, "document-save"),
+            (self.actionFileSave_as, "document-save-as"),
+            (self.actionFileExportVMAP, "document-export"),
+            (self.actionFileExportSTL, "document-export"),
+            (self.actionFileQuit, "window-close"),
+            (self.actionEditAdd_mesh_layer, "cursor-cross"),
+            (self.actionEditAdd_transformation, "cursor-cross"),
+            (self.actionToolsFreeCAD, "freecad.png"),
+            (self.actionToolsKiCAD, "kicadlogo.png"),
+            (self.actionHelpAbout, "help-about"),
+            (self.actionHelpDocumentation, "help-whatsthis"),
+            (self.actionReset_View, "zoom-fit-best"),
+            (self.actionRender, "run-build-install-root"),
+            (self.actionUpdate_Footprint, "run-build-configure"),
+            (self.bConsClear, "edit-clear-history"),
+            (self.bConsAutoscroll, "gnumeric-format-valign-bottom"),
+            (self.bConsC, "edit-copy"),
+        ]
+        tbActions = [
+            self.actionFileNew,
+            self.actionFileOpen,
+            # self.actionFileRecent,
+            self.actionFileSave,
+            # self.actionFileSave_as,
+            # self.actionFileExport,
+            self.actionFileQuit,
+            self.actionEditAdd_mesh_layer,
+            # self.actionEditAdd_transformation,
+            self.actionToolsFreeCAD,
+            self.actionToolsKiCAD,
+            self.actionReset_View,
+            self.actionUpdate_Footprint,
+            self.actionRender
+            # self.actionToolsKiCAD
+        ]
         for item, name in btn_icons:
             if name.startswith("SP_"):
                 pixmapi = getattr(QStyle.StandardPixmap, name)
@@ -175,7 +180,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.wGrafTab.currentChanged.connect(self.onTabChange)
 
-        self.wLayers.itemChanged[QTreeWidgetItem, int].connect(self.layerItemChanged)
+        self.wLayers.itemChanged[QTreeWidgetItem, int].connect(
+            self.layerItemChanged
+        )
 
         self.bConsAutoscroll.clicked.connect(self.set_console_autoscroll)
 
@@ -191,9 +198,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.worker.progress.connect(self.set_main_progress)
         # self.worker.updatingFinished.connect(self.sig_visualize)
         self.worker.renderingFinished.connect(self.fpcRendered)
-        self.worker.visualizationFinished.connect(self.update_layer_visibilities)
+        self.worker.visualizationFinished.connect(
+            self.update_layer_visibilities
+        )
         # self.worker.visualizationFinished.connect(self.update_layers)
-
 
         # actionFileOpen.triggered.connect(self.new_file)
 
@@ -205,7 +213,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.FPWidget = QVTKRenderWindowInteractor(self)
         self.wFPLayout.addWidget(self.FPWidget)
-        self.FPPlt = v.Plotter(qt_widget=self.FPWidget, axes=1, interactive=False)
+        self.FPPlt = v.Plotter(
+            qt_widget=self.FPWidget, axes=1, interactive=False
+        )
         self.FPPlt.parallel_projection(True)
 
         self.renderWidget = QVTKRenderWindowInteractor(self)
@@ -215,7 +225,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.rcFP = RenderContainer(self.FPPlt)
         self.rcRender = RenderContainer(self.renderPlt)
 
-        #sys.stdout = port(self.wConsole, self)
+        # sys.stdout = port(self.wConsole, self)
 
         if len(sys.argv) > 1:
             self.console("Got file argument from console")
@@ -231,20 +241,33 @@ class MainWindow(QtWidgets.QMainWindow):
     sig_updateParser = QtCore.pyqtSignal()
 
     def importKiCAD(self):
-        file, _ = QFileDialog.getOpenFileName(self, "Pick a KiCAD PCB", filter="*.kicad_pcb",
-                                              options=QFileDialog.Option.DontUseNativeDialog)
+        file, _ = QFileDialog.getOpenFileName(
+            self,
+            "Pick a KiCAD PCB",
+            filter="*.kicad_pcb",
+            options=QFileDialog.Option.DontUseNativeDialog,
+        )
         self.new_file()
         self.worker.importKiCAD(file)
 
     def openFileDialog(self):
-        file, _ = QFileDialog.getOpenFileName(self, "Pick a FTL file", "LTest_hook.json", filter="*.json",
-                                              options=QFileDialog.Option.DontUseNativeDialog)
+        file, _ = QFileDialog.getOpenFileName(
+            self,
+            "Pick a FTL file",
+            "LTest_hook.json",
+            filter="*.json",
+            options=QFileDialog.Option.DontUseNativeDialog,
+        )
         self.open_file(file)
 
     def saveFileDialog(self):
         if self.docName is None:
-            file, _ = QFileDialog.getSaveFileName(self, "Save file", filter="*.json",
-                                                  options=QFileDialog.Option.DontUseNativeDialog)
+            file, _ = QFileDialog.getSaveFileName(
+                self,
+                "Save file",
+                filter="*.json",
+                options=QFileDialog.Option.DontUseNativeDialog,
+            )
             if not len(file):
                 print("Saving aborted.")
                 return
@@ -253,16 +276,24 @@ class MainWindow(QtWidgets.QMainWindow):
         self.save_file(file)
 
     def saveAsFileDialog(self):
-        file, _ = QFileDialog.getSaveFileName(self, "Save file", filter="*.json",
-                                              options=QFileDialog.Option.DontUseNativeDialog)
+        file, _ = QFileDialog.getSaveFileName(
+            self,
+            "Save file",
+            filter="*.json",
+            options=QFileDialog.Option.DontUseNativeDialog,
+        )
         if len(file):
             self.save_file(file)
         else:
             print("Saving aborted.")
 
     def exportVMAP(self):
-        file, _ = QFileDialog.getSaveFileName(self, "Save VMAP file", filter="*.h5, *.vmap",
-                                              options=QFileDialog.Option.DontUseNativeDialog)
+        file, _ = QFileDialog.getSaveFileName(
+            self,
+            "Save VMAP file",
+            filter="*.h5, *.vmap",
+            options=QFileDialog.Option.DontUseNativeDialog,
+        )
         if not len(file):
             print("VMAP Export aborted.")
             return
@@ -271,8 +302,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.worker.exportFile_VMAP(file)
 
     def exportSTL(self):
-        file, _ = QFileDialog.getSaveFileName(self, "Save STL file", filter="*.stl",
-                                              options=QFileDialog.Option.DontUseNativeDialog)
+        file, _ = QFileDialog.getSaveFileName(
+            self,
+            "Save STL file",
+            filter="*.stl",
+            options=QFileDialog.Option.DontUseNativeDialog,
+        )
         if not len(file):
             print("STL Export aborted.")
             return
@@ -329,13 +364,21 @@ class MainWindow(QtWidgets.QMainWindow):
                 checked = child.checkState(0) == Qt.CheckState.Checked
                 # print("->{}:{}".format(child.text(0), checked))
                 if parent.text(0) == "Layers":
-                    self.rcFP.set_item_visibility(ItemType.Layer, child.text(0), checked)
+                    self.rcFP.set_item_visibility(
+                        ItemType.Layer, child.text(0), checked
+                    )
                 elif parent.text(0) == "Transformations":
-                    self.rcFP.set_item_visibility(ItemType.Transformation, child.text(0), checked)
+                    self.rcFP.set_item_visibility(
+                        ItemType.Transformation, child.text(0), checked
+                    )
                 elif parent.text(0) == "Debug":
-                    self.rcFP.set_item_visibility(ItemType.Debug, child.text(0), checked)
+                    self.rcFP.set_item_visibility(
+                        ItemType.Debug, child.text(0), checked
+                    )
                 else:
-                    raise Exception("Unknown container type: {}".format(parent.text(0)))
+                    raise Exception(
+                        "Unknown container type: {}".format(parent.text(0))
+                    )
         for parent in self.layers_render:
             parents.append(parent)
             # print(parent.text(0))
@@ -346,13 +389,21 @@ class MainWindow(QtWidgets.QMainWindow):
                 checked = child.checkState(0) == Qt.CheckState.Checked
                 # print("->{}:{}".format(child.text(0), checked))
                 if parent.text(0) == "Layers":
-                    self.rcRender.set_item_visibility(ItemType.Layer, child.text(0), checked)
+                    self.rcRender.set_item_visibility(
+                        ItemType.Layer, child.text(0), checked
+                    )
                 elif parent.text(0) == "Transformations":
-                    self.rcRender.set_item_visibility(ItemType.Transformation, child.text(0), checked)
+                    self.rcRender.set_item_visibility(
+                        ItemType.Transformation, child.text(0), checked
+                    )
                 elif parent.text(0) == "Debug":
-                    self.rcRender.set_item_visibility(ItemType.Debug, child.text(0), checked)
+                    self.rcRender.set_item_visibility(
+                        ItemType.Debug, child.text(0), checked
+                    )
                 else:
-                    raise Exception("Unknown container type: {}".format(parent.text(0)))
+                    raise Exception(
+                        "Unknown container type: {}".format(parent.text(0))
+                    )
 
         # self.rcFP.plotter.
         print("Layer vis updated.")
@@ -402,7 +453,9 @@ class MainWindow(QtWidgets.QMainWindow):
                 if name == "Layers":
                     self.rcFP.set_container_visibility(ItemType.Layer, checked)
                 elif name == "Transformations":
-                    self.rcFP.set_container_visibility(ItemType.Transformation, checked)
+                    self.rcFP.set_container_visibility(
+                        ItemType.Transformation, checked
+                    )
                 elif name == "Debug":
                     self.rcFP.set_container_visibility(ItemType.Debug, checked)
                 else:
@@ -412,17 +465,25 @@ class MainWindow(QtWidgets.QMainWindow):
             elif self.wGrafTab.currentIndex() == 1:
                 # "Render" Tab
                 if name == "Layers":
-                    self.rcRender.set_container_visibility(ItemType.Layer, checked)
+                    self.rcRender.set_container_visibility(
+                        ItemType.Layer, checked
+                    )
                 elif name == "Transformations":
-                    self.rcRender.set_container_visibility(ItemType.Transformation, checked)
+                    self.rcRender.set_container_visibility(
+                        ItemType.Transformation, checked
+                    )
                 elif name == "Debug":
-                    self.rcRender.set_container_visibility(ItemType.Debug, checked)
+                    self.rcRender.set_container_visibility(
+                        ItemType.Debug, checked
+                    )
                 else:
                     raise Exception("Unknown container type.")
                 if update:
                     self.rcRender.render()
             else:
-                raise Exception("Tab {} not found.".format(self.wGrafTab.currentIndex()))
+                raise Exception(
+                    "Tab {} not found.".format(self.wGrafTab.currentIndex())
+                )
             return
         else:
             # inner layer item; first get parent type
@@ -442,11 +503,15 @@ class MainWindow(QtWidgets.QMainWindow):
                     self.rcFP.render()
             elif self.wGrafTab.currentIndex() == 1:
                 # print("Changing render Layer vis")
-                self.rcRender.set_item_visibility(container, item.text(0), checked)
+                self.rcRender.set_item_visibility(
+                    container, item.text(0), checked
+                )
                 if update:
                     self.rcRender.render()
             else:
-                raise Exception("Tab {} not found.".format(self.wGrafTab.currentIndex()))
+                raise Exception(
+                    "Tab {} not found.".format(self.wGrafTab.currentIndex())
+                )
 
     """##################################
     #######  STRUCTURAL FUNCTIONS  ######
@@ -537,7 +602,13 @@ class MainWindow(QtWidgets.QMainWindow):
 
         def checkLayerItems(container, containerString, struct):
             for label, vis in struct[containerString][0]:
-                if len(self.wLayers.findItems(label, Qt.MatchFlag.MatchFixedString | Qt.MatchFlag.MatchRecursive)):
+                if len(
+                    self.wLayers.findItems(
+                        label,
+                        Qt.MatchFlag.MatchFixedString
+                        | Qt.MatchFlag.MatchRecursive,
+                    )
+                ):
                     continue
                 child = QtWidgets.QTreeWidgetItem(container)
                 # child.layer = layer
@@ -550,21 +621,33 @@ class MainWindow(QtWidgets.QMainWindow):
         def checkModelItems(container, data):
             for i, elem in enumerate(data):
                 name = "{}  (#{})".format(elem["name"], i)
-                if len(self.wModel.findItems(name, Qt.MatchFlag.MatchFixedString | Qt.MatchFlag.MatchRecursive)):
+                if len(
+                    self.wModel.findItems(
+                        name,
+                        Qt.MatchFlag.MatchFixedString
+                        | Qt.MatchFlag.MatchRecursive,
+                    )
+                ):
                     continue
                 child = QtWidgets.QTreeWidgetItem(container)
                 child.layer = elem
                 child.setText(0, name)
 
         checkLayerItems(self.layers_floorplan_layers, "Layers", fpStruct)
-        checkLayerItems(self.layers_floorplan_transformations, "Transformations", fpStruct)
+        checkLayerItems(
+            self.layers_floorplan_transformations, "Transformations", fpStruct
+        )
         checkLayerItems(self.layers_floorplan_debug, "Debug", fpStruct)
         checkLayerItems(self.layers_render_layers, "Layers", renderStruct)
-        checkLayerItems(self.layers_render_transformations, "Transformations", renderStruct)
+        checkLayerItems(
+            self.layers_render_transformations, "Transformations", renderStruct
+        )
         checkLayerItems(self.layers_render_debug, "Debug", renderStruct)
 
         checkModelItems(self.twiModel_layers, self.parser.j_layers)
-        checkModelItems(self.twiModel_Transformations, self.parser.j_transformations)
+        checkModelItems(
+            self.twiModel_Transformations, self.parser.j_transformations
+        )
 
         self.wModel.blockSignals(False)
         self.wLayers.blockSignals(False)
@@ -573,7 +656,9 @@ class MainWindow(QtWidgets.QMainWindow):
     def fileParsed(self):
         self.console("SIG received, file parsed sucessfully.")
         self.docName = self.parser.filename
-        self.setWindowTitle("FoldTheLine - {}".format(os.path.basename(self.docName)))
+        self.setWindowTitle(
+            "FoldTheLine - {}".format(os.path.basename(self.docName))
+        )
 
         """---//   Generate "Layers" View   ///---"""
 
@@ -584,54 +669,86 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.layers_floorplan_layers = QtWidgets.QTreeWidgetItem(self.wLayers)
         self.layers_floorplan_layers.setText(0, "Layers")
-        self.layers_floorplan_layers.setFlags(self.layers_floorplan_layers.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+        self.layers_floorplan_layers.setFlags(
+            self.layers_floorplan_layers.flags()
+            | Qt.ItemFlag.ItemIsUserCheckable
+        )
         self.layers_fp.append(self.layers_floorplan_layers)
         if fpStruct["Layers"][1]:
-            self.layers_floorplan_layers.setCheckState(0, Qt.CheckState.Checked)
+            self.layers_floorplan_layers.setCheckState(
+                0, Qt.CheckState.Checked
+            )
         else:
-            self.layers_floorplan_layers.setCheckState(0, Qt.CheckState.Unchecked)
+            self.layers_floorplan_layers.setCheckState(
+                0, Qt.CheckState.Unchecked
+            )
 
-        self.layers_floorplan_transformations = QtWidgets.QTreeWidgetItem(self.wLayers)
+        self.layers_floorplan_transformations = QtWidgets.QTreeWidgetItem(
+            self.wLayers
+        )
         self.layers_floorplan_transformations.setText(0, "Transformations")
         self.layers_floorplan_transformations.setFlags(
-            self.layers_floorplan_transformations.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+            self.layers_floorplan_transformations.flags()
+            | Qt.ItemFlag.ItemIsUserCheckable
+        )
         self.layers_fp.append(self.layers_floorplan_transformations)
         if fpStruct["Transformations"][1]:
-            self.layers_floorplan_transformations.setCheckState(0, Qt.CheckState.Checked)
+            self.layers_floorplan_transformations.setCheckState(
+                0, Qt.CheckState.Checked
+            )
         else:
-            self.layers_floorplan_transformations.setCheckState(0, Qt.CheckState.Unchecked)
+            self.layers_floorplan_transformations.setCheckState(
+                0, Qt.CheckState.Unchecked
+            )
 
         self.layers_floorplan_debug = QtWidgets.QTreeWidgetItem(self.wLayers)
         self.layers_floorplan_debug.setText(0, "Debug")
-        self.layers_floorplan_debug.setFlags(self.layers_floorplan_debug.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+        self.layers_floorplan_debug.setFlags(
+            self.layers_floorplan_debug.flags()
+            | Qt.ItemFlag.ItemIsUserCheckable
+        )
         self.layers_fp.append(self.layers_floorplan_debug)
         if fpStruct["Debug"][1]:
             self.layers_floorplan_debug.setCheckState(0, Qt.CheckState.Checked)
         else:
-            self.layers_floorplan_debug.setCheckState(0, Qt.CheckState.Unchecked)
+            self.layers_floorplan_debug.setCheckState(
+                0, Qt.CheckState.Unchecked
+            )
 
         self.layers_render_layers = QtWidgets.QTreeWidgetItem(self.wLayers)
         self.layers_render_layers.setText(0, "Layers")
-        self.layers_render_layers.setFlags(self.layers_render_layers.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+        self.layers_render_layers.setFlags(
+            self.layers_render_layers.flags() | Qt.ItemFlag.ItemIsUserCheckable
+        )
         self.layers_render.append(self.layers_render_layers)
         if renderStruct["Layers"][1]:
             self.layers_render_layers.setCheckState(0, Qt.CheckState.Checked)
         else:
             self.layers_render_layers.setCheckState(0, Qt.CheckState.Unchecked)
 
-        self.layers_render_transformations = QtWidgets.QTreeWidgetItem(self.wLayers)
+        self.layers_render_transformations = QtWidgets.QTreeWidgetItem(
+            self.wLayers
+        )
         self.layers_render_transformations.setText(0, "Transformations")
         self.layers_render_transformations.setFlags(
-            self.layers_render_transformations.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+            self.layers_render_transformations.flags()
+            | Qt.ItemFlag.ItemIsUserCheckable
+        )
         self.layers_render.append(self.layers_render_transformations)
         if renderStruct["Transformations"][1]:
-            self.layers_render_transformations.setCheckState(0, Qt.CheckState.Checked)
+            self.layers_render_transformations.setCheckState(
+                0, Qt.CheckState.Checked
+            )
         else:
-            self.layers_render_transformations.setCheckState(0, Qt.CheckState.Unchecked)
+            self.layers_render_transformations.setCheckState(
+                0, Qt.CheckState.Unchecked
+            )
 
         self.layers_render_debug = QtWidgets.QTreeWidgetItem(self.wLayers)
         self.layers_render_debug.setText(0, "Debug")
-        self.layers_render_debug.setFlags(self.layers_render_debug.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+        self.layers_render_debug.setFlags(
+            self.layers_render_debug.flags() | Qt.ItemFlag.ItemIsUserCheckable
+        )
         self.layers_render.append(self.layers_render_debug)
         if renderStruct["Debug"][1]:
             self.layers_render_debug.setCheckState(0, Qt.CheckState.Checked)
@@ -649,11 +766,16 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.twiModel_layers = QtWidgets.QTreeWidgetItem(self.wModel)
         self.twiModel_layers.setText(0, "Layers")
-        self.twiModel_layers.setFlags(self.twiModel_layers.flags() & ~Qt.ItemFlag.ItemIsSelectable)
+        self.twiModel_layers.setFlags(
+            self.twiModel_layers.flags() & ~Qt.ItemFlag.ItemIsSelectable
+        )
 
         self.twiModel_Transformations = QtWidgets.QTreeWidgetItem(self.wModel)
         self.twiModel_Transformations.setText(0, "Transformations")
-        self.twiModel_Transformations.setFlags(self.twiModel_Transformations.flags() & ~Qt.ItemFlag.ItemIsSelectable)
+        self.twiModel_Transformations.setFlags(
+            self.twiModel_Transformations.flags()
+            & ~Qt.ItemFlag.ItemIsSelectable
+        )
 
         self.update_layers()
 
@@ -661,14 +783,14 @@ class MainWindow(QtWidgets.QMainWindow):
         self.wLayers.expandAll()
 
         self.console("\n\nResetting view...")
-        #self.resetView()
+        # self.resetView()
         time.sleep(1)
         self.actionReset_View.trigger()
         self.console("\n\nFile parsed successfully.")
 
         # self.floorplanRendered()
 
-        self.statusBar().showMessage('Ready.')
+        self.statusBar().showMessage("Ready.")
 
     def update_parser(self):
         # self.parser.calculate_assignments()
@@ -708,19 +830,21 @@ class MainWindow(QtWidgets.QMainWindow):
             outfile.write(json_object)
             print("File saved successfully")
             self.docName = file
-            self.setWindowTitle("FoldTheLine - {}".format(os.path.basename(file)))
+            self.setWindowTitle(
+                "FoldTheLine - {}".format(os.path.basename(file))
+            )
 
     def set_console_autoscroll(self, autoscroll=None):
         if autoscroll is None:
             #   used as a slot
-            self.autoscroll = (self.bConsAutoscroll.isChecked())
+            self.autoscroll = self.bConsAutoscroll.isChecked()
         else:
             #   just a normal function
             self.autoscroll = autoscroll
 
 
 app = QtWidgets.QApplication(sys.argv)
-app.setStyle('Oxygen')
+app.setStyle("Oxygen")
 main = MainWindow()
 thread = QtCore.QThread()
 thread.start()

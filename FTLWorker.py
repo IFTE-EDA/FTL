@@ -92,16 +92,17 @@ class FTLWorker(QtCore.QObject):
         vmap = vmt.VMAPFileHandler(filename)
         for i, (name, mesh) in enumerate(meshes.items()):
             print(name)
-            grp = vmt.VMAPMeshGroup(vmap, "/VMAP/GEOMETRY/" + str(i+1))
+            grp = vmt.VMAPMeshGroup(vmap, "/VMAP/GEOMETRY/" + str(i + 1))
             grp.writeMesh_vedo(mesh, name)
         print("VMAP export done.")
-        #v.show(meshes["PCB"], meshes["Copper"])
-        #v.show(v.Points(meshes["PCB"].points()))
-
+        # v.show(meshes["PCB"], meshes["Copper"])
+        # v.show(v.Points(meshes["PCB"].points()))
 
     def exportFile_STL(self, filename_f: str):
-        if not "{}" in filename_f:
-            raise Exception("Filename does not contain formatting brackets:", filename_f)
+        if "{}" not in filename_f:
+            raise Exception(
+                "Filename does not contain formatting brackets:", filename_f
+            )
         meshes = self.main.parser.transformer.getTransformedMeshList()
         for i, (name, mesh) in enumerate(meshes.items()):
             filename = filename_f.format(name)
@@ -117,8 +118,12 @@ class FTLWorker(QtCore.QObject):
         subprocess.call(["python", "kicad2STL.py", filename])
         self.status.emit("Preparing project file...")
         self.progress.emit(60)
-        savefile, _ = QFileDialog.getSaveFileName(self.main, "Save project file", filter="*.json",
-                                              options=QFileDialog.Option.DontUseNativeDialog)
+        savefile, _ = QFileDialog.getSaveFileName(
+            self.main,
+            "Save project file",
+            filter="*.json",
+            options=QFileDialog.Option.DontUseNativeDialog,
+        )
         projName = Path(savefile).stem
         projDir = Path(savefile).parent
         boardFilename = projName + "_board.stl"
@@ -126,23 +131,25 @@ class FTLWorker(QtCore.QObject):
 
         if not savefile.endswith(".json"):
             savefile = str(projDir) + "/" + projName + ".json"
-        #shutil.copy2("_template_.json", savefile)
-        print("Saving to project '{}' in directory {}".format(projName, projDir))
+        # shutil.copy2("_template_.json", savefile)
+        print(
+            "Saving to project '{}' in directory {}".format(projName, projDir)
+        )
 
         search = ["{BOARDFILE}", "{COPPERFILE}"]
         replace = [boardFilename, coppersFilename]
 
         shutil.move("STL/board_solid.stl", str(projDir) + "/" + boardFilename)
-        shutil.move("STL/coppers_fuse.stl", str(projDir) + "/" + coppersFilename)
+        shutil.move(
+            "STL/coppers_fuse.stl", str(projDir) + "/" + coppersFilename
+        )
 
-        with open("_template_.json", 'r') as file:
+        with open("_template_.json", "r") as file:
             data = file.read()
             for i, token in enumerate(search):
                 data = data.replace(token, replace[i])
-        with open(savefile, 'w') as file:
+        with open(savefile, "w") as file:
             file.write(data)
         self.main.open_file(savefile)
         self.status.emit("File imported.")
         self.progress.emit(0)
-
-
