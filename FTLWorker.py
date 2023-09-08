@@ -1,18 +1,13 @@
 from PyQt6 import QtCore
 from PyQt6.QtCore import QObject, QThread, pyqtSignal
 
-from MatrixTransformer import *
-from Transformation import *
-from ZBend import *
-from LinearTransformation import *
-from FileParser import FileParser
-from RenderContainer import *
 import subprocess
 import os
 from pathlib import Path
 import shutil
-import VMeshTools.VMeshTools as vmt
+import FTL.Util.VMeshTools as vmt
 from PyQt6.QtWidgets import QFileDialog
+import FTL
 
 
 class FTLWorker(QtCore.QObject):
@@ -33,7 +28,7 @@ class FTLWorker(QtCore.QObject):
         self.status.emit("Opening file...")
         self.progress.emit(0)
         main = self.main
-        main.parser = FileParser(file, main.rcFP, main.rcRender, True)
+        main.parser = FTL.FileParser(file, main.rcFP, main.rcRender, True)
         # main.parser.progress.connect(self.forwardProgress)
         main.parser.progress.connect(self.progress)
         main.parser.status.connect(self.status)

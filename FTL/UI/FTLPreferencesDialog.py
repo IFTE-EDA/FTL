@@ -12,14 +12,14 @@ from PyQt6.QtWidgets import (
     QFileDialog,
     QMessageBox,
 )
-from FTLKiCAD import KiCADPathManager
+from FTL.Util.FTLKiCAD import KiCADPathManager
 
 
 class FTLPreferencesDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         uic.loadUi(
-            os.path.join(os.path.dirname(__file__), "ui/preferences.ui"), self
+            os.path.join(os.path.dirname(__file__), "preferences.ui"), self
         )
 
         self.pbFCPath.pressed.connect(self.chooseFC)

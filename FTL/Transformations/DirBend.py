@@ -9,8 +9,10 @@ from shapely.ops import nearest_points
 import vedo as v
 from enum import Enum
 import copy
-from Transformation import Transformation
-from LinearTransformation import LinearTransformation
+
+# from FTL.Transformations.Transformation import Transformation
+from .Transformation import Transformation
+from .LinearTransformation import LinearTransformation
 
 DIR = Enum("DIR", "NEGY POSY NEGX POSX")  #
 global MAX_EDGE_LENGTH

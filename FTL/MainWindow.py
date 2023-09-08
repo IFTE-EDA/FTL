@@ -19,14 +19,9 @@ from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 # from vedo import Mesh, dataurl, Plotter
 import vedo as v
 
-from MatrixTransformer import MatrixTransformer, debug
-from Transformation import Transformation
-from ZBend import ZBend
-from LinearTransformation import LinearTransformation
-from FileParser import FileParser
-from RenderContainer import RenderContainer, ItemType
+import FTL
 
-from dialogs.FTLPreferencesDialog import FTLPreferencesDialog
+from .UI.FTLPreferencesDialog import FTLPreferencesDialog
 from FTLWorker import FTLWorker
 
 global MODE_GUI
@@ -74,7 +69,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.wConsole = None
         self.wGrafTab = None
         self.wLayers = None
-        uic.loadUi("ui/form.ui", self)
+        uic.loadUi(
+            os.path.join(os.path.dirname(__file__), r"ui\form.ui"), self
+        )
         self.worker = FTLWorker(self)
         self.parser = None
         self.autoscroll = True
@@ -129,10 +126,10 @@ class MainWindow(QtWidgets.QMainWindow):
                 icon = self.style().standardIcon(pixmapi)
                 item.setIcon(icon)
             elif "." in name:
-                icon = QtGui.QIcon("icons/" + name)
+                icon = QtGui.QIcon("FTL/UI/icons/" + name)
                 item.setIcon(icon)
             else:
-                icon = QtGui.QIcon("icons/" + name + ".svg")
+                icon = QtGui.QIcon("FTL/UI/icons/" + name + ".svg")
                 item.setIcon(icon)
             # if type(item) == QtGui.QAction:
             #    self.tbMain.addAction(item)
@@ -222,8 +219,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.wRenderLayout.addWidget(self.renderWidget)
         self.renderPlt = v.Plotter(qt_widget=self.renderWidget, axes=1)
 
-        self.rcFP = RenderContainer(self.FPPlt)
-        self.rcRender = RenderContainer(self.renderPlt)
+        self.rcFP = FTL.RenderContainer(self.FPPlt)
+        self.rcRender = FTL.RenderContainer(self.renderPlt)
 
         # sys.stdout = port(self.wConsole, self)
 
@@ -365,15 +362,15 @@ class MainWindow(QtWidgets.QMainWindow):
                 # print("->{}:{}".format(child.text(0), checked))
                 if parent.text(0) == "Layers":
                     self.rcFP.set_item_visibility(
-                        ItemType.Layer, child.text(0), checked
+                        FTL.ItemType.Layer, child.text(0), checked
                     )
                 elif parent.text(0) == "Transformations":
                     self.rcFP.set_item_visibility(
-                        ItemType.Transformation, child.text(0), checked
+                        FTL.ItemType.Transformation, child.text(0), checked
                     )
                 elif parent.text(0) == "Debug":
                     self.rcFP.set_item_visibility(
-                        ItemType.Debug, child.text(0), checked
+                        FTL.ItemType.Debug, child.text(0), checked
                     )
                 else:
                     raise Exception(
@@ -390,15 +387,15 @@ class MainWindow(QtWidgets.QMainWindow):
                 # print("->{}:{}".format(child.text(0), checked))
                 if parent.text(0) == "Layers":
                     self.rcRender.set_item_visibility(
-                        ItemType.Layer, child.text(0), checked
+                        FTL.ItemType.Layer, child.text(0), checked
                     )
                 elif parent.text(0) == "Transformations":
                     self.rcRender.set_item_visibility(
-                        ItemType.Transformation, child.text(0), checked
+                        FTL.ItemType.Transformation, child.text(0), checked
                     )
                 elif parent.text(0) == "Debug":
                     self.rcRender.set_item_visibility(
-                        ItemType.Debug, child.text(0), checked
+                        FTL.ItemType.Debug, child.text(0), checked
                     )
                 else:
                     raise Exception(
@@ -409,10 +406,10 @@ class MainWindow(QtWidgets.QMainWindow):
         print("Layer vis updated.")
 
     def modelParameterChanged(self, row, col):
-        debug("item changed at {}/{}".format(row, col))
+        FTL.debug("item changed at {}/{}".format(row, col))
         label = self.wParams.item(row, 0).text()
         val = self.wParams.item(row, 1).text()
-        debug("{} = {}".format(label, val))
+        FTL.debug("{} = {}".format(label, val))
         # debug (self.wModel.selectedItem().text(0))
         self.current_model_item[label] = val
         # TODO implement isInteger() and auto-conversion
@@ -451,13 +448,17 @@ class MainWindow(QtWidgets.QMainWindow):
             if self.wGrafTab.currentIndex() == 0:
                 # "Floorplan" Tab
                 if name == "Layers":
-                    self.rcFP.set_container_visibility(ItemType.Layer, checked)
+                    self.rcFP.set_container_visibility(
+                        FTL.ItemType.Layer, checked
+                    )
                 elif name == "Transformations":
                     self.rcFP.set_container_visibility(
-                        ItemType.Transformation, checked
+                        FTL.ItemType.Transformation, checked
                     )
                 elif name == "Debug":
-                    self.rcFP.set_container_visibility(ItemType.Debug, checked)
+                    self.rcFP.set_container_visibility(
+                        FTL.ItemType.Debug, checked
+                    )
                 else:
                     raise Exception("Unknown container type.")
                 if update:
@@ -466,15 +467,15 @@ class MainWindow(QtWidgets.QMainWindow):
                 # "Render" Tab
                 if name == "Layers":
                     self.rcRender.set_container_visibility(
-                        ItemType.Layer, checked
+                        FTL.ItemType.Layer, checked
                     )
                 elif name == "Transformations":
                     self.rcRender.set_container_visibility(
-                        ItemType.Transformation, checked
+                        FTL.ItemType.Transformation, checked
                     )
                 elif name == "Debug":
                     self.rcRender.set_container_visibility(
-                        ItemType.Debug, checked
+                        FTL.ItemType.Debug, checked
                     )
                 else:
                     raise Exception("Unknown container type.")
@@ -489,11 +490,11 @@ class MainWindow(QtWidgets.QMainWindow):
             # inner layer item; first get parent type
             cName = parent.text(0)
             if cName == "Layers":
-                container = ItemType.Layer
+                container = FTL.ItemType.Layer
             elif cName == "Transformations":
-                container = ItemType.Transformation
+                container = FTL.ItemType.Transformation
             elif cName == "Debug":
-                container = ItemType.Debug
+                container = FTL.ItemType.Debug
             else:
                 raise Exception("Unknown container type.")
             if self.wGrafTab.currentIndex() == 0:
@@ -521,7 +522,7 @@ class MainWindow(QtWidgets.QMainWindow):
         for i in range(self.wModel.columnCount()):
             label = self.wModel.itemAt(i, 0)
             val = self.wModel.itemAt(i, 1)
-            debug("{} = {}".format(label, val))
+            FTL.debug("{} = {}".format(label, val))
             # TODO really save file
 
     def console(self, msg):
@@ -843,24 +844,24 @@ class MainWindow(QtWidgets.QMainWindow):
             self.autoscroll = autoscroll
 
 
-app = QtWidgets.QApplication(sys.argv)
-app.setStyle("Oxygen")
-main = MainWindow()
-thread = QtCore.QThread()
-thread.start()
-main.worker.moveToThread(thread)
+def main():
+    app = QtWidgets.QApplication(sys.argv)
+    app.setStyle("Oxygen")
+    main = MainWindow()
+    thread = QtCore.QThread()
+    thread.start()
+    main.worker.moveToThread(thread)
 
-main.initUi()
-main.show()
+    main.initUi()
+    main.show()
 
+    # headerItem = QtWidgets.QTreeWidgetItem()
+    # item = QtWidgets.QTreeWidgetItem()
 
-headerItem = QtWidgets.QTreeWidgetItem()
-item = QtWidgets.QTreeWidgetItem()
+    main.wLayers.show()
 
-main.wLayers.show()
+    app.exec()
 
-app.exec()
-
-thread.quit()
-sys.exit()
-thread.wait(5000)
+    thread.quit()
+    sys.exit()
+    thread.wait(5000)

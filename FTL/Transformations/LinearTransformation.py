@@ -1,7 +1,7 @@
 import numpy as np
 import vedo as v
 from shapely import Point
-from Transformation import Transformation
+from .Transformation import Transformation
 
 
 class LinearTransformation(Transformation):

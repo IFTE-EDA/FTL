@@ -3,10 +3,9 @@ import shapely.geometry
 import shapely.geometry.polygon
 import vedo as v
 
-# from MatrixTransformer import MatrixTransformer, debug
 from enum import Enum
 import copy
-from Transformation import *
+import FTL
 import os
 
 

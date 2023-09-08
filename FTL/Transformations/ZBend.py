@@ -6,8 +6,8 @@ from shapely.geometry import Point
 import vedo as v
 from enum import Enum
 import copy
-from Transformation import Transformation
-from LinearTransformation import LinearTransformation
+from .Transformation import Transformation
+from .LinearTransformation import LinearTransformation
 
 
 DIR = Enum("DIR", "NEGY POSY NEGX POSX")

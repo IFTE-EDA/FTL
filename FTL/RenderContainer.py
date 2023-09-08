@@ -1,7 +1,6 @@
 from enum import Enum
 import vedo as v
-from Transformation import Transformation
-from MeshLayer import MeshLayer
+import FTL
 
 ItemType = Enum("ItemType", "Layer Transformation Debug")
 
