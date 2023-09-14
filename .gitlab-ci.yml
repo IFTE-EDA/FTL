@@ -1,6 +1,8 @@
 # Official language image. Look for the different tagged releases at:
 # https://hub.docker.com/r/library/python/tags/
-image: python:latest
+image: 
+  name: python:latest
+  entrypoint: [ '/bin/bash', '-c' ]
 
 stages:
   - hello
@@ -17,10 +19,10 @@ variables:
 #
 # If you want to also cache the installed packages, you have to install
 # them in a virtualenv and cache it as well.
-#cache:
-#  paths:
-#    - .cache/pip
-#    - venv/
+cache:
+  paths:
+    - .cache/pip
+    - venv/
 
 before_script:
   - python --version ; pip --version  # For debugging
@@ -31,7 +33,7 @@ before_script:
 sayhello:
   stage: hello
   script:
-    - echo "Hello!"
+    - echo "Hello..."
 
 test:
   stage: test
@@ -43,7 +45,7 @@ test:
 saygoodbye:
   stage: goodbye
   script:
-    - echo "Goodbye!"
+    - echo "Goodbye..."
 
 #run:
 #  script:
