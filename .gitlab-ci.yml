@@ -1,4 +1,4 @@
-image: kitware/vtk-for-ci
+image: angryred/recap-vtk:1.0.2
 
 stages:          # List of stages for jobs, and their order of execution
   - hi
@@ -10,10 +10,10 @@ before_script:
   #- apk update
   #- apk upgrade
   #- apk add --no-cache ffmpeg git
-  - apt-get install python3-pip
+  #- apt-get install python3-pip
   - git submodule update --remote
-  - python -m pip install -r requirements.txt
-  - python -m pip install -U pytest
+  - pip install -r requirements.txt
+  - pip install -U pytest
 
 hello:
   stage: hi
