@@ -2,7 +2,6 @@ image: jfloff/alpine-python:3.7
 
 before_script:
   - git submodule update --remote
-  - pip install --upgrade pip
   - pip install -r requirements.txt
   - pip install -U pytest
 
