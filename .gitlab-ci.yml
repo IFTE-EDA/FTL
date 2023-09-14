@@ -12,7 +12,7 @@ before_script:
   #- apk add --no-cache ffmpeg git
   #- apt-get install python3-pip
   - git submodule update --remote
-  - pip install -r requirements.txt
+  - pip install -U -r requirements.txt
   - pip install -U pytest
 
 hello:
