@@ -1,9 +1,19 @@
-image: jfloff/alpine-python:3.7
+image: python:3.10.4
+
+stages:          # List of stages for jobs, and their order of execution
+  - hi
+  - test
+  - bye
 
 before_script:
   - git submodule update --remote
   - pip install -r requirements.txt
   - pip install -U pytest
+
+hello:
+  stage: hi
+  script:
+    - echo Hello
 
 pytest:
   stage: test
@@ -13,3 +23,8 @@ pytest:
 #    when: always
 #    reports:
 #      junit: report.xml
+
+goodbye:
+  stage: bye
+  script:
+    - echo Goodbye
