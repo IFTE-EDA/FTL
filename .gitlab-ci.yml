@@ -1,4 +1,3 @@
-# image: python:3.10.4
 image: python:3.10.4-buster
 
 stages:          # List of stages for jobs, and their order of execution
@@ -8,8 +7,8 @@ stages:          # List of stages for jobs, and their order of execution
 
 before_script:
   #- apk add mpeg libsm6 libxext6 git
-   - add-apt-repository universe && sudo apt upgrade
-   - apt-get install ffmpeg libsm6 libxext6  -y
+  - add-apt-repository universe && sudo apt upgrade
+  - apt-get install ffmpeg libsm6 libxext6  -y
   - git submodule update --remote
   - pip install -r requirements.txt
   - pip install -U pytest
