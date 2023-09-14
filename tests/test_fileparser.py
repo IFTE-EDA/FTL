@@ -1,7 +1,9 @@
 import pytest
 import sys
+import os
 
-sys.path.append("../FTL")
+# sys.path.append("../FTL")
+sys.path.append(os.path.abspath(os.getcwd()))
 import FTL
 from FTL import FileParser
 

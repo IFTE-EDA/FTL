@@ -1,6 +1,8 @@
 import sys
+import os
 
-sys.path.append("../FTL")
+# sys.path.append("../FTL")
+sys.path.append(os.path.abspath(os.getcwd()))
 from FTL.Util.FTLKiCAD import KiCADPathManager
 import os
 
