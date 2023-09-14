@@ -1,6 +1,7 @@
 image: jfloff/alpine-python:latest
 
 before_script:
+  - pip install --upgrade pip
   - pip install -r requirements.txt
   - pip install -U pytest
 
