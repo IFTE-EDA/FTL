@@ -10,6 +10,7 @@ before_script:
   #- apk update
   #- apk upgrade
   #- apk add --no-cache ffmpeg git
+  - apt-get install pip
   - git submodule update --remote
   - pip install -r requirements.txt
   - pip install -U pytest
