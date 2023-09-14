@@ -11,6 +11,7 @@ before_script:
   #- apk upgrade
   #- apk add --no-cache ffmpeg git
   #- apt-get install python3-pip
+  - strip --remove-section=.note.ABI-tag libQt6Core.so.6.5.2
   - git submodule update --remote
   - pip install -r requirements.txt --user
   - pip install -U pytest
