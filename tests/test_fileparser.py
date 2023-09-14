@@ -1,7 +1,7 @@
 import pytest
 import sys
 
-sys.path.append("..\\FTL")
+sys.path.append("../FTL")
 import FTL
 from FTL import FileParser
 
