@@ -1,4 +1,5 @@
-image: python:3.10.4
+# image: python:3.10.4
+image: python:3.10.4-alpine
 
 stages:          # List of stages for jobs, and their order of execution
   - hi
@@ -7,8 +8,9 @@ stages:          # List of stages for jobs, and their order of execution
 
 before_script:
   - git submodule update --remote
-  - add-apt-repository universe && sudo apt upgrade
-  - apt-get install ffmpeg libsm6 libxext6  -y
+  # - add-apt-repository universe && sudo apt upgrade
+  # - apt-get install ffmpeg libsm6 libxext6  -y
+  - apk add mpeg libsm6 libxext6
   - pip install -r requirements.txt
   - pip install -U pytest
 
