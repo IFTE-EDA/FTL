@@ -33,7 +33,7 @@ before_script:
 sayhello:
   stage: hello
   script:
-    - echo "Hello..."
+    - echo Hello
 
 test:
   stage: test
@@ -45,7 +45,7 @@ test:
 saygoodbye:
   stage: goodbye
   script:
-    - echo "Goodbye..."
+    - echo Goodbye
 
 #run:
 #  script:
