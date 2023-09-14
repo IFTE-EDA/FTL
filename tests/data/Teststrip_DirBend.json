@@ -1,0 +1,31 @@
+{
+    "version": 0.1,
+    "mel": 4,
+    "mel_trans": 2,
+    "mel_residual": 4,
+    "layers": [
+        {
+            "name": "Teststrip",
+            "file": "Teststrip.stl",
+			"color": "green",
+            "mel": 3,
+            "mel_trans": 1,
+            "mel_residual": 3
+        }
+    ],
+    "transformations": [
+        {
+            "name": "TR1_X",
+            "priority": 0,
+            "type": "DirBend",
+            "angle": 90,
+            "points": [
+				{"x": -20, "y": 10},
+				{"x": 0, "y": -10},
+				{"x": 60, "y": -10},
+				{"x": 60, "y": 10}
+			],
+            "color": "blue"
+        }
+    ]
+}

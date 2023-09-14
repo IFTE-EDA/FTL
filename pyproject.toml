@@ -1,3 +1,19 @@
+[project]
+name = "FTL"
+version = "0.1"
+authors = [
+  { name="Nico Arnold", email="nico.arnold@tu-dresden.de" },
+]
+description = "Tool for flexible circuit bending and analysis"
+readme = "README.md"
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: GNU General Public License version 3",
+    "Operating System :: OS Independent",
+]
+
+
 [tool.black]
 target-version = ["py310"]
 line-length = 79
@@ -10,3 +26,6 @@ exclude = '''
   | \.data
 )/
 '''
+
+[tool.setuptools]
+py-modules = []

@@ -1,10 +1,13 @@
-from FTLKiCAD import KiCADPathManager
+import sys
+
+sys.path.append("../FTL")
+from FTL.Util.FTLKiCAD import KiCADPathManager
 import os
 
 
 class Test_KiCADPathManager:
     def setup_class(self):
-        self.pathMgr = KiCADPathManager("tests")
+        self.pathMgr = KiCADPathManager("data")
 
     def test_workin_dir(self):
         assert (

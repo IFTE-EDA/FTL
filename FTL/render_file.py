@@ -4,9 +4,8 @@ import os.path
 import numpy as np
 import vedo as v
 from MatrixTransformer import MatrixTransformer, debug
-from Transformation import *
-from ZBend import ZBend
-from LinearTransformation import LinearTransformation
+from Transformations.ZBend import ZBend
+from Transformations.LinearTransformation import LinearTransformation
 from FileParser import FileParser
 
 global MAX_EDGE_LENGTH
@@ -16,7 +15,9 @@ plt = v.Plotter(interactive=False, axes=7)
 
 if len(sys.argv) < 2:
     sys.exit("Please specify an input file")
-if not os.path.isfile(sys.argv[1]):
+file = os.path.abspath(sys.argv[1])
+print(file)
+if not os.path.isfile(file):
     sys.exit("File not found: {}".format(sys.argv[1]))
 
 parser = FileParser(sys.argv[1])
