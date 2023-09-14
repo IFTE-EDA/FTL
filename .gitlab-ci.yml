@@ -7,6 +7,7 @@ stages:          # List of stages for jobs, and their order of execution
 
 before_script:
   - git submodule update --remote
+  - sudo add-apt-repository universe && sudo apt upgrade
   - apt-get install ffmpeg libsm6 libxext6  -y
   - pip install -r requirements.txt
   - pip install -U pytest
