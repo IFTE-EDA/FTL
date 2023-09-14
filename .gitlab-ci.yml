@@ -12,8 +12,8 @@ before_script:
   #- apk add --no-cache ffmpeg git
   - apt-get install pip
   - git submodule update --remote
-  - pip install -r requirements.txt
-  - pip install -U pytest
+  - python -m pip install -r requirements.txt
+  - python -m pip install -U pytest
 
 hello:
   stage: hi
