@@ -3,6 +3,7 @@ image: arnoldnico/ifte-ci:py3.10.4-vedo-alpine
 
 
 
+
 stages:          # List of stages for jobs, and their order of execution
   - hi
   - test
