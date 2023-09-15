@@ -16,7 +16,7 @@ before_script:
 #  - ls -lh /usr/local/lib64
   - ls -lh /usr/bin
 #  - locate ffmpeg
-  - which ffmpeg
+#  - which ffmpeg
   - find / | grep ffmpeg
   - ffmpeg -version
   #- apk add mpeg libsm6 libxext6 git
