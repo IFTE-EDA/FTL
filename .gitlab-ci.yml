@@ -18,7 +18,7 @@ before_script:
   
   - git submodule update --remote
   #- python3 -m pip install -i https://gmsh.info/python-packages-dev --force-reinstall --no-cache-dir gmsh
-  - python3 -m pip install -r requirements.txt
+  - python3 -m pip install --ignore-installed -r requirements.txt
   - python3 -m pip install -U pytest
 
 hello:
