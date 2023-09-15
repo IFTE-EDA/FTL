@@ -1,5 +1,5 @@
 #image: arnoldnico/ifte-ci:py3.10.4-ffmpeg-buster
-image: arnoldnico/ifte-ci:py3.10.4-vedo-buster
+image: arnoldnico/ifte-ci:py3.10.4-vedo-alpine
 
 
 
