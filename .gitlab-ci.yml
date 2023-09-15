@@ -12,6 +12,7 @@ before_script:
   - python --version
   - pip --version
   - ls -lh /usr/local/bin
+  - ls -lh /usr/bin
   - whereis ffmpeg
   - ffmpeg -version
   #- apk add mpeg libsm6 libxext6 git
