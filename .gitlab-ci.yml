@@ -14,11 +14,14 @@ before_script:
   #- apk upgrade
   #- apk add --no-cache ffmpeg git
   #- apt-get install python3-pip
-  - apt-get install libqt6
+#  - apt-get install libqt6
   - git submodule update --remote
   #- python3 -m pip install -i https://gmsh.info/python-packages-dev --force-reinstall --no-cache-dir gmsh
   - python3 -m pip install -r requirements.txt
   - python3 -m pip install -U pytest
+  - strip --remove-section=.note.ABI-tag <snip>/.venv/lib/python3.10/site-packages/PySide6/Qt/lib/libQt6Core.so.6
+  #- python -c 'import PySide6; print(PySide6.__version__)'
+  - ldd <snip>/.venv/lib/python3.8/site-packages/PySide6/Qt/lib/libQt6Core.so.6
 
 hello:
   stage: hi
