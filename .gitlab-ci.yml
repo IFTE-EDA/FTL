@@ -15,7 +15,7 @@ before_script:
   - ls -lh /usr/local/lib
   - ls -lh /usr/local/lib64
   - ls -lh /usr/bin
-  - locate ffmpeg
+#  - locate ffmpeg
   - which ffmpeg
   - find / | grep ffmpeg
   - ffmpeg -version
