@@ -1,4 +1,5 @@
-image: python:3.10.4
+image: arnoldnico/ifte-ci:py3.10.4-ffmpeg-buster
+
 
 stages:          # List of stages for jobs, and their order of execution
   - hi
@@ -6,9 +7,19 @@ stages:          # List of stages for jobs, and their order of execution
   - bye
 
 before_script:
+  - python --version
+  - pip --version
+  - ffmpeg -version
+  #- apk add mpeg libsm6 libxext6 git
+  #- apk update
+  #- apk upgrade
+  #- apk add --no-cache ffmpeg git
+  #- apt-get install python3-pip
+  
   - git submodule update --remote
-  - pip install -r requirements.txt
-  - pip install -U pytest
+  #- python3 -m pip install -i https://gmsh.info/python-packages-dev --force-reinstall --no-cache-dir gmsh
+  - python3 -m pip install --ignore-installed -r requirements.txt
+  - python3 -m pip install -U pytest
 
 hello:
   stage: hi
