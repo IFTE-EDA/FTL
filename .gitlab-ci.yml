@@ -1,4 +1,4 @@
-image: arnoldnico/ifte-ci:py3.10.4-ffmpeg
+image: arnoldnico/ifte-ci:slim-bookworm-py3.10.4-ffmpeg
 
 stages:          # List of stages for jobs, and their order of execution
   - hi
@@ -8,6 +8,7 @@ stages:          # List of stages for jobs, and their order of execution
 before_script:
   - python --version
   - pip --version
+  - ffmpeg -version
   #- apk add mpeg libsm6 libxext6 git
   #- apk update
   #- apk upgrade
