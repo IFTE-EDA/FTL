@@ -13,8 +13,8 @@ before_script:
   #- apt-get install python3-pip
   
   - git submodule update --remote
-  - pip install -r requirements.txt --user
-  - pip install -U pytest
+  - python3 -m pip install -r requirements.txt --user
+  - python3 -m pip install -U pytest
 
 hello:
   stage: hi
