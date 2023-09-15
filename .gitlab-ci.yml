@@ -12,6 +12,8 @@ before_script:
   - python --version
   - pip --version
   - ls -lh /usr/local/bin
+  - ls -lh /usr/local/lib
+  - ls -lh /usr/local/lib64
   - ls -lh /usr/bin
   - locate ffmpeg
   - which ffmpeg
