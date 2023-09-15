@@ -17,7 +17,7 @@ before_script:
 #  - ls -lh /usr/bin
 #  - locate ffmpeg
 #  - which ffmpeg
-  - find / | grep ffmpeg
+#  - find / | grep ffmpeg
 #  - ffmpeg -version
   #- apk add mpeg libsm6 libxext6 git
   #- apk update
