@@ -1,8 +1,5 @@
 #image: arnoldnico/ifte-ci:py3.10.4-ffmpeg-buster
-image: arnoldnico/ifte-ci:py3.10.4-vedo-alpine
-
-
-
+image: arnoldnico/ifte-ci:py3.10.4-ffmpeg-bookworm
 
 stages:          # List of stages for jobs, and their order of execution
   - hi
