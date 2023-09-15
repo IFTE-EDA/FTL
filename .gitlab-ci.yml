@@ -1,5 +1,5 @@
 #image: arnoldnico/ifte-ci:py3.10.4-ffmpeg-buster
-image: arnoldnico/ifte-ci:alpine-py3.10.4-ffmpeg
+image: arnoldnico/ifte-ci:slim-bookworm-py3.10.4-ffmpeg
 
 
 
