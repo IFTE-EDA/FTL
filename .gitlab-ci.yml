@@ -1,4 +1,6 @@
-image: arnoldnico/ifte-ci:py3.10.4-ffmpeg-buster
+#image: arnoldnico/ifte-ci:py3.10.4-ffmpeg-buster
+image: arnoldnico/ifte-ci:alpine-py3.10.4-ffmpeg
+
 
 
 stages:          # List of stages for jobs, and their order of execution
