@@ -14,7 +14,7 @@ before_script:
   #- apk upgrade
   #- apk add --no-cache ffmpeg git
   #- apt-get install python3-pip
-  
+  - apt-get install libqt6core6 
   - git submodule update --remote
   #- python3 -m pip install -i https://gmsh.info/python-packages-dev --force-reinstall --no-cache-dir gmsh
   - python3 -m pip install -r requirements.txt
