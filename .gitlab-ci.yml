@@ -11,10 +11,8 @@ stages:          # List of stages for jobs, and their order of execution
 before_script:
   - python --version
   - pip --version
-  - ls -lh /usr/local
-  - ls -lh /usr/lib
-  - ls -lh /lib
-  - ls -lh /var/lib
+  - ls -lh /usr/local/bin
+  - whereis ffmpeg
   - ffmpeg -version
   #- apk add mpeg libsm6 libxext6 git
   #- apk update
