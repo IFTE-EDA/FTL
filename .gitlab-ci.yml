@@ -1,4 +1,4 @@
-image: carlonluca/qt-dev:6.5.2
+image: carlonluca/qt-dev:6.2.0
 #image: 
   #name: arnoldnico/ifte-ci:py3.10.4-vedo-bookworm
 #  name: arnoldnico/ifte-ci:py3.10.4-vedo-bullseye
