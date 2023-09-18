@@ -1,6 +1,7 @@
 #image: arnoldnico/ifte-ci:py3.10.4-ffmpeg-buster
 image: 
-  name: arnoldnico/ifte-ci:py3.10.4-vedo-bookworm
+  #name: arnoldnico/ifte-ci:py3.10.4-vedo-bookworm
+  name: python:3.10.4-bullseye
   entrypoint: [ '/bin/bash', '-s' ]
 
 stages:          # List of stages for jobs, and their order of execution
@@ -11,6 +12,8 @@ stages:          # List of stages for jobs, and their order of execution
 before_script:
   - python --version
   - pip --version
+  - apt-get update
+  - apt-get install ffmpeg x264 libsm6 libxext6 libglib2.0-0 qt6-base-dev
 #  - ls -lh /usr/local/bin
 #  - ls -lh /usr/local/lib
 #  - ls -lh /usr/local/lib64
