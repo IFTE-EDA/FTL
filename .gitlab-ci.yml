@@ -35,8 +35,8 @@ before_script:
   #  0E98404D386FA1D9 648ACFD622F3D138
   - dirmngr --version
   - apt-get --allow-unauthenticated --allow-insecure-repositories clean && apt-get --allow-unauthenticated --allow-insecure-repositories update
-  - apt-get install -y ffmpeg x264 libsm6 libxext6 libglib2.0-0 qt6-base-dev libqt6core6 mlocate python3-pyqt6
-  - pip install --upgrade pip
+  - apt-get install -y ffmpeg x264 libsm6 libxext6 libglib2.0-0 qt6-base-dev libqt6core6 #mlocate python3-pyqt6
+  #- pip install --upgrade pip
 #  - ls -lh /usr/local/bin
 #  - ls -lh /usr/local/lib
 #  - ls -lh /usr/local/lib64
