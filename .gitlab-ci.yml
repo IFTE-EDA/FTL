@@ -12,7 +12,6 @@ stages:          # List of stages for jobs, and their order of execution
 before_script:
   - python --version
   - pip --version
-  - locate libQt6Core.so.6
   - echo "deb http://deb.debian.org/debian bullseye-backports main contrib non-free" >> /etc/apt/sources.list
   - echo "deb-src http://deb.debian.org/debian bullseye-backports main contrib non-free" >> /etc/apt/sources.list
   - apt-get update
@@ -36,6 +35,7 @@ before_script:
   #- python3 -m pip install -i https://gmsh.info/python-packages-dev --force-reinstall --no-cache-dir gmsh
   - python3 -m pip install --ignore-installed -r requirements.txt
   - python3 -m pip install -U pytest
+  - locate libQt6Core.so.6
 
 hello:
   stage: hi
