@@ -1,7 +1,7 @@
 #image: arnoldnico/ifte-ci:py3.10.4-ffmpeg-buster
 image: 
   #name: arnoldnico/ifte-ci:py3.10.4-vedo-bookworm
-  name: python:3.11.4-bookworm
+  name: arnoldnico/ifte-ci:py3.10.4-vedo-bullseye
   entrypoint: [ '/bin/bash', '-s' ]
 
 stages:          # List of stages for jobs, and their order of execution
@@ -18,11 +18,11 @@ before_script:
   #- echo "deb http://deb.debian.org/debian bullseye-backports main contrib non-free" >> /etc/apt/sources.list
   #- echo "deb-src http://deb.debian.org/debian bullseye-backports main contrib non-free" >> /etc/apt/sources.list
   #- apt-key list
-  - systemctl --user restart dirmngr.socket
+  #- systemctl --user restart dirmngr.socket
   #- gpgconf --launch dirmngr
-  - gpg -k
+  #- gpg -k
   #- mkdir /root/.gnupg
-  - gpg --keyserver pgp.mit.edu --recv-keys 0E98404D386FA1D9 6ED0E7B82643E131  F8D2585B8783D481 54404762BBB6E853 BDE6D2B9216EC7A8
+  #- gpg --keyserver pgp.mit.edu --recv-keys 0E98404D386FA1D9 6ED0E7B82643E131  F8D2585B8783D481 54404762BBB6E853 BDE6D2B9216EC7A8
   #- gpg --keyserver hkp://keyserver.ubuntu.com:80 --no-default-keyring --keyring /usr/share/keyrings/change-ppa-name-here.gpg --recv-keys 605C66F00D6C9793 0E98404D386FA1D9 648ACFD622F3D138
   #- apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 605C66F00D6C9793 \
   #  0E98404D386FA1D9 648ACFD622F3D138
