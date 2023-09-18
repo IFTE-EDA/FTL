@@ -15,6 +15,8 @@ before_script:
   #- echo "deb http://deb.debian.org/debian bullseye-backports main contrib non-free" >> /etc/apt/sources.list
   #- echo "deb-src http://deb.debian.org/debian bullseye-backports main contrib non-free" >> /etc/apt/sources.list
   #- apt-key list
+  - ls -l ~/.gnupg/
+  - mkdir /root/.gnupg
   - gpg --keyserver hkp://keyserver.ubuntu.com:80 --no-default-keyring --no-use-temp-files --keyring /usr/share/keyrings/change-ppa-name-here.gpg --recv-keys 605C66F00D6C9793 0E98404D386FA1D9 648ACFD622F3D138
   #- apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 605C66F00D6C9793 \
   #  0E98404D386FA1D9 648ACFD622F3D138
