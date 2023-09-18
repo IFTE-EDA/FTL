@@ -1,5 +1,5 @@
 #image: carlonluca/qt-dev:6.0.4
-#image: 
+image: 
   name: arnoldnico/ifte-ci:py3.10.4-vedo-bookworm
 #  name: arnoldnico/ifte-ci:py3.10.4-vedo-bullseye
   entrypoint: [ '/bin/bash', '-s' ]
