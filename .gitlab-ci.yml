@@ -12,14 +12,14 @@ stages:          # List of stages for jobs, and their order of execution
 before_script:
   - python --version
   - pip --version
-  - apt-get install dirmngr gpg --install-recommends
+  #- apt-get install dirmngr gpg --install-recommends
   - gpgconf --version
   - gpg-connect-agent --version
   #- echo "deb http://deb.debian.org/debian bullseye-backports main contrib non-free" >> /etc/apt/sources.list
   #- echo "deb-src http://deb.debian.org/debian bullseye-backports main contrib non-free" >> /etc/apt/sources.list
   #- apt-key list
   #- systemctl --user restart dirmngr.socket
-  #- gpgconf --launch dirmngr
+  - gpgconf --launch dirmngr
   - gpg -k
   #- mkdir /root/.gnupg
   #- gpg --keyserver pgp.mit.edu --recv-keys 0E98404D386FA1D9 6ED0E7B82643E131  F8D2585B8783D481 54404762BBB6E853 BDE6D2B9216EC7A8
