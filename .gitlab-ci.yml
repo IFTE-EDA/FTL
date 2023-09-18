@@ -12,7 +12,9 @@ stages:          # List of stages for jobs, and their order of execution
 before_script:
   - python --version
   - pip --version
-  - apt-get install dirmngr gpg
+  - apt-get install dirmngr gpg --install-recommends
+  - gpgconf --version
+  - gpg-connect-agent --version
   #- echo "deb http://deb.debian.org/debian bullseye-backports main contrib non-free" >> /etc/apt/sources.list
   #- echo "deb-src http://deb.debian.org/debian bullseye-backports main contrib non-free" >> /etc/apt/sources.list
   #- apt-key list
