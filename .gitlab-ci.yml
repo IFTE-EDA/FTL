@@ -12,6 +12,8 @@ stages:          # List of stages for jobs, and their order of execution
 before_script:
   - python --version
   - pip --version
+  - echo "deb http://deb.debian.org/debian bullseye-backports main contrib non-free" >> /etc/apt/sources.list
+  - echo "deb-src http://deb.debian.org/debian bullseye-backports main contrib non-free" >> /etc/apt/sources.list
   - apt-get update
   - apt-get install ffmpeg x264 libsm6 libxext6 libglib2.0-0 qt6-base-dev
 #  - ls -lh /usr/local/bin
