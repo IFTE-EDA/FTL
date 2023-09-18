@@ -22,7 +22,7 @@ before_script:
   - locate libassuan 
   - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/x86_64-linux-gnu/
   - ldconfig
-  - dirmngr --daemon
+  - dirmngr -v --daemon
   - gpgconf --launch dirmngr
   - gpg -k
   #- mkdir /root/.gnupg
