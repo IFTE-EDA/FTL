@@ -1,7 +1,7 @@
 #image: arnoldnico/ifte-ci:py3.10.4-ffmpeg-buster
 image: 
   #name: arnoldnico/ifte-ci:py3.10.4-vedo-bookworm
-  name: python:3.10.4-bookworm
+  name: python:3.11.4-bookworm
   entrypoint: [ '/bin/bash', '-s' ]
 
 stages:          # List of stages for jobs, and their order of execution
