@@ -13,7 +13,10 @@ import os
 class Test_FileParser:
     def setup_class(self):
         self.filename = os.path.join(
-            os.abspath(os.getcwd()), "tests", "data", "Teststrip_DirBend.json"
+            os.path.abspath(os.getcwd()),
+            "tests",
+            "data",
+            "Teststrip_DirBend.json",
         )
         self.parser = FileParser(self.filename)
 
