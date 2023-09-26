@@ -68,7 +68,7 @@ hello:
 pytest:
   stage: test
   script:
-    - pytest tests -k "not test_transformations"
+    - pytest tests/ -k "not test_transformations"
 #  artifacts:
 #    when: always
 #    reports:
