@@ -12,7 +12,9 @@ import os
 
 class Test_FileParser:
     def setup_class(self):
-        self.filename = os.path.join("data", "Teststrip_DirBend.json")
+        self.filename = os.path.join(
+            os.abspath(os.getcwd()), "tests", "data", "Teststrip_DirBend.json"
+        )
         self.parser = FileParser(self.filename)
 
     def test_attrs(self):
