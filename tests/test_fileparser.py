@@ -12,10 +12,11 @@ import os
 
 class Test_FileParser:
     def setup_class(self):
-        self.parser = FileParser("data/Teststrip_DirBend.json")
+        self.filename = os.path.join("data", "Teststrip_DirBend.json")
+        self.parser = FileParser(self.filename)
 
     def test_attrs(self):
-        assert self.parser.filename == "data/Teststrip_DirBend.json"
+        assert self.parser.filename == self.filename
         assert self.parser.mel == 4
         assert self.parser.mel_residual == 4
         assert self.parser.mel_trans == 2
