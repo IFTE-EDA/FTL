@@ -33,7 +33,7 @@ before_script:
   - pwd
   - ls -l /opt/pyenv
   - export PATH="/opt/pyenv/bin:$PATH"
-  - export PYENV_ROOT = /opt/pyenv
+  - export PYENV_ROOT=/opt/pyenv
   - apt-get update && apt-get install libssl-dev openssl libffi-dev
   - pyenv install 3.5.3 3.6.8
   - pyenv local 3.5.3 3.6.8
