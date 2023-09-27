@@ -26,19 +26,22 @@ before_script:
   #- python3 -m pip install -i https://gmsh.info/python-packages-dev --force-reinstall --no-cache-dir gmsh
   #- add-apt-repository ppa:deadsnakes/ppa
   - python3 -m pip install --progress-bar off --ignore-installed -r requirements.txt
-  - python3 -m pip install --progress-bar off --ignore-installed -U pytest tox
+  - python3 -m pip install --progress-bar off --ignore-installed -U pytest tox pyenv
   - apt-get update && apt-get install libssl-dev openssl libffi-dev
+  - pyenv install 3.5.3 3.6.8
+  - pyenv local 3.5.3 3.6.8
+  - pyenv global 3.5.3 3.6.8
   #- apt-get install python3.5 python3.6
-  - wget https://www.python.org/ftp/python/3.5.10/Python-3.5.10.tgz
-  - tar zxf Python-3.5.10.tgz
-  - cd Python-3.5.10/
-  - ./configure --prefix=/usr/local
-  - make
-  - make install
+  #- wget https://www.python.org/ftp/python/3.5.10/Python-3.5.10.tgz
+  #- tar zxf Python-3.5.10.tgz
+  #- cd Python-3.5.10/
+  #- ./configure --prefix=/usr/local
+  #- make
+  #- make install
   #- ln -fs /opt/python-3.5.2/bin/python3.5 /usr/local/bin/python3.5
   #- ln -fs /opt/python-3.5.2/bin/pip3.5 /usr/local/bin/pip3.5
-  - cd ..
-  - python3.5 --version
+  #- cd ..
+  #- python3.5 --version
   - which python3.5
   - which python3
   #- locate libQt6Core.so.6
