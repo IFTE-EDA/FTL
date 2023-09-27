@@ -25,11 +25,11 @@ before_script:
   #- strip --remove-section=.note.ABI-tag /usr/lib/x86_64-linux-gnu/libQt6Core.so.6
   #- python3 -m pip install -i https://gmsh.info/python-packages-dev --force-reinstall --no-cache-dir gmsh
   - python3 -m pip install --progress-bar off --ignore-installed -r requirements.txt
-  - python3 -m pip install --progress-bar off --ignore-installed -U pytest tox
+  #- python3 -m pip install --progress-bar off --ignore-installed -U pytest tox
   #- git clone https://github.com/pyenv/pyenv.git /opt/pyenv
   #- cd /opt/pyenv && src/configure && make -C src && cd -
-  - export PATH="/opt/pyenv/bin:$PATH"
-  - export PYENV_ROOT=/opt/pyenv
+  #- export PATH="/opt/pyenv/bin:$PATH"
+  #- export PYENV_ROOT=/opt/pyenv
   #- pyenv install 3.5.3 3.6.9
   #- pyenv local 3.5.3 3.6.9
   #- pyenv global 3.5.3 3.6.9
@@ -45,12 +45,12 @@ before_script:
   #- cd ..
   #- python3.5 --version
   #- which python3.5
-  - eval "$(pyenv init -)"
+  #- eval "$(pyenv init -)"
   - which python3
   - pyenv versions
   #- locate libQt6Core.so.6
 
-hello:
+information:
   stage: info
   script:
     - /opt/pyenv/bin/pyenv versions
@@ -70,8 +70,20 @@ test_tox:
   stage: test
   script:
     - tox
+  coverage: '/(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
+  artifacts:
+    when: always
+    reports:
+      junit: report.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.xml
+
 
 goodbye:
   stage: bye
   script:
     - echo Goodbye
+
+include:
+- template: Code-Quality.gitlab-ci.yml
