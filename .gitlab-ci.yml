@@ -48,6 +48,7 @@ before_script:
   #- python3.5 --version
   #- which python3.5
   - eval "$(pyenv init -)"
+  - export PYENV_ROOT=/opt/pyenv
   - which python3
   #- locate libQt6Core.so.6
 
