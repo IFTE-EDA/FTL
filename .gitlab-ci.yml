@@ -20,10 +20,10 @@ before_script:
   - dirmngr --version
   #- apt-get --allow-unauthenticated --allow-insecure-repositories clean && apt-get --allow-unauthenticated --allow-insecure-repositories update
   #- apt-get install -y ffmpeg x264 libsm6 libxext6 libglib2.0-0 qt6-base-dev libqt6core6 #mlocate python3-pyqt6
-  
   - git submodule update --remote
   #- strip --remove-section=.note.ABI-tag /usr/lib/x86_64-linux-gnu/libQt6Core.so.6
   #- python3 -m pip install -i https://gmsh.info/python-packages-dev --force-reinstall --no-cache-dir gmsh
+  - apt-get install python3.5 python3.6
   - python3 -m pip install --progress-bar off --ignore-installed -r requirements.txt
   - python3 -m pip install --progress-bar off --ignore-installed -U pytest tox
   #- locate libQt6Core.so.6
