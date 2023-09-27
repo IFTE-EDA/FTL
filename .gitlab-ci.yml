@@ -60,17 +60,17 @@ information:
 test_pytest:
   stage: test
   script:
-    - pytest tests/
-#  artifacts:
-#    when: always
-#    reports:
-#      junit: report.xml
+    - pytest tests/ --junitxml=pytest_report.xml
+  artifacts:
+    when: always
+    reports:
+      junit: pytest_report.xml
 
 test_tox:
   stage: test
   script:
     - tox
-  coverage: '/(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
+  #coverage: '/(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
   artifacts:
     when: always
     reports:
