@@ -25,9 +25,8 @@ before_script:
   #- strip --remove-section=.note.ABI-tag /usr/lib/x86_64-linux-gnu/libQt6Core.so.6
   #- python3 -m pip install -i https://gmsh.info/python-packages-dev --force-reinstall --no-cache-dir gmsh
   - python3 -m pip install --progress-bar off --ignore-installed -r requirements.txt
-  - alias python='python3'
   #- ln -s /opt/pyenv/bin/pyenv /usr/local/pyenv
-  - export PATH="/opt/pyenv/bin:$PATH"
+  # - export PATH="/opt/pyenv/bin:$PATH"
   #- python3 -m pip install --progress-bar off --ignore-installed -U pytest tox
   #- git clone https://github.com/pyenv/pyenv.git /opt/pyenv
   #- cd /opt/pyenv && src/configure && make -C src && cd -
@@ -50,15 +49,14 @@ before_script:
   #- which python3.5
   #- eval "$(pyenv init -)"
   - which python3
-  - pyenv versions
   #- locate libQt6Core.so.6
 
 information:
   stage: info
   script:
     - /opt/pyenv/bin/pyenv versions
-    - pyenv install -l
     - printenv
+    - pyenv versions
 
 test_pytest:
   stage: test
@@ -78,9 +76,9 @@ test_tox:
     when: always
     reports:
       junit: report.xml
-      coverage_report:
-        coverage_format: cobertura
-        path: coverage.xml
+#      coverage_report:
+#        coverage_format: cobertura
+#        path: coverage.xml
 
 
 goodbye:
