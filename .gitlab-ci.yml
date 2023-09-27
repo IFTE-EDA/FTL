@@ -40,6 +40,7 @@ before_script:
   - cd ..
   - python3.5 --version
   - which python3.5
+  - which python3
   #- locate libQt6Core.so.6
 
 hello:
