@@ -14,44 +14,11 @@ stages:          # List of stages for jobs, and their order of execution
 before_script:
   - python --version
   - pip --version
-  #- apt-get install dirmngr gpg --install-recommends
   - gpgconf --version
   - gpg-connect-agent --version
-  #- echo "deb http://deb.debian.org/debian bullseye-backports main contrib non-free" >> /etc/apt/sources.list
-  #- echo "deb-src http://deb.debian.org/debian bullseye-backports main contrib non-free" >> /etc/apt/sources.list
-  #- apt-key list
-  #- systemctl --user restart dirmngr.socket
-  #- locate libassuan 
-  #- export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/x86_64-linux-gnu/
-  #- ldconfig
-  #- mkdir /root/.gnupg/
-  #- gpg -k
-  #- touch /root/.gnupg/S.dirmngr
-  #- dirmngr -v --daemon
-  #- gpgconf --launch dirmngr
-  #- mkdir /root/.gnupg
-  #- gpg --keyserver pgp.mit.edu --recv-keys 0E98404D386FA1D9 6ED0E7B82643E131  F8D2585B8783D481 54404762BBB6E853 BDE6D2B9216EC7A8
-  #- gpg --keyserver hkp://keyserver.ubuntu.com:80  --recv-keys 0E98404D386FA1D9 6ED0E7B82643E131  F8D2585B8783D481 54404762BBB6E853 BDE6D2B9216EC7A8
-  #- gpg --keyserver hkp://keyserver.ubuntu.com:80 --no-default-keyring --keyring /usr/share/keyrings/change-ppa-name-here.gpg --recv-keys 605C66F00D6C9793 0E98404D386FA1D9 648ACFD622F3D138
-  #- apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 605C66F00D6C9793 \
-  #  0E98404D386FA1D9 648ACFD622F3D138
   - dirmngr --version
-  - apt-get --allow-unauthenticated --allow-insecure-repositories clean && apt-get --allow-unauthenticated --allow-insecure-repositories update
-  - apt-get install -y ffmpeg x264 libsm6 libxext6 libglib2.0-0 qt6-base-dev libqt6core6 #mlocate python3-pyqt6
-  #- pip install --upgrade pip
-#  - ls -lh /usr/local/bin
-#  - ls -lh /usr/local/lib
-#  - ls -lh /usr/local/lib64
-#  - ls -lh /usr/bin
-#  - locate ffmpeg
-#  - which ffmpeg
-#  - find / | grep ffmpeg
-#  - ffmpeg -version
-  #- apk add mpeg libsm6 libxext6 git
-  #- apk update
-  #- apk upgrade
-  #- apk add --no-cache ffmpeg git
-  #- apt-get install python3-pip
+  #- apt-get --allow-unauthenticated --allow-insecure-repositories clean && apt-get --allow-unauthenticated --allow-insecure-repositories update
+  #- apt-get install -y ffmpeg x264 libsm6 libxext6 libglib2.0-0 qt6-base-dev libqt6core6 #mlocate python3-pyqt6
   
   - git submodule update --remote
   #- strip --remove-section=.note.ABI-tag /usr/lib/x86_64-linux-gnu/libQt6Core.so.6
@@ -68,7 +35,7 @@ hello:
 pytest:
   stage: test
   script:
-    - pytest tests/ -k "not test_transformations"
+    - pytest tests/
 #  artifacts:
 #    when: always
 #    reports:
