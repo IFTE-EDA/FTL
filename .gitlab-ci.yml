@@ -8,12 +8,12 @@ image:
  
 stages:          # List of stages for jobs, and their order of execution
   - hi
-  - pytest
-  - tox
+  - test
   - bye
 
 before_script:
   - python --version
+  - python3.5 --version
   - pip --version
   - gpgconf --version
   - gpg-connect-agent --version
@@ -32,8 +32,8 @@ before_script:
   - ./configure --prefix=/usr/local
   - make
   - make install
-  - ln -s /opt/python-3.5.2/bin/python3.5 /usr/local/bin/python3.5
-  - ln -s /opt/python-3.5.2/bin/pip3.5 /usr/local/bin/pip3.5
+  - ln -fs /opt/python-3.5.2/bin/python3.5 /usr/local/bin/python3.5
+  - ln -fs /opt/python-3.5.2/bin/pip3.5 /usr/local/bin/pip3.5
   - cd ..
   - python3 -m pip install --progress-bar off --ignore-installed -r requirements.txt
   - python3 -m pip install --progress-bar off --ignore-installed -U pytest tox
@@ -45,7 +45,7 @@ hello:
     - echo Hello
 
 test_pytest:
-  stage: pytest
+  stage: test
   script:
     - pytest tests/
 #  artifacts:
@@ -54,7 +54,7 @@ test_pytest:
 #      junit: report.xml
 
 test_tox:
-  stage: tox
+  stage: test
   script:
     - tox
 
