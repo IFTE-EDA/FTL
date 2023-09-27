@@ -28,9 +28,12 @@ before_script:
   - python3 -m pip install --progress-bar off --ignore-installed -r requirements.txt
   - python3 -m pip install --progress-bar off --ignore-installed -U pytest tox
   - git clone https://github.com/pyenv/pyenv.git /opt/pyenv
+  - pwd
   - cd /opt/pyenv && src/configure && make -C src && cd -
+  - pwd
   - ls -l /opt/pyenv
-  - export PATH="/opt/pyenv:$PATH"
+  - export PATH="/opt/pyenv/bin:$PATH"
+  - export PYENV_ROOT = /opt/pyenv
   - apt-get update && apt-get install libssl-dev openssl libffi-dev
   - pyenv install 3.5.3 3.6.8
   - pyenv local 3.5.3 3.6.8
