@@ -44,7 +44,7 @@ before_script:
   #- ln -fs /opt/python-3.5.2/bin/pip3.5 /usr/local/bin/pip3.5
   #- cd ..
   #- python3.5 --version
-  - which python3.5
+  #- which python3.5
   - which python3
   - pyenv versions
   #- locate libQt6Core.so.6
