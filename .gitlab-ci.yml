@@ -1,6 +1,6 @@
 #image: carlonluca/qt-dev:6.0.4
 image: 
-  name: arnoldnico/ifte-ci:py3.10.4-vedo-bookworm
+  name: arnoldnico/ifte-ci:py3.10.4-tox-vedo-bookworm
 #  name: arnoldnico/ifte-ci:py3.10.4-vedo-bullseye
   entrypoint: [ '/bin/bash', '-s' ]
  
@@ -24,17 +24,14 @@ before_script:
   - git submodule update --remote
   #- strip --remove-section=.note.ABI-tag /usr/lib/x86_64-linux-gnu/libQt6Core.so.6
   #- python3 -m pip install -i https://gmsh.info/python-packages-dev --force-reinstall --no-cache-dir gmsh
-  #- add-apt-repository ppa:deadsnakes/ppa
   - python3 -m pip install --progress-bar off --ignore-installed -r requirements.txt
   - python3 -m pip install --progress-bar off --ignore-installed -U pytest tox
   - git clone https://github.com/pyenv/pyenv.git /opt/pyenv
   - cd /opt/pyenv && src/configure && make -C src && cd -
-  - ls -l /opt/pyenv
   - export PATH="/opt/pyenv/bin:$PATH"
   - export PYENV_ROOT=/opt/pyenv
-  - apt-get update && apt-get install
   - pyenv install 3.5.3 3.6.9
-  - pyenv local 3.5.3 3.6.
+  - pyenv local 3.5.3 3.6.9
   - pyenv global 3.5.3 3.6.9
   #- apt-get install python3.5 python3.6
   #- wget https://www.python.org/ftp/python/3.5.10/Python-3.5.10.tgz
@@ -56,6 +53,7 @@ hello:
   stage: hi
   script:
     - echo Hello
+    - /opt/pyenv/bin/pyenv versions
 
 test_pytest:
   stage: test
