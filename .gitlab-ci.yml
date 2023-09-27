@@ -64,7 +64,7 @@ test_pytest:
   artifacts:
     when: always
     reports:
-      junit: pytest_report.xml
+      junit: pytest*.xml#_report.xml
 
 test_tox:
   stage: test
@@ -74,7 +74,7 @@ test_tox:
   artifacts:
     when: always
     reports:
-      junit: report.xml
+      junit: junit-*.xml
 #      coverage_report:
 #        coverage_format: cobertura
 #        path: coverage.xml
