@@ -31,10 +31,8 @@ before_script:
   - ./configure --prefix=/usr/local
   - make
   - make install
-  - python3.5 --version
-  - which python3.5
-  - ln -fs /opt/python-3.5.2/bin/python3.5 /usr/local/bin/python3.5
-  - ln -fs /opt/python-3.5.2/bin/pip3.5 /usr/local/bin/pip3.5
+  #- ln -fs /opt/python-3.5.2/bin/python3.5 /usr/local/bin/python3.5
+  #- ln -fs /opt/python-3.5.2/bin/pip3.5 /usr/local/bin/pip3.5
   - cd ..
   - python3.5 --version
   - which python3.5
