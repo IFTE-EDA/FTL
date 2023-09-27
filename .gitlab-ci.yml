@@ -8,7 +8,8 @@ image:
  
 stages:          # List of stages for jobs, and their order of execution
   - hi
-  - test
+  - pytest
+  - tox
   - bye
 
 before_script:
@@ -32,14 +33,19 @@ hello:
   script:
     - echo Hello
 
-pytest:
-  stage: test
+test_pytest:
+  stage: pytest
   script:
     - pytest tests/
 #  artifacts:
 #    when: always
 #    reports:
 #      junit: report.xml
+
+test_tox:
+  stage: pytest
+  script:
+    - tox
 
 goodbye:
   stage: bye
