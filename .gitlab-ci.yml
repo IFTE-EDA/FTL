@@ -55,7 +55,6 @@ hello:
   script:
     - echo Hello
     - /opt/pyenv/bin/pyenv versions
-
     - printenv
 
 test_pytest:
