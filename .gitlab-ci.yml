@@ -32,9 +32,9 @@ before_script:
   - ls -l /opt/pyenv
   - export PATH="/opt/pyenv/bin:$PATH"
   - export PYENV_ROOT=/opt/pyenv
-  - apt-get update && apt-get install libssl-dev openssl libffi-dev make build-essential libssl-dev zlib1g-dev libbz2-dev \
+  - apt-get update && apt-get install libssl-dev openssl libffi-dev build-essential libssl-dev zlib1g-dev libbz2-dev \
     libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev \
-    xz-utils tk-dev libffi-dev liblzma-dev
+    tk-dev liblzma-dev
   - pyenv install 3.5.3 3.6.8
   - pyenv local 3.5.3 3.6.8
   - pyenv global 3.5.3 3.6.8
