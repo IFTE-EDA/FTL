@@ -43,7 +43,7 @@ test_pytest:
 #      junit: report.xml
 
 test_tox:
-  stage: pytest
+  stage: tox
   script:
     - tox
 
