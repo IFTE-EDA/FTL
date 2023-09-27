@@ -23,6 +23,7 @@ before_script:
   - git submodule update --remote
   #- strip --remove-section=.note.ABI-tag /usr/lib/x86_64-linux-gnu/libQt6Core.so.6
   #- python3 -m pip install -i https://gmsh.info/python-packages-dev --force-reinstall --no-cache-dir gmsh
+  - add-apt-repository ppa:deadsnakes/ppa
   - apt-get install python3.5 python3.6
   - python3 -m pip install --progress-bar off --ignore-installed -r requirements.txt
   - python3 -m pip install --progress-bar off --ignore-installed -U pytest tox
