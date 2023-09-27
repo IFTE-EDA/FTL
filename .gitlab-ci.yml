@@ -25,6 +25,7 @@ before_script:
   #- strip --remove-section=.note.ABI-tag /usr/lib/x86_64-linux-gnu/libQt6Core.so.6
   #- python3 -m pip install -i https://gmsh.info/python-packages-dev --force-reinstall --no-cache-dir gmsh
   - python3 -m pip install --progress-bar off --ignore-installed -r requirements.txt
+  - alias python='python3'
   #- python3 -m pip install --progress-bar off --ignore-installed -U pytest tox
   #- git clone https://github.com/pyenv/pyenv.git /opt/pyenv
   #- cd /opt/pyenv && src/configure && make -C src && cd -
