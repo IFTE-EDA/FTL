@@ -45,6 +45,7 @@ before_script:
   #- cd ..
   #- python3.5 --version
   #- which python3.5
+  - eval "$(pyenv init -)"
   - which python3
   - pyenv versions
   #- locate libQt6Core.so.6
@@ -54,6 +55,8 @@ hello:
   script:
     - echo Hello
     - /opt/pyenv/bin/pyenv versions
+
+    - printenv
 
 test_pytest:
   stage: test
