@@ -22,9 +22,13 @@ class ParentDummy:
 
 
 class Test_Transformations:
+    data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
+
     def setup_class(self):
         self.parent = ParentDummy()
-        self.mesh = v.load(os.path.abspath("data/Teststrip.stl")).clean()
+        self.mesh = v.load(
+            os.path.join(self.data_dir, "Teststrip.stl")
+        ).clean()
 
     def compare_to_file(self, points, filename) -> bool:
         with open(os.path.join(os.getcwd(), filename), "r") as f:
@@ -63,7 +67,10 @@ class Test_Transformations:
             return points
         print(
             "-> Comparing {}: {}".format(
-                tr.name, self.compare_to_file(points, filename)
+                tr.name,
+                self.compare_to_file(
+                    points, os.path.join(self.data_dir, filename)
+                ),
             )
         )
 
