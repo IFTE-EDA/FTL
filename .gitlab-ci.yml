@@ -7,7 +7,7 @@ image:
 
  
 stages:          # List of stages for jobs, and their order of execution
-  - hi
+  - info
   - test
   - bye
 
@@ -26,13 +26,13 @@ before_script:
   #- python3 -m pip install -i https://gmsh.info/python-packages-dev --force-reinstall --no-cache-dir gmsh
   - python3 -m pip install --progress-bar off --ignore-installed -r requirements.txt
   - python3 -m pip install --progress-bar off --ignore-installed -U pytest tox
-  - git clone https://github.com/pyenv/pyenv.git /opt/pyenv
-  - cd /opt/pyenv && src/configure && make -C src && cd -
+  #- git clone https://github.com/pyenv/pyenv.git /opt/pyenv
+  #- cd /opt/pyenv && src/configure && make -C src && cd -
   - export PATH="/opt/pyenv/bin:$PATH"
   - export PYENV_ROOT=/opt/pyenv
-  - pyenv install 3.5.3 3.6.9
-  - pyenv local 3.5.3 3.6.9
-  - pyenv global 3.5.3 3.6.9
+  #- pyenv install 3.5.3 3.6.9
+  #- pyenv local 3.5.3 3.6.9
+  #- pyenv global 3.5.3 3.6.9
   #- apt-get install python3.5 python3.6
   #- wget https://www.python.org/ftp/python/3.5.10/Python-3.5.10.tgz
   #- tar zxf Python-3.5.10.tgz
@@ -44,16 +44,18 @@ before_script:
   #- ln -fs /opt/python-3.5.2/bin/pip3.5 /usr/local/bin/pip3.5
   #- cd ..
   #- python3.5 --version
-  - which python3.5
+  #- which python3.5
+  - eval "$(pyenv init -)"
   - which python3
   - pyenv versions
   #- locate libQt6Core.so.6
 
 hello:
-  stage: hi
+  stage: info
   script:
-    - echo Hello
     - /opt/pyenv/bin/pyenv versions
+    - pyenv install -l
+    - printenv
 
 test_pytest:
   stage: test
