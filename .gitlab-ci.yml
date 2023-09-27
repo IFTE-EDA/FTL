@@ -27,8 +27,10 @@ before_script:
   #- add-apt-repository ppa:deadsnakes/ppa
   - python3 -m pip install --progress-bar off --ignore-installed -r requirements.txt
   - python3 -m pip install --progress-bar off --ignore-installed -U pytest tox
-  - git clone https://github.com/pyenv/pyenv.git .pyenv
-  - cd .pyenv && src/configure && make -C src && cd ..
+  - git clone https://github.com/pyenv/pyenv.git /opt/pyenv
+  - cd /opt/pyenv && src/configure && make -C src && cd -
+  - ls -l /opt/pyenv
+  - export PATH="/opt/pyenv:$PATH"
   - apt-get update && apt-get install libssl-dev openssl libffi-dev
   - pyenv install 3.5.3 3.6.8
   - pyenv local 3.5.3 3.6.8
