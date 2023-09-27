@@ -25,7 +25,7 @@ before_script:
   #- strip --remove-section=.note.ABI-tag /usr/lib/x86_64-linux-gnu/libQt6Core.so.6
   #- python3 -m pip install -i https://gmsh.info/python-packages-dev --force-reinstall --no-cache-dir gmsh
   - python3 -m pip install --progress-bar off --ignore-installed -r requirements.txt
-  - python3 -m pip install --progress-bar off --ignore-installed -U pytest
+  - python3 -m pip install --progress-bar off --ignore-installed -U pytest tox
   #- locate libQt6Core.so.6
 
 hello:
