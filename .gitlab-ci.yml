@@ -7,7 +7,7 @@ image:
 
  
 stages:          # List of stages for jobs, and their order of execution
-  - hi
+  - info
   - test
   - bye
 
@@ -51,10 +51,10 @@ before_script:
   #- locate libQt6Core.so.6
 
 hello:
-  stage: hi
+  stage: info
   script:
-    - echo Hello
     - /opt/pyenv/bin/pyenv versions
+    - pyenv install -l
     - printenv
 
 test_pytest:
