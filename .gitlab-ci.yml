@@ -88,5 +88,5 @@ goodbye:
   script:
     - echo Goodbye
 
-include:
-- template: Code-Quality.gitlab-ci.yml
+#include:
+#- template: Code-Quality.gitlab-ci.yml
