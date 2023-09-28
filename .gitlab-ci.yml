@@ -12,26 +12,20 @@ stages:          # List of stages for jobs, and their order of execution
   - bye
 
 before_script:
-  - python --version
-  - pip --version
-  - which python3
-  - which pip3
-  - gpgconf --version
-  - gpg-connect-agent --version
-  - dirmngr --version
   - git submodule update --remote
   #- strip --remove-section=.note.ABI-tag /usr/lib/x86_64-linux-gnu/libQt6Core.so.6
   #- python3 -m pip install -i https://gmsh.info/python-packages-dev --force-reinstall --no-cache-dir gmsh
   - python3 -m pip install --progress-bar off --ignore-installed -r requirements.txt
-  #- eval "$(pyenv init -)"
-  - which python3
-  #- locate libQt6Core.so.6
 
 information:
   stage: info
   script:
     - printenv
     - pip list
+    - python --version
+    - python3 --version
+    - which python3
+    - which pip3
     - pyenv versions
     - whoami
 
@@ -62,7 +56,7 @@ test_tox:
 goodbye:
   stage: bye
   script:
-    - echo Goodbye
+    - echo Tests successfull. Goodbye!
 
 #include:
 #- template: Code-Quality.gitlab-ci.yml
