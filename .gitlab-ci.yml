@@ -47,17 +47,18 @@ before_script:
   #- cd ..
   #- python3.5 --version
   #- which python3.5
-  - export PATH="/opt/pyenv/bin:$PATH"
-  - export PYENV_ROOT=/opt/pyenv
-  - eval "$(pyenv init -)"
+  #- export PATH="/opt/pyenv/bin:$PATH"
+  #- export PYENV_ROOT=/opt/pyenv
+  #- eval "$(pyenv init -)"
   - which python3
   #- locate libQt6Core.so.6
 
 information:
   stage: info
   script:
-    - /opt/pyenv/bin/pyenv versions
+    - pyenv versions
     - printenv
+    - whoami
 
 test_pytest:
   stage: test
