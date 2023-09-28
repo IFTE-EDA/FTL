@@ -75,14 +75,16 @@ class Test_Transformations:
                     points[pid][1] = vec[1]
                     points[pid][2] = vec[2]
             return points
+        ret = self.compare_to_file(points, filename)
         print(
             "-> Comparing {}: {}".format(
                 tr.name,
-                self.compare_to_file(points, filename),
+                ret,
             )
         )
+        assert ret
 
-        mesh2.points(points)
+        # mesh2.points(points)
 
     def process_all(self, input, filename):
         self.test_DirBend()
