@@ -19,37 +19,14 @@ before_script:
   - gpgconf --version
   - gpg-connect-agent --version
   - dirmngr --version
-  #- apt-get --allow-unauthenticated --allow-insecure-repositories clean && apt-get --allow-unauthenticated --allow-insecure-repositories update
-  #- apt-get install -y ffmpeg x264 libsm6 libxext6 libglib2.0-0 qt6-base-dev libqt6core6 #mlocate python3-pyqt6
   - git submodule update --remote
   #- strip --remove-section=.note.ABI-tag /usr/lib/x86_64-linux-gnu/libQt6Core.so.6
   #- python3 -m pip install -i https://gmsh.info/python-packages-dev --force-reinstall --no-cache-dir gmsh
   - python3 -m pip install --progress-bar off --ignore-installed -r requirements.txt
-  #- ln -s /opt/pyenv/bin/pyenv /usr/local/pyenv
-  # - export PATH="/opt/pyenv/bin:$PATH"
-  #- python3 -m pip install --progress-bar off --ignore-installed -U pytest tox
-  #- git clone https://github.com/pyenv/pyenv.git /opt/pyenv
-  #- cd /opt/pyenv && src/configure && make -C src && cd -
-  #- export PATH="/opt/pyenv/bin:$PATH"
-  #- export PYENV_ROOT=/opt/pyenv
-  #- pyenv install 3.5.3 3.6.9
-  #- pyenv local 3.5.3 3.6.9
-  #- pyenv global 3.5.3 3.6.9
-  #- apt-get install python3.5 python3.6
-  #- wget https://www.python.org/ftp/python/3.5.10/Python-3.5.10.tgz
-  #- tar zxf Python-3.5.10.tgz
-  #- cd Python-3.5.10/
-  #- ./configure --prefix=/usr/local
-  #- make
-  #- make install
-  #- ln -fs /opt/python-3.5.2/bin/python3.5 /usr/local/bin/python3.5
-  #- ln -fs /opt/python-3.5.2/bin/pip3.5 /usr/local/bin/pip3.5
-  #- cd ..
   #- python3.5 --version
-  #- which python3.5
-  #- export PATH="/opt/pyenv/bin:$PATH"
-  #- export PYENV_ROOT=/opt/pyenv
-  #- eval "$(pyenv init -)"
+  - export PATH="/opt/pyenv/bin:$PATH"
+  - export PYENV_ROOT=/opt/pyenv
+  - eval "$(pyenv init -)"
   - which python3
   #- locate libQt6Core.so.6
 
@@ -63,6 +40,7 @@ information:
 test_pytest:
   stage: test
   script:
+    - pyenv versions
     - pytest tests/ --junitxml=pytest_report.xml
   artifacts:
     when: always
