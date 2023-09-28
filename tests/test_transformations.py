@@ -43,7 +43,8 @@ class Test_Transformations:
     def compare_to_file(self, points, filename) -> bool:
         with open(os.path.join(self.test_data_dir, filename), "r") as f:
             comp = f.read()
-            if comp == points.__repr__():
+            if comp == np.round(points, 13).__repr__():
+                print("Compare successful")
                 return True
             else:
                 print(
@@ -80,7 +81,7 @@ class Test_Transformations:
                     points[pid][0] = vec[0]
                     points[pid][1] = vec[1]
                     points[pid][2] = vec[2]
-            return points
+            # return points
         ret = self.compare_to_file(points, filename)
         print(
             "-> Comparing {}: {}".format(
@@ -92,7 +93,7 @@ class Test_Transformations:
 
         # mesh2.points(points)
 
-    def process_all(self, input, filename):
+    def process_all(self):
         self.test_DirBend()
         self.test_LinearTransformation()
         self.test_Spiral()
@@ -146,3 +147,10 @@ class Test_Transformations:
 
         self.process_transformation(tr_dirbend, "data/Teststrip.stl")
     """
+
+
+if __name__ == "__main__":
+    tester = Test_Transformations()
+    tester.setup_class()
+    tester.test_ZBend()
+    # tester.process_all()

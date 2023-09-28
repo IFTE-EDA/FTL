@@ -23,7 +23,7 @@ class ParentDummy:
 
 def compare_to_file(points, filename) -> bool:
     with open(os.path.join(os.getcwd(), "tests", "data", filename), "r") as f:
-        if f.read() == points.__repr__():
+        if f.read() == np.round(points, 13).__repr__():
             return True
         else:
             return False
@@ -31,7 +31,7 @@ def compare_to_file(points, filename) -> bool:
 
 def write_to_file(points, filename) -> bool:
     with open(os.path.join(os.getcwd(), "tests", "data", filename), "w") as f:
-        f.write(points.__repr__())
+        f.write(np.round(points, 13).__repr__())
         return True
 
 
