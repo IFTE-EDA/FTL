@@ -42,9 +42,15 @@ class Test_Transformations:
 
     def compare_to_file(self, points, filename) -> bool:
         with open(os.path.join(self.test_data_dir, filename), "r") as f:
-            if f.read() == points.__repr__():
+            comp = f.read()
+            if comp == points.__repr__():
                 return True
             else:
+                print(
+                    "\n\n{}\n\n===========================================\n\n{}\n".format(
+                        comp, points.__repr__()
+                    )
+                )
                 return False
 
     def process_transformation(self, tr: FTL.Transformation) -> bool:
