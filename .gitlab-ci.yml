@@ -25,7 +25,7 @@ before_script:
   - python3 -m pip install --progress-bar off --ignore-installed -r requirements.txt
   #- python3.5 --version
   #- export PATH="/opt/pyenv/bin:$PATH"
-  - export PYENV_ROOT=/opt/pyenv
+  #- export PYENV_ROOT=/opt/pyenv
   - eval "$(pyenv init -)"
   - which python3
   #- locate libQt6Core.so.6
@@ -33,14 +33,13 @@ before_script:
 information:
   stage: info
   script:
-    - pyenv versions
     - printenv
+    - pyenv versions
     - whoami
 
 test_pytest:
   stage: test
   script:
-    - pyenv versions
     - pytest tests/ --junitxml=pytest_report.xml
   artifacts:
     when: always
