@@ -28,6 +28,9 @@ information:
     - which pip3
     - pyenv versions
     - whoami
+    - echo -e "\e[0Ksection_start:`date +%s`:my_first_section[collapsed=true]\r\e[0KHeader of the 1st collapsible section"
+    - echo 'this line should be hidden automatically after loading the job log'
+    - echo -e "\e[0Ksection_end:`date +%s`:my_first_section\r\e[0K"
 
 #test_pytest:
 #  stage: test
