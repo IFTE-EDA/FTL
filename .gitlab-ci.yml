@@ -13,6 +13,7 @@ stages:          # List of stages for jobs, and their order of execution
 
 before_script:
   - git submodule update --remote
+  - pip install pytest-cov coverage flake8
   #- strip --remove-section=.note.ABI-tag /usr/lib/x86_64-linux-gnu/libQt6Core.so.6
   #- python3 -m pip install -i https://gmsh.info/python-packages-dev --force-reinstall --no-cache-dir gmsh
   - python3 -m pip install --progress-bar off --ignore-installed -r requirements.txt
@@ -20,7 +21,6 @@ before_script:
 information:
   stage: info
   script:
-    - pip install pytest-cov coverage flake8
     - echo -e "\e[0Ksection_start:`date +%s`:sct_prntenv[collapsed=true]\r\e[0Kenvironment variables"
     - printenv
     - echo -e "\e[0Ksection_end:`date +%s`:sct_prntenv\r\e[0K"
