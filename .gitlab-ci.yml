@@ -20,7 +20,9 @@ before_script:
 information:
   stage: info
   script:
+    - echo -e "\e[0Ksection_start:`date +%s`:sct_prntenv[collapsed=true]\r\e[0Kenvironment variables"
     - printenv
+    - echo -e "\e[0Ksection_end:`date +%s`:sct_prntenv\r\e[0K"
     - pip list
     - python --version
     - python3 --version
@@ -28,9 +30,9 @@ information:
     - which pip3
     - pyenv versions
     - whoami
-    - echo -e "\e[0Ksection_start:`date +%s`:my_first_section[collapsed=true]\r\e[0KHeader of the 1st collapsible section"
-    - echo 'this line should be hidden automatically after loading the job log'
-    - echo -e "\e[0Ksection_end:`date +%s`:my_first_section\r\e[0K"
+    #- echo -e "\e[0Ksection_start:`date +%s`:sct_prntenv[collapsed=true]\r\e[0Kenvironment variables"
+    #- echo 'this line should be hidden automatically after loading the job log'
+    #- echo -e "\e[0Ksection_end:`date +%s`:sct_prntenv\r\e[0K"
 
 #test_pytest:
 #  stage: test
@@ -41,7 +43,7 @@ information:
 #    reports:
 #      junit: pytest_report.xml
 
-test_tox:
+.test_tox:
   stage: test
   script:
     - pyenv versions
@@ -54,6 +56,21 @@ test_tox:
 #      coverage_report:
 #        coverage_format: cobertura
 #        path: coverage.xml
+
+test_py39:
+  extends: .test_tox
+  script:
+    - tox -e py39
+
+test_py310:
+  extends: .test_tox
+  script:
+    - tox -e py310
+
+test_py311:
+  extends: .test_tox
+  script:
+    - tox -e py311
 
 
 goodbye:
