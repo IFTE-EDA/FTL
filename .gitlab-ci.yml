@@ -13,14 +13,13 @@ stages:          # List of stages for jobs, and their order of execution
 
 before_script:
   - echo -e "\e[0Ksection_start:`date +%s`:sct_beforescript[collapsed=true]\r\e[0K===BEFORE SCRIPT==="
-  - printenv
-  - echo -e "\e[0Ksection_end:`date +%s`:sct_beforescript\r\e[0K"
   - git submodule update --remote
   - pip install pytest-cov coverage flake8
   - pip install --upgrade setuptools
   #- strip --remove-section=.note.ABI-tag /usr/lib/x86_64-linux-gnu/libQt6Core.so.6
   #- python3 -m pip install -i https://gmsh.info/python-packages-dev --force-reinstall --no-cache-dir gmsh
   - python3 -m pip install --progress-bar off --ignore-installed -r requirements.txt
+  - echo -e "\e[0Ksection_end:`date +%s`:sct_beforescript\r\e[0K"
 
 information:
   stage: info
@@ -55,6 +54,7 @@ information:
 
 .test_tox:
   stage: test
+  needs: ["information"]
   script:
     - pyenv versions
     - tox
@@ -69,6 +69,7 @@ information:
 
 test_flake8:
   stage: test
+  needs: ["information"]
   script:
     - tox -e flake8
 
