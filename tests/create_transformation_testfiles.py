@@ -1,11 +1,11 @@
-import os.path
+from pathlib import Path
 import sys
 import numpy as np
 import vedo as v
 from shapely.geometry import box
 from math import sin, cos, pi
 
-sys.path.append(os.path.abspath(os.getcwd()))
+sys.path.append(str(Path.cwd()))
 import FTL
 
 
@@ -21,8 +21,12 @@ class ParentDummy:
         pass
 
 
+data_dir = Path(__file__).parent.parent / "data"
+test_data_dir = Path(__file__).parent / "data"
+
+
 def compare_to_file(points, filename) -> bool:
-    with open(os.path.join(os.getcwd(), "tests", "data", filename), "r") as f:
+    with open(test_data_dir / filename, "r") as f:
         if f.read() == np.round(points, 13).__repr__():
             return True
         else:
@@ -30,7 +34,7 @@ def compare_to_file(points, filename) -> bool:
 
 
 def write_to_file(points, filename) -> bool:
-    with open(os.path.join(os.getcwd(), "tests", "data", filename), "w") as f:
+    with open(test_data_dir / filename, "w") as f:
         f.write(np.round(points, 13).__repr__())
         return True
 
@@ -57,7 +61,7 @@ def process_transformation(
 def process_all(input, filename):
     plt = v.Plotter(N=len(input))  # .user_mode(v.interactor_modes.MousePan())
     parent = ParentDummy()
-    mesh = v.load(os.path.abspath(filename)).clean()
+    mesh = v.load(str(data_dir / filename)).clean()
 
     print("Testing...")
     for i, tr in enumerate(input):
@@ -125,4 +129,4 @@ input.append(tr_dirbend)
 input.append(tr_lin)
 input.append(tr_spiral)
 
-process_all(input, "data/Teststrip.stl")
+process_all(input, "Teststrip.stl")

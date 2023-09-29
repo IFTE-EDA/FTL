@@ -1,3 +1,4 @@
+from pathlib import Path
 import os.path
 import sys
 import numpy as np
@@ -5,7 +6,7 @@ import vedo as v
 from shapely.geometry import box
 from math import sin, cos, pi
 
-sys.path.append(os.path.abspath(os.getcwd()))
+sys.path.append(str(Path.cwd()))
 import FTL
 
 
@@ -22,26 +23,18 @@ class ParentDummy:
 
 
 class Test_Transformations:
-    test_data_dir = os.path.join(
-        os.path.dirname(os.path.abspath(os.path.dirname(__file__))),
-        "tests",
-        "data",
-    )
-    data_dir = os.path.join(
-        os.path.dirname(os.path.abspath(os.path.dirname(__file__))), "data"
-    )
+    data_dir = Path(__file__).parent.parent / "data"
+    test_data_dir = Path(__file__).parent / "data"
 
     def setup_class(self):
         self.parent = ParentDummy()
-        print(
-            "Loading {}".format(os.path.join(self.data_dir, "Teststrip.stl"))
-        )
-        self.mesh = v.load(
-            os.path.join(self.data_dir, "Teststrip.stl")
-        ).clean()
+        print(self.data_dir)
+        test_filename = str(self.data_dir / "Teststrip.stl")
+        print("Loading {}".format(test_filename))
+        self.mesh = v.load(test_filename).clean()
 
     def compare_to_file(self, points, filename) -> bool:
-        with open(os.path.join(self.test_data_dir, filename), "r") as f:
+        with open(self.test_data_dir / filename, "r") as f:
             comp = f.read()
             if comp == np.round(points, 13).__repr__():
                 print("Compare successful")
@@ -90,8 +83,6 @@ class Test_Transformations:
             )
         )
         assert ret
-
-        # mesh2.points(points)
 
     def process_all(self):
         self.test_DirBend()
@@ -143,14 +134,8 @@ class Test_Transformations:
         tr_spiral = FTL.Spiral(json_sp)
         self.process_transformation(tr_spiral)
 
-    """def test_(self):
-
-        self.process_transformation(tr_dirbend, "data/Teststrip.stl")
-    """
-
 
 if __name__ == "__main__":
     tester = Test_Transformations()
     tester.setup_class()
-    tester.test_ZBend()
-    # tester.process_all()
+    tester.process_all()

@@ -1,4 +1,4 @@
-import pytest
+from pathlib import Path
 import sys
 import os
 
@@ -12,11 +12,8 @@ import os
 
 class Test_FileParser:
     def setup_class(self):
-        self.filename = os.path.join(
-            os.path.abspath(os.getcwd()),
-            "tests",
-            "data",
-            "Teststrip_DirBend.json",
+        self.filename = (
+            Path(__file__).parent / "data" / "Teststrip_DirBend.json"
         )
         self.parser = FileParser(self.filename)
 
@@ -73,7 +70,3 @@ class Test_FileParser:
 
     def test_get_layer_id(self):
         assert self.parser.get_layer_id("Teststrip") == 0
-
-    # def test_assignments(self):
-    #    self.parser.calculate_assignments()
-    #    print("Bla")
