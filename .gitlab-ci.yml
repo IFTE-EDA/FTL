@@ -20,19 +20,25 @@ before_script:
 information:
   stage: info
   script:
+    - pip install pytest-cov coverage flake8
     - echo -e "\e[0Ksection_start:`date +%s`:sct_prntenv[collapsed=true]\r\e[0Kenvironment variables"
     - printenv
     - echo -e "\e[0Ksection_end:`date +%s`:sct_prntenv\r\e[0K"
+    - echo -e "\e[0Ksection_start:`date +%s`:sct_piplist[collapsed=true]\r\e[0Kinstalled pip packages"
     - pip list
+    - echo -e "\e[0Ksection_end:`date +%s`:sct_piplist\r\e[0K"
+    - echo -e "\e[0Ksection_start:`date +%s`:sct_versions[collapsed=true]\r\e[0Kinstalled software versions an paths"
     - python --version
     - python3 --version
     - which python3
     - which pip3
+    - flake8 --version
+    #- black --version
+    - echo -e "\e[0Ksection_end:`date +%s`:sct_versions\r\e[0K"
+    - echo -e "\e[0Ksection_start:`date +%s`:sct_pyenv[collapsed=true]\r\e[0Kinstalled pyenv versions"
     - pyenv versions
+    - echo -e "\e[0Ksection_end:`date +%s`:sct_pyenv\r\e[0K"
     - whoami
-    #- echo -e "\e[0Ksection_start:`date +%s`:sct_prntenv[collapsed=true]\r\e[0Kenvironment variables"
-    #- echo 'this line should be hidden automatically after loading the job log'
-    #- echo -e "\e[0Ksection_end:`date +%s`:sct_prntenv\r\e[0K"
 
 #test_pytest:
 #  stage: test
@@ -58,7 +64,7 @@ information:
 #        path: coverage.xml
 
 test_flake8:
-  extends: .test_tox
+  stage: test
   script:
     - tox -e flake8
 
@@ -76,7 +82,6 @@ test_py311:
   extends: .test_tox
   script:
     - tox -e py311
-
 
 goodbye:
   stage: bye
