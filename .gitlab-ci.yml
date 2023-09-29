@@ -20,8 +20,12 @@ before_script:
 information:
   stage: info
   script:
+    - echo -e "\e[0Ksection_start:`date +%s`:my_first_section\r\e[0printenv"
     - printenv
+    - echo -e "\e[0Ksection_end:`date +%s`:my_first_section\r\e[0K"
+    - echo -e "\e[0Ksection_start:`date +%s`:my_second_section\r\e[0packages"
     - pip list
+    - echo -e "\e[0Ksection_end:`date +%s`:my_first_section\r\e[0K"
     - python --version
     - python3 --version
     - which python3
