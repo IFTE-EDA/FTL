@@ -1,15 +1,14 @@
 import sys
-import os
+from pathlib import Path
 
 # sys.path.append("../FTL")
-sys.path.append(os.path.abspath(os.getcwd()))
+sys.path.append(str(Path.cwd()))
 from FTL.Util.FTLKiCAD import KiCADPathManager
-import os
 
 
 class Test_KiCADPathManager:
     def setup_class(self):
-        self.pathMgr = KiCADPathManager("data")
+        self.pathMgr = KiCADPathManager(Path(__file__).parent / "data")
 
     def test_workin_dir(self):
         assert (
@@ -34,6 +33,7 @@ class Test_KiCADPathManager:
             str(self.pathMgr.getPath("SNAPEDA_3D"))
             == "C:\\Users\\USER\\SnapEDA Kicad Plugin\\KiCad Library\\SnapEDA 3D Models"
         )
+
         try:
             self.pathMgr.getPath("NOT_EXISTING")
             assert False
