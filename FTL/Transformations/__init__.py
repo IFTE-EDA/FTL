@@ -1,8 +1,10 @@
-from FTL.Transformations.Transformation import Transformation
-from FTL.Transformations.DirBend import DirBend
-from FTL.Transformations.LinearTransformation import LinearTransformation
-from FTL.Transformations.Spiral import Spiral
-from FTL.Transformations.ZBend import *
+from .Transformation import Transformation
+from .DirBend import DirBend
+from .LinearTransformation import LinearTransformation
+from .Spiral import Spiral
+from .ZBend import *
+
+# import Trasformations
 
 # import FTL.Transformations.Transformation
 # import FTL.Transformations.DirBend

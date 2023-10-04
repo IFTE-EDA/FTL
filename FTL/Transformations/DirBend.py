@@ -26,6 +26,8 @@ class DirBend(Transformation):
         self.name = name
         self.parent = None
 
+        # TODO: create standard name because otherwise getResidual() fails
+
         if "points" not in data:  # found point data; prioritize those
             raise ValueError(
                 "Not enough data for Transformation {}".format(self.name)

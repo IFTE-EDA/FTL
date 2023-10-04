@@ -1,0 +1,97 @@
+#image: carlonluca/qt-dev:6.0.4
+image: 
+  name: arnoldnico/ifte-ci:py3.10.4-tox-vedo-bookworm
+#  name: arnoldnico/ifte-ci:py3.10.4-vedo-bullseye
+  entrypoint: [ '/bin/bash', '-s' ]
+ 
+
+ 
+stages:          # List of stages for jobs, and their order of execution
+  - info
+  - test
+  - bye
+
+before_script:
+  - echo -e "\e[0Ksection_start:`date +%s`:sct_beforescript[collapsed=true]\r\e[0K===BEFORE SCRIPT==="
+  - git submodule update --remote
+  - pip install pytest-cov coverage flake8
+  - pip install --upgrade setuptools
+  #- strip --remove-section=.note.ABI-tag /usr/lib/x86_64-linux-gnu/libQt6Core.so.6
+  #- python3 -m pip install -i https://gmsh.info/python-packages-dev --force-reinstall --no-cache-dir gmsh
+  - python3 -m pip install --progress-bar off --ignore-installed -r requirements.txt
+  - echo -e "\e[0Ksection_end:`date +%s`:sct_beforescript\r\e[0K"
+
+information:
+  stage: info
+  script:
+    - echo -e "\e[0Ksection_start:`date +%s`:sct_prntenv[collapsed=true]\r\e[0Kenvironment variables"
+    - printenv
+    - echo -e "\e[0Ksection_end:`date +%s`:sct_prntenv\r\e[0K"
+    - echo -e "\e[0Ksection_start:`date +%s`:sct_piplist[collapsed=true]\r\e[0Kinstalled pip packages"
+    - pip list
+    - echo -e "\e[0Ksection_end:`date +%s`:sct_piplist\r\e[0K"
+    - echo -e "\e[0Ksection_start:`date +%s`:sct_versions[collapsed=true]\r\e[0Kinstalled software versions an paths"
+    - python --version
+    - python3 --version
+    - which python3
+    - which pip3
+    - flake8 --version
+    #- black --version
+    - echo -e "\e[0Ksection_end:`date +%s`:sct_versions\r\e[0K"
+    - echo -e "\e[0Ksection_start:`date +%s`:sct_pyenv[collapsed=true]\r\e[0Kinstalled pyenv versions"
+    - pyenv versions
+    - echo -e "\e[0Ksection_end:`date +%s`:sct_pyenv\r\e[0K"
+    - whoami
+
+#test_pytest:
+#  stage: test
+#  script:
+#    - pytest tests/ --junitxml=pytest_report.xml
+#  artifacts:
+#    when: always
+#    reports:
+#      junit: pytest_report.xml
+
+.test_tox:
+  stage: test
+  needs: ["information"]
+  script:
+    - pyenv versions
+    - tox
+  coverage: '/(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
+  artifacts:
+    when: always
+    reports:
+      junit: junit-*.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.xml
+
+test_flake8:
+  stage: test
+  needs: ["information"]
+  script:
+    - tox -e flake8
+
+test_py39:
+  extends: .test_tox
+  script:
+    - tox -e py39
+
+test_py310:
+  extends: .test_tox
+  script:
+    - tox -e py310
+
+test_py311:
+  extends: .test_tox
+  script:
+    - tox -e py311
+
+goodbye:
+  stage: bye
+  script:
+    - echo Tests successfull. Goodbye!
+
+#include:
+#- template: Code-Quality.gitlab-ci.yml

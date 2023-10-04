@@ -4,7 +4,7 @@ import numpy as np
 from PyQt6 import QtCore
 from PyQt6.QtCore import QObject, QThread, pyqtSignal
 
-import FTL
+from .RenderContainer import RenderContainer
 
 MODE_GUI = False
 
@@ -21,13 +21,13 @@ class MatrixTransformer(QtCore.QObject):
     def __init__(self, rcFP=None, rcRender=None):
         super().__init__()
         if rcFP is None:
-            rcFP = FTL.RenderContainer()
+            rcFP = RenderContainer()
         elif type(rcFP) is v.Plotter:
-            rcFP = FTL.RenderContainer(rcFP)
+            rcFP = RenderContainer(rcFP)
         if rcRender is None:
-            rcRender = FTL.RenderContainer()
+            rcRender = RenderContainer()
         elif type(rcFP) is v.Plotter:
-            rcRender = FTL.RenderContainer(rcRender)
+            rcRender = RenderContainer(rcRender)
         self.rcFP = rcFP
         self.rcRender = rcRender
 

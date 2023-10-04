@@ -1,0 +1,30 @@
+{
+    "version": 0.1,
+    "mel": 4,
+    "mel_trans": 2,
+    "mel_residual": 4,
+    "layers": [
+        {
+            "name": "Teststrip",
+            "file": "Teststrip.stl",
+			"color": "green",
+            "mel": 3,
+            "mel_trans": 1,
+            "mel_residual": 3
+        }
+    ],
+    "transformations": [
+        {
+            "name": "TR1_X",
+            "priority": 0,
+            "type": "ZBend",
+            "dir": "POSX",
+            "angle": 180,
+            "xmin": -30,
+            "xmax": "30",
+            "ymin": -10,
+            "ymax": 10,
+            "color": "blue"
+        }
+    ]
+}

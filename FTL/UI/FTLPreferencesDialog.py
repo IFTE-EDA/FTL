@@ -12,22 +12,21 @@ from PyQt6.QtWidgets import (
     QFileDialog,
     QMessageBox,
 )
+import FTL
 from FTL.Util.FTLKiCAD import KiCADPathManager
 
 
 class FTLPreferencesDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
-        uic.loadUi(
-            os.path.join(os.path.dirname(__file__), "preferences.ui"), self
-        )
+        uic.loadUi(FTL.get_uic("preferences"), self)
 
         self.pbFCPath.pressed.connect(self.chooseFC)
         self.pbKCPath.pressed.connect(self.chooseKC)
         self.pbKCUPath.pressed.connect(self.chooseKCU)
         self.buttonBox.accepted.connect(self.save)
 
-        with open("preferences.json") as f:
+        with open(FTL.get_data("preferences.json")) as f:
             self.prefs = json.load(f)
         if not self.prefs:
             mb = QMessageBox(self)

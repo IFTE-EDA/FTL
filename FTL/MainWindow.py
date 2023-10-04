@@ -4,6 +4,7 @@ import os.path
 
 # This Python file uses the following encoding: utf-8
 import sys
+import PyQt6
 from PyQt6 import uic
 from PyQt6 import QtWidgets
 from PyQt6.QtWidgets import QFileDialog, QStyle, QTreeWidgetItem
@@ -11,15 +12,13 @@ from PyQt6 import QtCore
 from PyQt6.QtCore import Qt
 from PyQt6 import QtGui
 
-# from PyQt6 import Qt
-import PyQt6
-
 from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 
-# from vedo import Mesh, dataurl, Plotter
 import vedo as v
 
 import FTL
+
+# from FTL.MatrixTransformer import
 
 from .UI.FTLPreferencesDialog import FTLPreferencesDialog
 from FTLWorker import FTLWorker

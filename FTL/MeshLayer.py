@@ -5,7 +5,6 @@ import vedo as v
 
 from enum import Enum
 import copy
-import FTL
 import os
 
 
@@ -57,9 +56,11 @@ class MeshLayer:
         )
 
     @classmethod
-    def get_from_JSON(cls, data, parser=None, id=None):
-        if not os.path.isfile(data["file"]):
-            raise Exception("File not found:", data["file"])
-        mesh = v.load(data["file"]).subdivide(0, 2, mel=2).clean()
+    def get_from_JSON(cls, data, parser=None, id=None, input_file=None):
+        print(data)
+        file = os.path.join(os.path.dirname(input_file), data["file"])
+        if not os.path.isfile(file):
+            raise Exception("File not found:", file)
+        mesh = v.load(file).subdivide(0, 2, mel=2).clean()
         inst = cls(mesh, data, parser, id)
         return inst
