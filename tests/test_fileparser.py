@@ -16,6 +16,7 @@ class Test_FileParser:
             Path(__file__).parent / "data" / "Teststrip_DirBend.json"
         )
         self.parser = FileParser(self.filename)
+        self.parser.parse()
 
     def test_attrs(self):
         assert self.parser.filename == self.filename
@@ -70,3 +71,59 @@ class Test_FileParser:
 
     def test_get_layer_id(self):
         assert self.parser.get_layer_id("Teststrip") == 0
+
+    def test_assignments(self):
+        transformer = self.parser.transformer
+        assert len(transformer.debugOutput) == 0
+        assert len(transformer.fixed_mesh) == 0
+        assert len(transformer.layers) == 1
+        self.parser.calculate_assignments()
+        assert type(self.parser.transformer.transformations[0]) is FTL.DirBend
+        assert transformer.transformations[0].boundaries.bounds == (
+            -20.0,
+            -10.0,
+            60.0,
+            10.0,
+        )
+        assert transformer.transformations[0].addResidual
+        assert transformer.transformations[0].isResidual is False
+        assert transformer.transformations[0].pivot == [-20.0, 10.0, 0]
+        assert transformer.transformations[0].prio == 0
+        assert transformer.transformations[0].parent == transformer
+        assert type(transformer.transformations[1]) is FTL.LinearTransformation
+        assert transformer.transformations[1].boundaries.bounds == (
+            -20.0,
+            10.0,
+            80.0,
+            110.0,
+        )
+        assert transformer.transformations[1].addResidual is False
+        assert transformer.transformations[1].isResidual
+        assert transformer.transformations[1].prio == 0
+        assert transformer.transformations[1].parent == transformer
+
+        assert len(transformer.fixed_mesh) == 1
+        assert get_mesh_extent(transformer.fixed_mesh[0]) == (
+            (-50.0, -5.0),
+            (-5.0, 5.0),
+            (-0.5, 0.5),
+        )
+        assert get_mesh_extent(transformer.transformations[0].meshes[0]) == (
+            (-50.0, 50.0),
+            (-5.0, 5.0),
+            (-0.5, 0.5),
+        )
+
+        return
+
+
+def get_mesh_extent(mesh):
+    pts = mesh.points()
+    xpts = pts[:, 0]
+    ypts = pts[:, 1]
+    zpts = pts[:, 2]
+    return (
+        (min(xpts), max(xpts)),
+        (min(ypts), max(ypts)),
+        (min(zpts), max(zpts)),
+    )
