@@ -14,7 +14,7 @@ stages:          # List of stages for jobs, and their order of execution
 before_script:
   - echo -e "\e[0Ksection_start:`date +%s`:sct_beforescript[collapsed=true]\r\e[0K===BEFORE SCRIPT==="
   - git submodule update --remote
-  - pip install pytest-cov coverage flake8
+  - pip install pytest-cov pytest-order coverage flake8 
   - pip install --upgrade setuptools
   #- strip --remove-section=.note.ABI-tag /usr/lib/x86_64-linux-gnu/libQt6Core.so.6
   #- python3 -m pip install -i https://gmsh.info/python-packages-dev --force-reinstall --no-cache-dir gmsh

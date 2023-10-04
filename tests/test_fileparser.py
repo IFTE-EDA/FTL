@@ -6,6 +6,7 @@ import os
 sys.path.append(os.path.abspath(os.getcwd()))
 import FTL
 from FTL import FileParser
+import pytest
 
 import os
 
@@ -18,17 +19,17 @@ class Test_FileParser:
         self.parser = FileParser(self.filename)
         self.parser.parse()
 
+    @pytest.mark.order(0)
     def test_attrs(self):
         assert self.parser.filename == self.filename
         assert self.parser.mel == 4
         assert self.parser.mel_residual == 4
         assert self.parser.mel_trans == 2
-        assert self.parser.layers == []
-        assert self.parser.meshes is None
+        assert len(self.parser.layers) == 1
+        assert self.parser.meshes == []
         assert self.parser.rcFP is None
         assert self.parser.rcRender is None
-        assert self.parser.transformations is None
-        assert self.parser.transformer is None
+        assert self.parser.transformations == []
         assert self.parser.j_data == {
             "version": 0.1,
             "mel": 4,
@@ -72,6 +73,7 @@ class Test_FileParser:
     def test_get_layer_id(self):
         assert self.parser.get_layer_id("Teststrip") == 0
 
+    @pytest.mark.order(-1)
     def test_assignments(self):
         transformer = self.parser.transformer
         assert len(transformer.debugOutput) == 0
@@ -114,8 +116,6 @@ class Test_FileParser:
             (-0.5, 0.5),
         )
 
-        return
-
 
 def get_mesh_extent(mesh):
     pts = mesh.points()
@@ -127,3 +127,9 @@ def get_mesh_extent(mesh):
         (min(ypts), max(ypts)),
         (min(zpts), max(zpts)),
     )
+
+
+if __name__ == "__main__":
+    tester = Test_FileParser()
+    tester.setup_class()
+    tester.test_attrs()
