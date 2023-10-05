@@ -54,7 +54,7 @@ information:
 
 .test_tox:
   stage: test
-  needs: ["information"]
+  needs: ["test_flake8"]
   script:
     - pyenv versions
     - tox
@@ -90,6 +90,7 @@ test_py311:
 
 goodbye:
   stage: bye
+  needs: ["test_py39", "test_py310", "test_py311", "test_flake8"]
   script:
     - echo Tests successfull. Goodbye!
 
