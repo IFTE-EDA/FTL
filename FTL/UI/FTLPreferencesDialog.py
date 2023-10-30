@@ -1,8 +1,6 @@
 import os
 import json
 from PyQt6 import uic
-from PyQt5 import QtWidgets, QtCore
-from PyQt5.QtCore import Qt
 from PyQt6.QtWidgets import (
     QWidget,
     QApplication,
