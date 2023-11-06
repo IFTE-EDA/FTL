@@ -69,7 +69,7 @@ class ZBend(Transformation):
             self.ymax,
         )
 
-    def isInScope(self, point):
+    def is_in_scope(self, point):
         pt = Point(point[0], point[1])
         if not pt.disjoint(self.boundaries):
             return True
@@ -142,7 +142,7 @@ class ZBend(Transformation):
 
         return pts
 
-    def getOutline(self):
+    def get_outline_points(self):
         return v.Line(self.getOutlinePts(), closed=True)
 
     def getBorderlinePts(self):
@@ -157,10 +157,10 @@ class ZBend(Transformation):
             pts = [(self.xmin, self.ymin, 0), (self.xmin, self.ymax, 0)]
         return pts
 
-    def getBorderline(self):
+    def get_borderline(self):
         return v.Line(self.getBorderlinePts())
 
-    def getResidualTransformation(self):
+    def get_residual_transformation(self):
         print("Getting resiual; my dir is {}".format(self.dir))
         if self.dir == DIR.NEGY:
             r = (self.ymax - self.ymin) / self.angle
@@ -268,7 +268,7 @@ class ZBend(Transformation):
         ret.name = self.name + "-Res"
         return ret
 
-    def getMatrixAt(self, pt):
+    def get_matrix_at(self, pt):
         x = pt[0]
         y = pt[1]
         mat = np.zeros((3, 4), dtype=float)

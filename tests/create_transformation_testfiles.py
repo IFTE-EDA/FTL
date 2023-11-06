@@ -43,15 +43,15 @@ def process_transformation(
     tr: FTL.Transformation, res: FTL.Transformation, points: np.ndarray
 ) -> bool:
     for pid, pt in enumerate(points):
-        if tr.isInScope(pt):
+        if tr.is_in_scope(pt):
             vec = np.array([pt[0], pt[1], pt[2], 1])
-            vec = np.dot(tr.getMatrixAt(pt), vec)
+            vec = np.dot(tr.get_matrix_at(pt), vec)
             points[pid][0] = vec[0]
             points[pid][1] = vec[1]
             points[pid][2] = vec[2]
-        elif tr.addResidual and res.isInScope(pt):
+        elif tr.addResidual and res.is_in_scope(pt):
             vec = np.array([pt[0], pt[1], pt[2], 1])
-            vec = np.dot(res.getMatrixAt(pt), vec)
+            vec = np.dot(res.get_matrix_at(pt), vec)
             points[pid][0] = vec[0]
             points[pid][1] = vec[1]
             points[pid][2] = vec[2]
@@ -70,7 +70,7 @@ def process_all(input, filename):
         tr.parent = parent
         tr.name = tr.__class__.__name__
         if tr.addResidual:
-            res = tr.getResidualTransformation()
+            res = tr.get_residual_transformation()
 
         filename = tr.name + ".txt"
 
@@ -122,7 +122,7 @@ tr_lin = FTL.LinearTransformation(
     bounds,
 )
 tr_spiral = FTL.Spiral(json_sp)
-# res = tr.getResidualTransformation()
+# res = tr.get_residual_transformation()
 
 input.append(tr_zbend)
 input.append(tr_dirbend)

@@ -1,10 +1,20 @@
+from __future__ import annotations
+from typing import Self
+from abc import ABCMeta, abstractmethod
+
+import numpy as np
+import shapely as sh
 import vedo as v
-import shapely
-from shapely.geometry import Point, Polygon, LineString, GeometryCollection
 
 
-class Transformation:
-    def __init__(self, bounds, prio=0, addResidual=True, name=None):
+class Transformation(metaclass=ABCMeta):
+    def __init__(
+        self,
+        bounds: sh.Polygon,
+        prio: int = 0,
+        addResidual: bool = True,
+        name: str = None,
+    ):
         # debug("Transformation created")
         self.boundaries = bounds
         self.prio = prio
@@ -20,10 +30,10 @@ class Transformation:
         self.name = name
         self.transformWholeMesh = False
 
-    def __str__(self):
+    def __str__(self) -> str:
         print("Transformation")
 
-    def getOutline(self):
+    def get_outline_points(self) -> np.array:
         x = self.boundaries.exterior.coords.xy[0][:-1]
         y = self.boundaries.exterior.coords.xy[1][:-1]
         z = [self.parent.zmax] * len(x)
@@ -31,7 +41,7 @@ class Transformation:
         pts = list(zip(x, y, z))
         return pts
 
-    def get_preprocessed_mesh(self, layerId):
+    def get_preprocessed_mesh(self, layerId: int):
         print(
             "    Transformation {}\n     -> layer {}/{}".format(
                 self, layerId, len(self.mel)
@@ -39,30 +49,27 @@ class Transformation:
         )
         return self.meshes[layerId].clone().subdivide(1, 2, self.mel[layerId])
 
-    def getArea(self):
-        return self.getOutline().triangulate().lw(0)
+    def get_area(self):
+        return self.get_outline_points().triangulate().lw(0)
 
+    # TODO: really needed?
     def getAffectedPoints(self):
         raise NotImplementedError(
             "Please implement the function in a new class."
         )
 
-    def getMatrixAt(self, pt):
-        raise NotImplementedError(
-            "Please implement the function in a new class."
-        )
+    @abstractmethod
+    def get_matrix_at(self, pt) -> np.array:
+        pass
 
-    def isInScope(self, point):
-        raise NotImplementedError(
-            "Please implement the function in a new class."
-        )
+    @abstractmethod
+    def is_in_scope(self, point):
+        pass
 
-    def getResidualTransformation(self):
-        raise NotImplementedError(
-            "Please implement the function in a new class."
-        )
+    @abstractmethod
+    def get_residual_transformation(self) -> Self:
+        pass
 
-    def getBorderline(self):
-        raise NotImplementedError(
-            "Please implement the function in a new class."
-        )
+    @abstractmethod
+    def get_borderline(self):
+        pass

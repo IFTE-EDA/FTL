@@ -158,7 +158,7 @@ class DirBend(Transformation):
         print(self.extLine)
         return v.merge(ext, perp, ortho)
 
-    def isInScope(self, point):
+    def is_in_scope(self, point):
         pt = Point(point[0], point[1])
         if not pt.disjoint(self.boundaries):
             return True
@@ -172,7 +172,7 @@ class DirBend(Transformation):
 
         return pts
 
-    def getOutline(self):
+    def get_outline_points(self):
         return v.Line(self.getOutlinePts(), closed=True)
 
     def getBorderlinePts(self):
@@ -181,10 +181,10 @@ class DirBend(Transformation):
         pts = [(p0[0], p0[1], 0), (p1[0], p1[1], 0)]
         return pts
 
-    def getBorderline(self):
+    def get_borderline(self):
         return v.Line(self.getBorderlinePts())
 
-    def getResidualTransformation(self, mesh=None):  # TODO
+    def get_residual_transformation(self, mesh=None):  # TODO
         newBounds = shapely.geometry.box(
             self.pivot[0],
             self.pivot[1],
@@ -209,7 +209,7 @@ class DirBend(Transformation):
         for pid, pt in enumerate(points):
             self.parent.update_progress(pid, len(points))
             vec = np.array([pt[0], pt[1], pt[2], 1])
-            vec = np.dot(self.getMatrixAt(pt), vec)
+            vec = np.dot(self.get_matrix_at(pt), vec)
             points[pid][0] = vec[0]
             points[pid][1] = vec[1]
             points[pid][2] = vec[2]
@@ -217,7 +217,7 @@ class DirBend(Transformation):
         mesh.rotate_z(-self.z_angle, rad=True, around=self.pivot)
         return mesh
 
-    def getMatrixAt(self, pt):  # TODO
+    def get_matrix_at(self, pt):  # TODO
         x = pt[0]
         y = pt[1]
         if x > (self.pivot[0] + self.length):

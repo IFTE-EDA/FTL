@@ -53,7 +53,7 @@ class Test_Transformations:
         tr.parent = self.parent
         tr.name = tr.__class__.__name__
         if tr.addResidual:
-            res = tr.getResidualTransformation()
+            res = tr.get_residual_transformation()
 
         filename = tr.name + ".txt"
 
@@ -62,15 +62,15 @@ class Test_Transformations:
             points = tr.transformMesh(self.mesh.clone()).points()
         else:
             for pid, pt in enumerate(points):
-                if tr.isInScope(pt):
+                if tr.is_in_scope(pt):
                     vec = np.array([pt[0], pt[1], pt[2], 1])
-                    vec = np.dot(tr.getMatrixAt(pt), vec)
+                    vec = np.dot(tr.get_matrix_at(pt), vec)
                     points[pid][0] = vec[0]
                     points[pid][1] = vec[1]
                     points[pid][2] = vec[2]
-                elif tr.addResidual and res.isInScope(pt):
+                elif tr.addResidual and res.is_in_scope(pt):
                     vec = np.array([pt[0], pt[1], pt[2], 1])
-                    vec = np.dot(res.getMatrixAt(pt), vec)
+                    vec = np.dot(res.get_matrix_at(pt), vec)
                     points[pid][0] = vec[0]
                     points[pid][1] = vec[1]
                     points[pid][2] = vec[2]

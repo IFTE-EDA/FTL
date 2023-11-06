@@ -1,19 +1,21 @@
+from __future__ import annotations
+from typing import Tuple
+
 import numpy as np
-import vedo as v
-from shapely import Point
+import shapely as sh
 from .Transformation import Transformation
 
 
 class LinearTransformation(Transformation):
     def __init__(
         self,
-        mat,
-        bounds,
-        prio=0,
-        residual=False,
-        name=None,
-        angle=0,
-        pivot=None,
+        mat: np.array,
+        bounds: sh.Polygon,
+        prio: int = 0,
+        residual: bool = False,
+        name: str = None,
+        angle: int = 0,
+        pivot: Tuple[int, int] = None,
     ):
         # super().__init__(bounds, prio, not residual, name=name)
         super().__init__(bounds, prio, False)
@@ -39,8 +41,8 @@ class LinearTransformation(Transformation):
             self.prio, self.addResidual, self.boundaries
         )
 
-    def isInScope(self, point):
-        pt = Point(point[0], point[1])
+    def is_in_scope(self, point):
+        pt = sh.Point(point[0], point[1])
         if not pt.disjoint(self.boundaries):
             return True
 
@@ -57,5 +59,11 @@ class LinearTransformation(Transformation):
         mesh.rotate_z(-self.z_angle, rad=True, around=self.pivot)
         return mesh
 
-    def getMatrixAt(self, pt):
+    def get_matrix_at(self, pt):
         return self.mat
+
+    def get_residual_transformation(self):
+        return None
+
+    def get_borderline(self):
+        return self.bounds
