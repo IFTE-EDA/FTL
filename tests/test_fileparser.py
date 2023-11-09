@@ -8,7 +8,7 @@ import FTL
 from FTL import FileParser
 import pytest
 
-import os
+import vedo as v
 
 
 class Test_FileParser:
@@ -20,7 +20,7 @@ class Test_FileParser:
         self.parser.parse()
 
     @pytest.mark.order(0)
-    @pytest.mark.skip
+    # @pytest.mark.skip
     def test_attrs(self):
         assert self.parser.filename == self.filename
         assert self.parser.mel == 4
@@ -71,7 +71,7 @@ class Test_FileParser:
             "name": "Teststrip",
         }
 
-    @pytest.mark.skip
+    # @pytest.mark.skip
     def test_get_layer_id(self):
         assert self.parser.get_layer_id("Teststrip") == 0
 
@@ -83,6 +83,7 @@ class Test_FileParser:
         assert len(transformer.fixed_mesh) == 0
         assert len(transformer.layers) == 1
         self.parser.calculate_assignments()
+
         assert type(self.parser.transformer.transformations[0]) is FTL.DirBend
         assert transformer.transformations[0].boundaries.bounds == (
             -20.0,
@@ -102,6 +103,7 @@ class Test_FileParser:
             80.0,
             110.0,
         )
+
         assert transformer.transformations[1].addResidual is False
         assert transformer.transformations[1].isResidual
         assert transformer.transformations[1].prio == 0
@@ -136,3 +138,4 @@ if __name__ == "__main__":
     tester = Test_FileParser()
     tester.setup_class()
     tester.test_attrs()
+    v.show(tester.parser.transformer.transformations[0].get_area())

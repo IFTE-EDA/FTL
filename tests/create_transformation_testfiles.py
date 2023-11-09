@@ -76,7 +76,7 @@ def process_all(input, filename):
 
         if tr.transformWholeMesh:
             # Transformation implemented a method to  the whole transformation on its own
-            points = tr.transformMesh(mesh.clone()).points()
+            points = tr.transform_mesh(mesh.clone()).points()
         else:
             process_transformation(tr, res, points)
         print("Writing {} to '{}'".format(tr.name, filename))

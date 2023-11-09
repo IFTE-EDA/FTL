@@ -59,7 +59,7 @@ class Test_Transformations:
 
         if tr.transformWholeMesh:
             # Transformation implemented a method to  the whole transformation on its own
-            points = tr.transformMesh(self.mesh.clone()).points()
+            points = tr.transform_mesh(self.mesh.clone()).points()
         else:
             for pid, pt in enumerate(points):
                 if tr.is_in_scope(pt):
@@ -134,8 +134,12 @@ class Test_Transformations:
         tr_spiral = FTL.Spiral(json_sp)
         self.process_transformation(tr_spiral)
 
+    def testBoundaries(self):
+        pass
+
 
 if __name__ == "__main__":
     tester = Test_Transformations()
     tester.setup_class()
-    tester.process_all()
+    # tester.process_all()
+    tester.testBoundaries()

@@ -1,13 +1,18 @@
+from enum import Enum
+import logging
+
 import numpy as np
 from numpy import sin, cos
-import shapely
-
-from shapely import Point, Polygon, LineString
-import shapely.geometry.polygon
-from shapely import affinity
+import shapely as sh
 from shapely.ops import nearest_points
+
+# from shapely.geometry.polygon import orient
 import vedo as v
-from enum import Enum
+
+# from shapely import affinity
+# from shapely.ops import nearest_points
+
+
 import copy
 
 # from FTL.Transformations.Transformation import Transformation
@@ -39,8 +44,8 @@ class DirBend(Transformation):
                 )
             )
 
-        poly = Polygon([[p["x"], p["y"]] for p in data["points"]])
-        baseline = LineString(
+        poly = sh.Polygon([[p["x"], p["y"]] for p in data["points"]])
+        baseline = sh.LineString(
             (
                 (data["points"][0]["x"], data["points"][0]["y"]),
                 (data["points"][1]["x"], data["points"][1]["y"]),
@@ -55,9 +60,9 @@ class DirBend(Transformation):
         self.pivot = list(poly.exterior.coords[0])
         self.pivot.append(0)
         if ax == bx:  # vertical line
-            self.extLine = LineString([(ax, miny), (ax, maxy)])
+            self.extLine = sh.LineString([(ax, miny), (ax, maxy)])
         elif ay == by:  # horizonthal line
-            self.extLine = LineString([(minx, ay), (maxx, ay)])
+            self.extLine = sh.LineString([(minx, ay), (maxx, ay)])
         else:
             # linear equation: y = k*x + m
             m = -(ay - by) / (ax - bx)
@@ -66,15 +71,21 @@ class DirBend(Transformation):
             y1 = m * maxx + n
             x0 = (miny - n) / m
             x1 = (maxy - n) / m
-            print(
+            logging.debug(
                 "m: {}; n: {}; P1({}, {}), 2({}, {})".format(
                     m, n, x0, y0, x1, y1
                 )
             )
-            print("Angle is {}".format(np.arctan(m) / (2 * np.pi) * 360))
-            self.extLine = LineString((Point(minx, y0), Point(maxx, y1)))
+            logging.debug(
+                "Angle is {}".format(np.arctan(m) / (2 * np.pi) * 360)
+            )
+            self.extLine = sh.LineString(
+                (sh.Point(minx, y0), sh.Point(maxx, y1))
+            )
 
-        dists = [self.extLine.distance(Point(p)) for p in poly.exterior.coords]
+        dists = [
+            self.extLine.distance(sh.Point(p)) for p in poly.exterior.coords
+        ]
         distPoints = [
             (dists[i], poly.exterior.coords[i])
             for i in range(len(poly.exterior.coords))
@@ -83,19 +94,19 @@ class DirBend(Transformation):
 
         points_sorted_by_distance = sorted(distPoints, key=lambda x: x[0])
         length = points_sorted_by_distance[0][0]
-        print(">>min: {}".format(length))
+        logging.debug(">>min: {}".format(length))
         self.projPoint, _ = nearest_points(
-            self.extLine, Point(points_sorted_by_distance[0][1])
+            self.extLine, sh.Point(points_sorted_by_distance[0][1])
         )
-        self.ortho = LineString(
-            [self.projPoint, Point(points_sorted_by_distance[0][1])]
+        self.ortho = sh.LineString(
+            [self.projPoint, sh.Point(points_sorted_by_distance[0][1])]
         )
-        print(self.projPoint)
+        logging.debug(self.projPoint)
 
         self.angle = np.deg2rad(data["angle"])
         self.z_angle = np.arctan((bx - ax) / (ay - by))
-        print("Z_ANGLE: {}".format(np.rad2deg(self.z_angle)))
-        self.boundaries_rot = affinity.rotate(
+        logging.debug("Z_ANGLE: {}".format(np.rad2deg(self.z_angle)))
+        self.boundaries_rot = sh.affinity.rotate(
             poly, self.z_angle, origin=self.pivot, use_radians=True
         )
 
@@ -124,14 +135,7 @@ class DirBend(Transformation):
         self.transformWholeMesh = True
 
     def __repr__(self):
-        return "Tr.DirBend: [P={}; Res={}; angle={}; len={}; baseline={}; bounds={}]".format(
-            self.prio,
-            self.addResidual,
-            self.angle,
-            self.length,
-            self.baseline,
-            self.boundaries,
-        )
+        return self.__str__()
 
     def __str__(self):
         return "Tr.DirBend: [P={}; Res={}; angle={}; len={}; baseline={}; bounds={}]".format(
@@ -155,16 +159,16 @@ class DirBend(Transformation):
         ortho = v.Line(getPoints(self.ortho), closed=False).c("Yellow")
         perp = v.Point((self.projPoint.x, self.projPoint.y, 0), r=12, c="Red")
 
-        print(self.extLine)
+        logging.debug(self.extLine)
         return v.merge(ext, perp, ortho)
 
     def is_in_scope(self, point):
-        pt = Point(point[0], point[1])
+        pt = sh.Point(point[0], point[1])
         if not pt.disjoint(self.boundaries):
             return True
 
-    def getOutlinePts(self):
-        poly = shapely.geometry.polygon.orient(self.boundaries)
+    def get_outline_pts(self):
+        poly = sh.geometry.polygon.orient(self.boundaries)
         x = poly.exterior.coords.xy[0][:-1]
         y = poly.exterior.coords.xy[1][:-1]
         z = [0] * len(x)
@@ -173,19 +177,19 @@ class DirBend(Transformation):
         return pts
 
     def get_outline_points(self):
-        return v.Line(self.getOutlinePts(), closed=True)
+        return v.Line(self.get_outline_pts(), closed=True)
 
-    def getBorderlinePts(self):
+    def get_borderline_pts(self):
         p0 = self.baseline.coords[0]
         p1 = self.baseline.coords[1]
         pts = [(p0[0], p0[1], 0), (p1[0], p1[1], 0)]
         return pts
 
     def get_borderline(self):
-        return v.Line(self.getBorderlinePts())
+        return v.Line(self.get_borderline_pts())
 
     def get_residual_transformation(self, mesh=None):  # TODO
-        newBounds = shapely.geometry.box(
+        newBounds = sh.box(
             self.pivot[0],
             self.pivot[1],
             self.pivot[0] + 100,
@@ -202,8 +206,8 @@ class DirBend(Transformation):
         ret.name = self.name + "-Res"
         return ret
 
-    def transformMesh(self, mesh):
-        print("--> Transforming a whole mesh now")
+    def transform_mesh(self, mesh):
+        logging.debug("--> Transforming a whole mesh now")
         mesh.rotate_z(self.z_angle, rad=True, around=self.pivot)
         points = mesh.points()
         for pid, pt in enumerate(points):
@@ -225,7 +229,7 @@ class DirBend(Transformation):
 
         mat = np.zeros((3, 4), dtype=float)
 
-        if self.boundaries_rot.disjoint(Point(x, y)):
+        if self.boundaries_rot.disjoint(sh.Point(x, y)):
             mat[0] = 1, 0, 0, 0
             mat[1] = 0, 1, 0, 0
             mat[2] = 0, 0, 1, 0

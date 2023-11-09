@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import Self
 from abc import ABCMeta, abstractmethod
+import logging
 
 import numpy as np
 import shapely as sh
@@ -23,15 +24,13 @@ class Transformation(metaclass=ABCMeta):
         # self.color = None
         self.color = [255, 255, 0, 255]
         # self.points = []
-        self.meshes = []
         self.mel = []
-        self.scope = None
         self.parent = None
         self.name = name
         self.transformWholeMesh = False
 
     def __str__(self) -> str:
-        print("Transformation")
+        return "Transformation"
 
     def get_outline_points(self) -> np.array:
         x = self.boundaries.exterior.coords.xy[0][:-1]
@@ -42,7 +41,7 @@ class Transformation(metaclass=ABCMeta):
         return pts
 
     def get_preprocessed_mesh(self, layerId: int):
-        print(
+        logging.debug(
             "    Transformation {}\n     -> layer {}/{}".format(
                 self, layerId, len(self.mel)
             )
@@ -62,7 +61,7 @@ class Transformation(metaclass=ABCMeta):
     def get_matrix_at(self, pt) -> np.array:
         pass
 
-    @abstractmethod
+    # @abstractmethod
     def is_in_scope(self, point):
         pass
 

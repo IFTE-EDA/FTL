@@ -1,15 +1,10 @@
+from enum import Enum
+import logging
+
 import numpy as np
 from numpy import sin, cos
-import shapely
-
-# from shapely import LineString, Point, Polygon
-from shapely.geometry import Point, Polygon
-import shapely.geometry.polygon
-from shapely import affinity
-from shapely.ops import nearest_points
+import shapely as sh
 import vedo as v
-from enum import Enum
-import copy
 
 from .DirBend import DirBend
 from .LinearTransformation import LinearTransformation
@@ -35,7 +30,7 @@ class Spiral(DirBend):
             dir2angle = ["POSX", "POSY", "NEGX", "NEGY"]
             if data["dir"] in dir2angle:
                 self.dir = np.deg2rad(dir2angle.index(data["dir"]) * 90)
-                print(
+                logging.debug(
                     "Direction of Spiralling calculated as {} degrees".format(
                         data["dir"]
                     )
@@ -64,7 +59,7 @@ class Spiral(DirBend):
             self.diameter = data["diameter"]
             self.angle = data["angle"]
             self.length = np.pi * self.diameter * self.turns
-            print("Calculated length as {}".format(self.length))
+            logging.debug("Calculated length as {}".format(self.length))
         elif ("diameter" in data) and ("length" in data):
             if "angle" in data:
                 raise ValueError(
@@ -77,7 +72,9 @@ class Spiral(DirBend):
             self.turns = self.length / (self.diameter * np.pi)
             self.angle = self.turns * 2 * np.pi
             data["angle"] = self.diameter
-            print("Calculated angle as {}".format(np.rad2deg(self.angle)))
+            logging.debug(
+                "Calculated angle as {}".format(np.rad2deg(self.angle))
+            )
         elif ("length" in data) and ("angle" in data):
             if "diameter" in data:
                 raise ValueError(
@@ -88,7 +85,7 @@ class Spiral(DirBend):
             self.angle = data["angle"]
             self.length = data["length"]
             self.diameter = self.length / self.angle
-            print("Calculated diameter as {}".format(self.diameter))
+            logging.debug("Calculated diameter as {}".format(self.diameter))
         else:
             raise ValueError(
                 "Transformation '{}' underdefined. Expecting exactly 2 of these values: Diameter, length, turns/angle".format(
@@ -111,11 +108,11 @@ class Spiral(DirBend):
 
         points = [(p["x"], p["y"]) for p in data["points"]]
         dx, dy = self.length * np.array((np.cos(self.dir), np.sin(self.dir)))
-        print(dx, dy)
+        logging.debug(dx, dy)
         points.extend([(p[0] + dx, p[1] + dy) for p in [points[1], points[0]]])
         data["points"] = [{"x": p[0], "y": p[1]} for p in points]
         data["angle"] = np.rad2deg(data["angle"])
-        print(points)
+        logging.debug(points)
         super().__init__(data, prio, addResidual, name)
 
     def __repr__(self):
@@ -150,18 +147,18 @@ class Spiral(DirBend):
         ortho = v.Line(getPoints(self.ortho), closed=False).c("Yellow")
         perp = v.Point((self.projPoint.x, self.projPoint.y, 0), r=12, c="Red")
 
-        print(self.extLine)
+        logging.debug(self.extLine)
         return v.merge(ext, perp, ortho)
 
     def is_in_scope(self, point):
-        pt = Point(point[0], point[1])
+        pt = sh.Point(point[0], point[1])
         if not pt.disjoint(self.boundaries):
             return True
         # else:
         #    debug(pt.__str__() + " out of scope")
 
-    def getOutlinePts(self):
-        poly = shapely.geometry.polygon.orient(self.boundaries)
+    def get_outline_pts(self):
+        poly = sh.polygon.orient(self.boundaries)
         x = poly.exterior.coords.xy[0][:-1]
         y = poly.exterior.coords.xy[1][:-1]
         z = [0] * len(x)
@@ -170,19 +167,19 @@ class Spiral(DirBend):
         return pts
 
     def get_outline_points(self):
-        return v.Line(self.getOutlinePts(), closed=True)
+        return v.Line(self.get_outline_pts(), closed=True)
 
-    def getBorderlinePts(self):
+    def get_borderline_pts(self):
         p0 = self.baseline.coords[0]
         p1 = self.baseline.coords[1]
         pts = [(p0[0], p0[1], 0), (p1[0], p1[1], 0)]
         return pts
 
     def get_borderline(self):
-        return v.Line(self.getBorderlinePts())
+        return v.Line(self.get_borderline_pts())
 
     def get_residual_transformation(self, mesh=None):  # TODO
-        newBounds = shapely.geometry.box(
+        newBounds = sh.box(
             self.pivot[0],
             self.pivot[1],
             self.pivot[0] + 100,
@@ -199,8 +196,8 @@ class Spiral(DirBend):
         ret.name = self.name + "-Res"
         return ret
 
-    def transformMesh(self, mesh):
-        print("--> Transforming a whole mesh now")
+    def transform_mesh(self, mesh):
+        logging.debug("--> Transforming a whole mesh now")
         mesh.rotate_z(self.z_angle, rad=True, around=self.pivot)
         points = mesh.points()
         for pid, pt in enumerate(points):
@@ -223,7 +220,7 @@ class Spiral(DirBend):
 
         mat = np.zeros((3, 4), dtype=float)
 
-        if self.boundaries_rot.disjoint(Point(x, y)):
+        if self.boundaries_rot.disjoint(sh.Point(x, y)):
             mat[0] = 1, 0, 0, 0
             mat[1] = 0, 1, 0, 0
             mat[2] = 0, 0, 1, 0

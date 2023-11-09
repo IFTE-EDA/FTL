@@ -166,7 +166,7 @@ class MatrixTransformer(QtCore.QObject):
                     v.write(mesh_transformed, "_mesh_transformed.stl")
                     v.write(part, "_part.stl")
 
-                    # ol_gop = tr.getOutlinePts()
+                    # ol_gop = tr.get_outline_pts()
                     scope_transformed = get_contour_scope(mesh_transformed)
                     tr.scope = scope_transformed
                     tr.meshes.append(mesh_transformed.clone())
@@ -180,10 +180,10 @@ class MatrixTransformer(QtCore.QObject):
                     fixedMeshes = []
                     residualMeshes = []
                     split = part.split()
-                    p0, p1 = tr.getBorderlinePts()
+                    p0, p1 = tr.get_borderline_pts()
                     self.rcFP.add_debug(
                         tr.name + "_borderline",
-                        v.Line(tr.getBorderlinePts()).lw(2).c("red"),
+                        v.Line(tr.get_borderline_pts()).lw(2).c("red"),
                         False,
                     )
                     for prt in split:
@@ -248,7 +248,7 @@ class MatrixTransformer(QtCore.QObject):
                 tr.meshes.append(mesh_transformed.clone())
                 tr.mel.append(layer.mel_trans)
                 self.debugOutput.append(
-                    v.Line(tr.getBorderlinePts()).lw(2).c("red")
+                    v.Line(tr.get_borderline_pts()).lw(2).c("red")
                 )
 
                 if (
@@ -297,7 +297,7 @@ class MatrixTransformer(QtCore.QObject):
                 if (
                     tr.transformWholeMesh
                 ):  # Transformation implemented a method to  the whole transformation on its own
-                    mesh = tr.transformMesh(mesh)
+                    mesh = tr.transform_mesh(mesh)
                 else:
                     points = mesh.points()
                     for pid, pt in enumerate(points):
