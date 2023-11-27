@@ -186,12 +186,21 @@ class MatrixTransformer(QtCore.QObject):
                         v.Line(tr.getBorderlinePts()).lw(2).c("red"),
                         False,
                     )
+                    step2List = []
                     for prt in split:
                         if prt.intersect_with_line(p0, p1).any():
                             fixedMeshes.append(prt)
                         else:
-                            residualMeshes.append(prt)
+                            step2List.append(prt)
                     part = v.merge(fixedMeshes)
+                    for prt in step2List:
+                        if prt.box().collide_with(
+                            part.box(), return_bool=True
+                        ):
+                            print("Collision")
+                            fixedMeshes.append(prt)
+                        else:
+                            residualMeshes.append(prt)
 
                     # TODO: if fixedmesh is Null, there might be a problem with geometries
 

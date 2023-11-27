@@ -170,11 +170,16 @@ class ZBend(Transformation):
             newTr[0] = 1, 0, 0, 0
             newTr[1] = (
                 0,
-                cos(a),
-                -sin(a),
-                -self.ymax * cos(a) + self.ymin + r * (sin(a)),
+                cos(-a),
+                -sin(-a),
+                -self.ymax * cos(-a) + self.ymin + r * (sin(a)),
             )
-            newTr[2] = 0, sin(a), cos(a), self.ymax * sin(a) - r * (1 - cos(a))
+            newTr[2] = (
+                0,
+                sin(-a),
+                cos(-a),
+                self.ymax * sin(a) - r * (1 - cos(a)),
+            )
 
             newBounds = shapely.geometry.box(
                 self.parent.xmin, self.ymax, self.parent.xmax, self.parent.ymin
