@@ -4,6 +4,7 @@ import logging
 import numpy as np
 from numpy import sin, cos
 import shapely as sh
+import shapely.affinity
 from shapely.ops import nearest_points
 
 # from shapely.geometry.polygon import orient
@@ -106,7 +107,8 @@ class DirBend(Transformation):
         self.angle = np.deg2rad(data["angle"])
         self.z_angle = np.arctan((bx - ax) / (ay - by))
         logging.debug("Z_ANGLE: {}".format(np.rad2deg(self.z_angle)))
-        self.boundaries_rot = sh.affinity.rotate(
+        # self.boundaries_rot = sh.affinity.rotate(
+        self.boundaries_rot = shapely.affinity.rotate(
             poly, self.z_angle, origin=self.pivot, use_radians=True
         )
 
