@@ -1,5 +1,6 @@
 from __future__ import annotations
-from typing import Self
+
+# from typing import Self
 from abc import ABCMeta, abstractmethod
 import logging
 
@@ -66,7 +67,7 @@ class Transformation(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def get_residual_transformation(self) -> Self:
+    def get_residual_transformation(self):
         pass
 
     @abstractmethod

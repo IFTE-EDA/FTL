@@ -32,6 +32,7 @@ class Test_FileParser:
         assert self.parser.rcRender is None
         assert self.parser.transformations == []
         assert self.parser.j_data == {
+            "filename": self.filename,
             "version": 0.1,
             "mel": 4,
             "mel_trans": 2,
