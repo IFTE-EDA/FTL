@@ -5,6 +5,7 @@ from numpy import sin, cos
 
 import vedo as v
 import shapely as sh
+from shapely.geometry.polygon import orient
 
 from .Transformation import Transformation
 from .LinearTransformation import LinearTransformation
@@ -141,7 +142,8 @@ class ZBend(Transformation):
             ]
 
     def getOutlinePts(self):
-        poly = sh.polygon.orient(self.boundaries)
+        # poly = sh.polygon.orient(self.boundaries)
+        poly = orient(self.boundaries)
         x = poly.exterior.coords.xy[0][:-1]
         y = poly.exterior.coords.xy[1][:-1]
         z = [0] * len(x)
@@ -152,7 +154,7 @@ class ZBend(Transformation):
     def get_outline_points(self):
         return v.Line(self.getOutlinePts(), closed=True)
 
-    def getBorderlinePts(self):
+    def get_borderline_pts(self):
         pts = []
         if self.dir == DIR.NEGY:
             pts = [(self.xmin, self.ymin, 0), (self.xmax, self.ymin, 0)]
@@ -165,7 +167,7 @@ class ZBend(Transformation):
         return pts
 
     def get_borderline(self):
-        return v.Line(self.getBorderlinePts())
+        return v.Line(self.get_borderline_pts())
 
     def get_residual_transformation(self):
         logging.debug("Getting resiual; my dir is {}".format(self.dir))

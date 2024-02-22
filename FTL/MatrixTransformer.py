@@ -299,7 +299,7 @@ class MatrixTransformer(QtCore.QObject):
                 ):  # Transformation implemented a method to  the whole transformation on its own
                     mesh = tr.transform_mesh(mesh)
                 else:
-                    points = mesh.points()
+                    points = mesh.vertices()
                     for pid, pt in enumerate(points):
                         self.update_progress(pid, len(points))
                         vec = np.array([pt[0], pt[1], pt[2], 1])
@@ -351,7 +351,7 @@ def cut_with_line(mesh, points, invert=False, closed=True, residual=True):
     mesh = mesh.clone()
     pplane = vtk.vtkPolyPlane()
     if isinstance(points, v.Points):
-        points = points.points().tolist()
+        points = points.vertices.tolist()
 
     if closed:
         if isinstance(points, np.ndarray):
@@ -372,26 +372,29 @@ def cut_with_line(mesh, points, invert=False, closed=True, residual=True):
         polyline.GetPointIds().SetId(i, i)
     pplane.SetPolyLine(polyline)
 
-    currentscals = mesh.polydata().GetPointData().GetScalars()
+    currentscals = mesh.dataset.GetPointData().GetScalars()
     if currentscals:
         currentscals = currentscals.GetName()
 
     clipper = vtk.vtkClipPolyData()
-    clipper.SetInputData(mesh.polydata(True))  # must be True
+    # clipper.SetInputData(mesh.polydata(True))  # must be True
+    clipper.SetInputData(mesh.dataset)
     clipper.SetClipFunction(pplane)
     clipper.SetInsideOut(invert)
     clipper.GenerateClippedOutputOn()
     clipper.GenerateClipScalarsOff()
     clipper.SetValue(0)
     clipper.Update()
-    cpoly = clipper.GetOutput(0)
+    # cpoly = clipper.GetOutput(0)
     kpoly = clipper.GetOutput(1)
 
     vis = False
-    if currentscals:
+    """if currentscals:
         cpoly.GetPointData().SetActiveScalars(currentscals)
         vis = mesh.mapper().GetScalarVisibility()
 
+    print("Mesh type: ")
+    print(mesh)
     if mesh.GetIsIdentity() or cpoly.GetNumberOfPoints() == 0:
         mesh._update(cpoly)
     else:
@@ -405,15 +408,16 @@ def cut_with_line(mesh, points, invert=False, closed=True, residual=True):
         tf.SetTransform(tr)
         tf.SetInputData(cpoly)
         tf.Update()
-        mesh._update(tf.GetOutput())
+        mesh._update(tf.GetOutput())"""
 
     mesh.pointdata.remove("SignedDistances")
-    mesh.mapper().SetScalarVisibility(vis)
+    mesh.mapper.SetScalarVisibility(vis)
     cutoff = v.Mesh(kpoly)
     cutoff.property = vtk.vtkProperty()
-    cutoff.property.DeepCopy(mesh.property)
-    cutoff.property.DeepCopy(mesh.property)
-    cutoff.SetProperty(cutoff.property)
+    # cutoff.property.DeepCopy(mesh.property)
+    # cutoff.properties.DeepCopy(mesh.properties)
+    cutoff.copy_properties_from(mesh, True)
+    # cutoff.SetProperty(cutoff.properties)
 
     return mesh, cutoff
 
@@ -428,7 +432,7 @@ def split_with_transformation(self, mesh, tr):
     split = part.split()
     debug("  -> Splitting {} parts...".format(len(split)))
     for prt in split:
-        inter = len(self.fixed_scope.inside_points(prt.points()).points())
+        inter = len(self.fixed_scope.inside_points(prt.vertices).vertices)
         # debug("    Intersecting points: {}".format(inter))                  # TODO: Check for bounding box intersections
         if inter:
             fixedMeshes.append(prt)

@@ -28,7 +28,8 @@ class FTLWorker(QtCore.QObject):
         self.status.emit("Opening file...")
         self.progress.emit(0)
         main = self.main
-        main.parser = FTL.FileParser(file, main.rcFP, main.rcRender, True)
+        # main.parser = FTL.FileParser(file, main.rcFP, main.rcRender, True)
+        main.parser = FTL.FileParser(file)
         # main.parser.progress.connect(self.forwardProgress)
         main.parser.progress.connect(self.progress)
         main.parser.status.connect(self.status)
