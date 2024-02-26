@@ -3,7 +3,7 @@ import os.path
 
 import numpy as np
 import vedo as v
-from MatrixTransformer import MatrixTransformer, debug
+from FTL.MatrixTransformer import MatrixTransformer, debug
 from Transformations.ZBend import ZBend
 from Transformations.LinearTransformation import LinearTransformation
 from FileParser import FileParser
