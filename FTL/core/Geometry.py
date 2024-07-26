@@ -5,5 +5,3 @@ class FTLGeom:
 
 class FTLMesher:
     pass
-
-
