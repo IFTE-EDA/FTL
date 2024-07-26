@@ -9,7 +9,7 @@ class Test_FPCLayer:
 
     def test_fpclayer_default_empty_name(self):
         material = Material("Copper", 5.8e7, 1.0, 0.0)
-        layer = FPCLayer("", 0.001, material)
+        layer = FPCLayer(None, 0.001, material)
         assert layer.name == ""
 
     def test_fpclayer_name(self):
