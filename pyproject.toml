@@ -17,6 +17,11 @@ classifiers = [
 requires = ["cython", "setuptools", "wheel", "oldest-supported-numpy"]
 build-backend = "setuptools.build_meta"
 
+[tool.pytest.ini_options]
+pythonpath = [
+  "."
+]
+
 [tool.black]
 target-version = ["py310"]
 line-length = 79
