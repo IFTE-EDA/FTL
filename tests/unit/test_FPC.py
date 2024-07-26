@@ -1,8 +1,21 @@
-import unittest
+#from pathlib import Path
+#import sys
+#import os
 
-class MyTestCase(unittest.TestCase):
-    def test_something(self):
-        self.assertEqual(True, False)  # add assertion here
+# sys.path.append("../FTL")
+#sys.path.append(os.path.abspath(os.getcwd()))
+from FTL.core.FPC import FPC
 
-if __name__ == '__main__':
-    unittest.main()
+
+class Test_FPC:
+    def setup_class(self):
+        pass
+
+    # @pytest.mark.skip
+    def test_fpc_default_empty_name(self):
+        fpc = FPC()
+        assert fpc.name == ""
+
+    def test_fpc_name(self):
+        fpc = FPC("MyFPC")
+        assert fpc.name == "MyFPC"
