@@ -1,17 +1,23 @@
+# container class for FPC object
+
 from __future__ import annotations
 
 
 class FPC:
+    """Flexible Printed Circuit container class."""
+
     name: str = ""
-    layers = []
+    stackup: list[FPCLayer] = []
 
     def __init__(self, name: str = None):
         if name is not None:
             self.name = name
-        self.layers = []
+        self.stackup = []
 
 
 class FPCLayer:
+    """FPC Layer class."""
+
     name = ""
     thickness = 0.0
     material = None
@@ -24,6 +30,8 @@ class FPCLayer:
 
 
 class Material:
+    """Material class for FPCLayer."""
+
     name = ""
     conductivity = 0.0
     dielectric = 0.0
