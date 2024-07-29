@@ -23,12 +23,12 @@ class Test_FPC:
 
     def test_fpc_layers_default_empty(self):
         fpc = FPC("MyFPC")
-        assert fpc.layers == []
+        assert fpc.stackup == []
 
     def test_fpc_layers(self):
         fpc = FPC("MyFPC")
         layer1 = FPCLayer("Layer1", 0.035, self.copper)
         layer2 = FPCLayer("Layer2", 0.100, self.PI)
         layer3 = FPCLayer("Layer3", 0.035, self.copper)
-        fpc.layers = [layer1, layer2, layer3]
-        assert fpc.layers == [layer1, layer2, layer3]
+        fpc.stackup = [layer1, layer2, layer3]
+        assert fpc.stackup == [layer1, layer2, layer3]
