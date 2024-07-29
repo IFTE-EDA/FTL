@@ -33,12 +33,28 @@ class FTLGeom2D:
             ]
 
     def to_3D(self, thickness: float, zpos: float = None) -> FTLGeom3D:
-        return FTLGeom3D(self.extrude(thickness, zpos))
+        ret = FTLGeom3D(self.extrude(thickness, zpos))
+        ret.geom2d = self
+        return ret
 
 
 # 3D geometry class
 class FTLGeom3D:
     objects: list[v.Mesh] = []
+    _geom2d: FTLGeom2D = None
 
     def __init__(self, objects: list[v.Mesh] = []):
         self.objects = objects
+
+    @property
+    def geom2d(self) -> FTLGeom2D:
+        if self._geom2d is not None:
+            return self._geom2d
+        else:
+            raise AttributeError(
+                "This geometry was not created from a 2D geometry object."
+            )
+
+    @geom2d.setter
+    def geom2d(self, geom2d: FTLGeom2D):
+        self._geom2d = geom2d

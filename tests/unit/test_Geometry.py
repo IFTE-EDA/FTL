@@ -96,8 +96,6 @@ class Test_FTLGeom2D:
             ).sort(),
         )
 
-    # def test_ftlgeom2d_extrude(self):
-
 
 class Test_FTLGeom3D:
     def setup_class(self):
@@ -107,10 +105,27 @@ class Test_FTLGeom3D:
         geom = FTLGeom3D()
         assert geom.objects == []
 
-    # def test_ftlgeom3d_extrude(self):
+    def test_ftlgeom3d_add_objects(self):
+        geom = FTLGeom3D()
+        geom.objects = []
+        geom.objects.append(v.Box())
+        assert len(geom.objects) == 1
+        geom.objects.append(v.Box())
+        assert len(geom.objects) == 2
 
-    if __name__ == "__main__":
-        import pytest
-        import FTL
+    def test_ftlgeom3d_geom2d(self):
+        geom2d = FTLGeom2D()
+        geom2d.polygons = []
+        geom2d.add_polygon(v.Rectangle((0, 0), (1, 1)))
+        geom2d.add_polygon(v.Rectangle((2, 2), (3, 3)))
+        geom3d = geom2d.to_3D(0.1)
+        assert geom3d.geom2d == geom2d
 
-        pytest.main(["-v", "-s", "test_Geometry.py"])
+    def test_ftlgeom3d_geom2d_none(self):
+        geom3d = FTLGeom3D()
+        try:
+            geom3d.geom2d
+        except AttributeError:
+            assert True
+        else:
+            assert False
