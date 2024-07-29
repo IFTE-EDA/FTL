@@ -65,7 +65,6 @@ class Test_FTLGeom2D:
         geom.add_polygon(v.Rectangle((2, 2), (3, 3)))
         geom3d = geom.to_3D(0.1)
         assert len(geom3d.objects) == 2
-        v.show(geom3d.objects)
         assert np.array_equal(
             geom3d.objects[0].vertices.sort(),
             np.array(
