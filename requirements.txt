@@ -75,7 +75,7 @@ six==1.16.0
     # via python-dateutil
 tomli==2.0.1
     # via pytest
-vedo==2023.4.4
+vedo>=2024.5.1
     # via -r requirements.in
 vtk==9.2.6
     # via
