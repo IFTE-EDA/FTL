@@ -6,7 +6,8 @@ from .RenderContainer import *
 
 # from FTL.Transformations import *
 from .Transformations import *
-from .MainWindow import *
+
+# from .MainWindow import *
 
 data_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
 uic_path = os.path.join(os.path.dirname(__file__), "UI")
