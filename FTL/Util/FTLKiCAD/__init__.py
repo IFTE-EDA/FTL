@@ -1,1 +1,0 @@
-from .KiCADPathManager import KiCADPathManager
