@@ -4,6 +4,7 @@ from __future__ import annotations
 import shapely as sh
 import vedo as v
 from copy import deepcopy
+from matplotlib import pyplot as plt
 
 
 # Base class for all geometry classes
@@ -39,6 +40,17 @@ class FTLGeom2D:
             self.polygons = self.polygons.union(polygon)
         else:
             self.polygons.union(sh.Polygon(polygon, holes))
+
+    def add_circle(
+        self, center: tuple[float, float], radius: float = None
+    ) -> None:
+        if radius is None:
+            radius = center
+            center = (0, 0)
+        self.add_polygon(sh.geometry.Point(center).buffer(radius))
+
+    def translate(self, x: float = 0, y: float = 0) -> None:
+        self.polygons = sh.affinity.translate(self.polygons, x, y)
 
     def _create_surface(self, polygon: sh.Polygon) -> v.Mesh:
         ext_coords = list(polygon.exterior.coords)
@@ -82,6 +94,26 @@ class FTLGeom2D:
         ret = FTLGeom3D(self.extrude(thickness, zpos, fuse=False))
         ret.geom2d = deepcopy(self)
         return ret
+
+    def plot(self):
+        def _plot(geom):
+            print(f"Printing {type(geom)}...")
+            if isinstance(geom, sh.Polygon):
+                x, y = geom.exterior.xy
+                # plt.plot(x, y)
+                axs.fill(x, y, "b")
+                for hole in geom.interiors:
+                    x, y = hole.xy
+                    # plt.plot(x, y)
+                    axs.fill(x, y, "w")
+            else:
+                for elem in geom.geoms:
+                    _plot(elem)
+
+        fig, axs = plt.subplots()
+        axs.set_aspect("equal", "datalim")
+        _plot(self.polygons)
+        plt.show()
 
 
 # 3D geometry class

@@ -42,6 +42,22 @@ class Test_FTLGeom2D:
         assert isinstance(geom.polygons, sh.Polygon)
         assert box2.union(box1).equals(geom.polygons)
 
+    def test_ftlgeom2d_add_circle(self):
+        geom = FTLGeom2D()
+        geom.add_circle((0, 0), 1)
+        assert geom.polygons.equals(sh.geometry.Point(0, 0).buffer(1))
+
+    def test_ftlgeom2d_add__1arg(self):
+        geom = FTLGeom2D()
+        geom.add_circle(2)
+        assert geom.polygons.equals(sh.geometry.Point(0, 0).buffer(2))
+
+    def test_ftlgeom2d_translate(self):
+        geom = FTLGeom2D()
+        geom.add_polygon(sh.geometry.box(0, 0, 1, 1))
+        geom.translate(1, 1)
+        assert geom.polygons.equals(sh.geometry.box(1, 1, 2, 2))
+
     def test_ftlgeom2d_extrude_rectangle(self):
         geom = FTLGeom2D()
         box1 = sh.geometry.box(0, 0, 1, 1)
