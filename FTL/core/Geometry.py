@@ -3,6 +3,7 @@
 from __future__ import annotations
 import shapely as sh
 import vedo as v
+from copy import deepcopy
 
 
 # Base class for all geometry classes
@@ -12,29 +13,74 @@ class FTLGeom:
 
 # 2D geometry class
 class FTLGeom2D:
-    polygons: list[v.Polygon] = []
+    polygons: sh.MultiPolygon = sh.MultiPolygon()
     z: float = 0
 
-    def __init__(self, z: float = 0, polygons: list[v.Polygon] = None):
-        self.polygons = polygons if polygons is not None else []
+    def __init__(self, z: float = 0, polygons: sh.MultiPolygon = None):
+        if polygons is not None:
+            self.polygons = polygons
         self.z = z
 
-    def add_polygon(self, polygon: list[tuple(float, float)]):
-        self.polygons.append(polygon)
+    def is_empty(self) -> bool:
+        if isinstance(self.polygons, sh.Polygon):
+            return True if self.polygons.is_empty else False
+        # it's a MultiPolygon or GeometryCollection
+        if len(self.polygons.geoms) == 0:
+            return True
+        for geom in self.polygons.geoms:
+            if not geom.is_empty:
+                return False
+        return True
 
-    def extrude(self, thickness: float, zpos: float = None) -> v.Mesh:
-        translate_z = self.z if zpos is None else zpos
-        if translate_z == 0:
-            return [poly.extrude(thickness) for poly in self.polygons]
+    def add_polygon(
+        self, polygon: sh.Polygon, holes: list[sh.Polygon] = []
+    ) -> None:
+        if isinstance(polygon, sh.Polygon):
+            self.polygons = self.polygons.union(polygon)
         else:
-            return [
-                poly.translate([0, 0, translate_z]).extrude(thickness)
-                for poly in self.polygons
-            ]
+            self.polygons.union(sh.Polygon(polygon, holes))
+
+    def _create_surface(self, polygon: sh.Polygon) -> v.Mesh:
+        ext_coords = list(polygon.exterior.coords)
+        int_coords = [list(int.coords) for int in polygon.interiors]
+        line_ext = v.Line(ext_coords)
+        lines_int = [v.Line(int_coords) for int_coords in int_coords]
+        return v.merge(line_ext, *lines_int).triangulate()
+
+    def _extrude_surface(
+        self, surface: v.Mesh, thickness: float, zpos: float
+    ) -> v.Mesh:
+        translate_z = self.z if zpos is None else zpos
+
+        if translate_z == 0:
+            return surface.extrude(thickness)
+        else:
+            return surface.translate([0, 0, translate_z]).extrude(thickness)
+
+    def extrude(
+        self, thickness: float, zpos: float = None, fuse: bool = True
+    ) -> v.Mesh:
+        surfaces = []
+        if isinstance(self.polygons, sh.Polygon):
+            surf = self._create_surface(self.polygons)
+            return self._extrude_surface(surf, thickness, zpos)
+
+        # self.polygons is a MultiPolygon or GeometryCollection...
+        for geom in self.polygons.geoms:
+            surf = self._create_surface(geom)
+            surfaces.append(surf)
+        if fuse:
+            mesh = v.merge(*surfaces)
+            return self._extrude_surface(mesh, thickness, zpos)
+        else:
+            meshes = []
+            for surf in surfaces:
+                meshes.append(self._extrude_surface(surf, thickness, zpos))
+            return meshes
 
     def to_3D(self, thickness: float, zpos: float = None) -> FTLGeom3D:
-        ret = FTLGeom3D(self.extrude(thickness, zpos))
-        ret.geom2d = self
+        ret = FTLGeom3D(self.extrude(thickness, zpos, fuse=False))
+        ret.geom2d = deepcopy(self)
         return ret
 
 
@@ -45,6 +91,21 @@ class FTLGeom3D:
 
     def __init__(self, objects: list[v.Mesh] = []):
         self.objects = objects
+
+    def is_empty(self) -> bool:
+        if isinstance(self.objects, v.Mesh):
+            return True if len(self.objects.vertices) == 0 else False
+        # it's a list of meshes
+        for obj in self.objects:
+            if len(obj.vertices) != 0:
+                return False
+        return True
+
+    def add_object(self, obj: v.Mesh) -> None:
+        if isinstance(self.objects, v.Mesh):
+            self.objects = [self.objects, obj]
+        else:
+            self.objects.append(obj)
 
     @property
     def geom2d(self) -> FTLGeom2D:
