@@ -50,10 +50,9 @@ class FTLGeom2D:
     def get_circle(
         self, center: tuple[float, float], radius: float = None
     ) -> None:
-        if radius is None:
-            radius = center
-            center = (0, 0)
-        return sh.geometry.Point(center).buffer(radius)
+        ret = FTLGeom2D()
+        ret.add_circle(center, radius)
+        return ret
 
     def is_empty(self) -> bool:
         if isinstance(self.polygons, sh.Polygon):
