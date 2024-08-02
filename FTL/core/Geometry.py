@@ -100,7 +100,7 @@ class FTLGeom2D:
         if translate_z == 0:
             return surface.extrude(thickness)
         else:
-            return surface.translate([0, 0, translate_z]).extrude(thickness)
+            return surface.z(translate_z).extrude(thickness)
 
     def extrude(
         self, thickness: float, zpos: float = None, fuse: bool = True
