@@ -22,6 +22,30 @@ class FTLGeom2D:
             self.polygons = polygons
         self.z = z
 
+    @classmethod
+    def make_compound(cls, geoms: FTLGeom2D) -> FTLGeom2D:
+        if isinstance(geoms, FTLGeom2D):
+            return geoms
+
+        def _flatten(lst):
+            for el in lst:
+                if isinstance(el, (list, tuple)):
+                    yield from _flatten(el)
+                else:
+                    yield el
+
+        # it's a list of FTLGeom2D (or list of lists)
+        # from functools import reduce
+        # import operator
+        print(geoms)
+        if isinstance(geoms, (list, tuple)):
+            # geoms = reduce(operator.concat, geoms)
+            geoms = list(_flatten(geoms))
+            print(geoms)
+        z = geoms[0].z
+        polys = sh.union_all([g.polygons for g in geoms])
+        return cls(z, polys)
+
     def is_empty(self) -> bool:
         if isinstance(self.polygons, sh.Polygon):
             return True if self.polygons.is_empty else False

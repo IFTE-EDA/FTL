@@ -47,7 +47,7 @@ class Test_FTLGeom2D:
         geom.add_circle((0, 0), 1)
         assert geom.polygons.equals(sh.geometry.Point(0, 0).buffer(1))
 
-    def test_ftlgeom2d_add__1arg(self):
+    def test_ftlgeom2d_add_circle_1arg(self):
         geom = FTLGeom2D()
         geom.add_circle(2)
         assert geom.polygons.equals(sh.geometry.Point(0, 0).buffer(2))
@@ -81,6 +81,18 @@ class Test_FTLGeom2D:
         print(extrusion.vertices)
         print(comp)
         assert comp.__str__() == extrusion.vertices.__str__()
+
+    def test_ftlgeom2d_make_compound(self):
+        geom1 = FTLGeom2D()
+        geom1.add_polygon(sh.geometry.box(0, 0, 1, 1))
+        geom2 = FTLGeom2D()
+        geom2.add_polygon(sh.geometry.box(2, 2, 3, 3))
+        compound = FTLGeom2D.make_compound([geom1, geom2])
+        assert isinstance(compound, FTLGeom2D)
+        assert len(compound.polygons.geoms) == 2
+        assert compound.polygons.equals(
+            sh.MultiPolygon([geom1.polygons, geom2.polygons])
+        )
 
     def test_ftlgeom2d_extrude_rectangles_disjunct(self):
         geom = FTLGeom2D()
