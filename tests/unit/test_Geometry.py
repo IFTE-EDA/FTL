@@ -47,6 +47,14 @@ class Test_FTLGeom2D:
         geom.add_circle((0, 0), 1)
         assert geom.polygons.equals(sh.geometry.Point(0, 0).buffer(1))
 
+    def test_ftlgeom2d_get_circle(self):
+        assert FTLGeom2D.get_circle(1).equals(
+            sh.geometry.Point(0, 0).buffer(1)
+        )
+        assert FTLGeom2D.get_circle((1, 1), 1).equals(
+            sh.geometry.Point(1, 1).buffer(1)
+        )
+
     def test_ftlgeom2d_add_circle_1arg(self):
         geom = FTLGeom2D()
         geom.add_circle(2)

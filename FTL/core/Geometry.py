@@ -46,6 +46,15 @@ class FTLGeom2D:
         polys = sh.union_all([g.polygons for g in geoms])
         return cls(z, polys)
 
+    @classmethod
+    def get_circle(
+        self, center: tuple[float, float], radius: float = None
+    ) -> None:
+        if radius is None:
+            radius = center
+            center = (0, 0)
+        return sh.geometry.Point(center).buffer(radius)
+
     def is_empty(self) -> bool:
         if isinstance(self.polygons, sh.Polygon):
             return True if self.polygons.is_empty else False
