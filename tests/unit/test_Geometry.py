@@ -42,6 +42,16 @@ class Test_FTLGeom2D:
         assert isinstance(geom.polygons, sh.Polygon)
         assert box2.union(box1).equals(geom.polygons)
 
+    def test_ftlgeom2d_add_shapely_polygon_rectangle(self):
+        geom = FTLGeom2D()
+        geom.add_polygon(sh.geometry.box(0, 0, 1, 1))
+        assert geom.polygons.equals(sh.geometry.box(0, 0, 1, 1))
+
+    def test_ftlgeom2d_add_rectangle(self):
+        geom = FTLGeom2D()
+        geom.add_rectangle((0, 0), (1, 1))
+        assert geom.polygons.equals(sh.geometry.box(0, 0, 1, 1))
+
     def test_ftlgeom2d_add_circle(self):
         geom = FTLGeom2D()
         geom.add_circle((0, 0), 1)
@@ -55,16 +65,43 @@ class Test_FTLGeom2D:
             sh.geometry.Point(1, 1).buffer(1)
         )
 
+    def test_ftlgeom2d_get_rectangle(self):
+        assert FTLGeom2D.get_rectangle((0, 0), (1, 1)).polygons.equals(
+            sh.geometry.box(0, 0, 1, 1)
+        )
+
     def test_ftlgeom2d_add_circle_1arg(self):
         geom = FTLGeom2D()
         geom.add_circle(2)
         assert geom.polygons.equals(sh.geometry.Point(0, 0).buffer(2))
+
+    def test__ftlgeom2d_cutout(self):
+        geom = FTLGeom2D()
+        geom.add_polygon(sh.geometry.box(0, 0, 2, 2))
+        geom.cutout(sh.geometry.box(0.5, 0.5, 1.5, 1.5))
+        assert geom.polygons.equals(
+            sh.geometry.box(0, 0, 2, 2).difference(
+                sh.geometry.box(0.5, 0.5, 1.5, 1.5)
+            )
+        )
 
     def test_ftlgeom2d_translate(self):
         geom = FTLGeom2D()
         geom.add_polygon(sh.geometry.box(0, 0, 1, 1))
         geom.translate(1, 1)
         assert geom.polygons.equals(sh.geometry.box(1, 1, 2, 2))
+
+    def test_ftlgeom2d_rotate_origin(self):
+        geom = FTLGeom2D()
+        geom.add_polygon(sh.geometry.box(0, 0, 1, 1))
+        geom.rotate(90)
+        assert geom.polygons.equals(sh.geometry.box(-1, 1, 0, 0))
+
+    def test_ftlgeom2d_rotate_corner(self):
+        geom = FTLGeom2D()
+        geom.add_polygon(sh.geometry.box(0, 0, 1, 1))
+        geom.rotate(90, (1, 1))
+        assert geom.polygons.equals(sh.geometry.box(1, 1, 2, 0))
 
     def test_ftlgeom2d_extrude_rectangle(self):
         geom = FTLGeom2D()

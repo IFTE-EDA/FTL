@@ -47,10 +47,18 @@ class FTLGeom2D:
         return cls(z, polys)
 
     @classmethod
-    def get_circle(
-        self, center: tuple[float, float], radius: float = None
-    ) -> None:
+    def get_rectangle(
+        cls, start: tuple(float, float), end: tuple(float, float)
+    ) -> FTLGeom2D:
         ret = FTLGeom2D()
+        ret.add_rectangle(start, end)
+        return ret
+
+    @classmethod
+    def get_circle(
+        cls, center: tuple[float, float], radius: float = None
+    ) -> FTLGeom2D:
+        ret = cls()
         ret.add_circle(center, radius)
         return ret
 
@@ -73,6 +81,13 @@ class FTLGeom2D:
         else:
             self.polygons.union(sh.Polygon(polygon, holes))
 
+    def add_rectangle(
+        self, start: tuple(float, float), end: tuple(float, float)
+    ) -> None:
+        self.polygons = self.polygons.union(
+            sh.box(start[0], start[1], end[0], end[1])
+        )
+
     def add_circle(
         self, center: tuple[float, float], radius: float = None
     ) -> None:
@@ -81,8 +96,18 @@ class FTLGeom2D:
             center = (0, 0)
         self.add_polygon(sh.geometry.Point(center).buffer(radius))
 
+    def cutout(self, geom: (FTLGeom2D, sh.Polygon)) -> None:
+        if isinstance(geom, FTLGeom2D):
+            geom = geom.polygons
+        self.polygons = self.polygons.difference(geom)
+
     def translate(self, x: float = 0, y: float = 0) -> None:
         self.polygons = sh.affinity.translate(self.polygons, x, y)
+
+    def rotate(
+        self, angle: float = 0, center: tuple(float, float) = (0, 0)
+    ) -> None:
+        self.polygons = sh.affinity.rotate(self.polygons, angle, center)
 
     def _create_surface(self, polygon: sh.Polygon) -> v.Mesh:
         ext_coords = list(polygon.exterior.coords)
