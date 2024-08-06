@@ -82,7 +82,7 @@ class FTLGeom2D:
             self.polygons.union(sh.Polygon(polygon, holes))
 
     def add_rectangle(
-        self, start: tuple(float, float), end: tuple(float, float)
+        self, start: tuple[float, float], end: tuple[float, float]
     ) -> None:
         self.polygons = self.polygons.union(
             sh.box(start[0], start[1], end[0], end[1])
@@ -95,6 +95,28 @@ class FTLGeom2D:
             radius = center
             center = (0, 0)
         self.add_polygon(sh.geometry.Point(center).buffer(radius))
+
+    def add_ellipse(
+        self,
+        center: tuple[float, float],
+        radii: tuple[float, float],
+        angle: float = 0,
+    ) -> None:
+        circle = sh.geometry.Point(center).buffer(1)
+        ellipse = sh.affinity.scale(circle, radii[0], radii[1])
+        if angle != 0:
+            ellipse = sh.affinity.rotate(ellipse, angle, center)
+        self.add_polygon(ellipse)
+
+    def get_ellipse(
+        self,
+        center: tuple[float, float],
+        radii: tuple[float, float],
+        angle: float = 0,
+    ) -> FTLGeom2D:
+        ret = FTLGeom2D()
+        ret.add_ellipse(center, radii, angle)
+        return ret
 
     def cutout(self, geom: (FTLGeom2D, sh.Polygon)) -> None:
         if isinstance(geom, FTLGeom2D):

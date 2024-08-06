@@ -65,6 +65,16 @@ class Test_FTLGeom2D:
             sh.geometry.Point(1, 1).buffer(1)
         )
 
+    def test_ftlgeom2d_add_ellipse(self):
+        circle = sh.geometry.Point(0, 0).buffer(1)
+        geom1 = FTLGeom2D()
+        geom2 = FTLGeom2D()
+        geom1.add_ellipse((0, 0), (1, 2))
+        geom2.add_ellipse((0, 0), (2, 1), 90)
+        geom1.cutout(geom2)
+        assert geom1.polygons.area <= 0.0001
+        assert not geom2.polygons.equals(circle)
+
     def test_ftlgeom2d_get_rectangle(self):
         assert FTLGeom2D.get_rectangle((0, 0), (1, 1)).polygons.equals(
             sh.geometry.box(0, 0, 1, 1)
