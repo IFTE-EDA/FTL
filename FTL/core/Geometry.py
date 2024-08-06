@@ -47,6 +47,14 @@ class FTLGeom2D:
         return cls(z, polys)
 
     @classmethod
+    def get_polygon(
+        self, polygon: sh.Polygon, holes: list[sh.Polygon] = []
+    ) -> FTLGeom2D:
+        ret = FTLGeom2D()
+        ret.add_polygon(polygon, holes)
+        return ret
+
+    @classmethod
     def get_rectangle(
         cls, start: tuple(float, float), end: tuple(float, float)
     ) -> FTLGeom2D:
@@ -60,6 +68,17 @@ class FTLGeom2D:
     ) -> FTLGeom2D:
         ret = cls()
         ret.add_circle(center, radius)
+        return ret
+
+    @classmethod
+    def get_ellipse(
+        self,
+        center: tuple[float, float],
+        radii: tuple[float, float],
+        angle: float = 0,
+    ) -> FTLGeom2D:
+        ret = FTLGeom2D()
+        ret.add_ellipse(center, radii, angle)
         return ret
 
     def is_empty(self) -> bool:
@@ -107,16 +126,6 @@ class FTLGeom2D:
         if angle != 0:
             ellipse = sh.affinity.rotate(ellipse, angle, center)
         self.add_polygon(ellipse)
-
-    def get_ellipse(
-        self,
-        center: tuple[float, float],
-        radii: tuple[float, float],
-        angle: float = 0,
-    ) -> FTLGeom2D:
-        ret = FTLGeom2D()
-        ret.add_ellipse(center, radii, angle)
-        return ret
 
     def cutout(self, geom: (FTLGeom2D, sh.Polygon)) -> None:
         if isinstance(geom, FTLGeom2D):
