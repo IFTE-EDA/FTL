@@ -5,6 +5,8 @@ import shapely as sh
 import vedo as v
 from copy import deepcopy
 from matplotlib import pyplot as plt
+import math
+import numpy as np
 
 
 # Base class for all geometry classes
@@ -37,11 +39,9 @@ class FTLGeom2D:
         # it's a list of FTLGeom2D (or list of lists)
         # from functools import reduce
         # import operator
-        print(geoms)
         if isinstance(geoms, (list, tuple)):
             # geoms = reduce(operator.concat, geoms)
             geoms = list(_flatten(geoms))
-            print(geoms)
         z = geoms[0].z
         polys = sh.union_all([g.polygons for g in geoms])
         return cls(z, polys)
@@ -98,6 +98,18 @@ class FTLGeom2D:
     ) -> FTLGeom2D:
         ret = FTLGeom2D()
         ret.add_line(start, end, width)
+        return ret
+
+    @classmethod
+    def get_arc(
+        cls,
+        start: tuple[float, float],
+        mid: tuple[float, float],
+        end: tuple[float, float],
+        width: float,
+    ) -> FTLGeom2D:
+        ret = FTLGeom2D()
+        ret.add_arc(start, mid, end, width)
         return ret
 
     def is_empty(self) -> bool:
@@ -168,6 +180,64 @@ class FTLGeom2D:
         width: float,
     ) -> None:
         self.add_polygon(sh.LineString([start, end]).buffer(width / 2))
+
+    def add_arc(
+        self,
+        start: tuple[float, float],
+        mid: tuple[float, float],
+        end: tuple[float, float],
+        width: float,
+    ) -> None:
+        def _center(p1, p2, p3):
+            dx1 = p2[0] - p1[0]
+            dy1 = p2[1] - p1[1]
+            dx2 = p3[0] - p2[0]
+            dy2 = p3[1] - p2[1]
+
+            slope1 = dy1 / dx1
+            slope2 = dy2 / dx2
+            center = [0, 0]
+            center[0] = (
+                slope1 * slope2 * (p1[1] - p3[1])
+                + slope2 * (p1[0] + p2[0])
+                - slope1 * (p2[0] + p3[0])
+            ) / (2 * (slope2 - slope1))
+            center[1] = (
+                -(center[0] - (p1[0] + p2[0]) / 2) / slope1
+                + (p1[1] + p2[1]) / 2
+            )
+
+            return center
+
+        def _polar(angle):
+            return (
+                center[0] + radius * math.cos(math.radians(angle)),
+                center[1] + radius * math.sin(math.radians(angle)),
+            )
+
+        def _angle(p):
+            return math.degrees(math.atan2(p[1] - center[1], p[0] - center[0]))
+
+        center = _center(start, mid, end)
+        radius = math.sqrt(
+            (center[0] - start[0]) ** 2 + (center[1] - start[1]) ** 2
+        )
+        angle_start = _angle(start)
+        angle_end = _angle(end)
+
+        if angle_start > angle_end:
+            angle_start = angle_start - 360
+        else:
+            pass
+
+        arc = []
+        for a in np.linspace(
+            angle_start, angle_end, round((angle_end - angle_start) / 90 * 20)
+        ):
+            arc.append(_polar(a))
+        arc.append(_polar(angle_end))
+
+        self.add_polygon(sh.LineString(arc).buffer(width / 2))
 
     def cutout(self, geom: (FTLGeom2D, sh.Polygon)) -> None:
         if isinstance(geom, FTLGeom2D):

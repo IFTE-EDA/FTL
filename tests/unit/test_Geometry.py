@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import sys
 import os
+import math
 
 import shapely as sh
 
@@ -136,6 +137,30 @@ class Test_FTLGeom2D:
         assert geom.polygons.equals(
             sh.geometry.LineString([(0, 0), (1, 1)]).buffer(0.05)
         )
+
+    def test_ftlgeom2d_add_half_arc(self):
+        geom = FTLGeom2D()
+        geom.add_arc((1, 0), (0, 1), (-1, 0), 0.1)
+        assert round(geom.polygons.area, 10) == 0.321909497
+        # assure orientation
+        clip_rect = sh.geometry.box(-1, -0.1, 1, -1)
+        geom.cutout(clip_rect)
+        assert round(geom.polygons.area, 10) == 0.321909497
+
+    def test_ftlgeom2d_add_quarter_arc(self):
+        geom = FTLGeom2D()
+        geom.add_arc(
+            (1, 0), (math.cos(math.pi / 4), math.sin(math.pi / 4)), (0, 1), 0.1
+        )
+        assert round(geom.polygons.area, 10) == 0.1648730949
+        # assure orientation
+        clip_rect = sh.geometry.box(-0.1, -0.1, 1.1, 1.1)
+        geom.cutout(clip_rect)
+        assert round(geom.polygons.area, 10) == 0
+
+    def test_ftlgeom2d_get_arc(self):
+        geom = FTLGeom2D.get_arc((1, 0), (0, 1), (-1, 0), 0.1)
+        assert round(geom.polygons.area, 10) == 0.321909497
 
     def test__ftlgeom2d_cutout(self):
         geom = FTLGeom2D()
