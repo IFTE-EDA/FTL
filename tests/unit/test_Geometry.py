@@ -75,6 +75,43 @@ class Test_FTLGeom2D:
         assert geom1.polygons.area <= 0.0001
         assert not geom2.polygons.equals(circle)
 
+    def test_ftlgeom2d_get_ellipse(self):
+        circle = sh.geometry.Point(0, 0).buffer(1)
+        geom1 = FTLGeom2D.get_ellipse((0, 0), (1, 2))
+        geom2 = FTLGeom2D.get_ellipse((0, 0), (2, 1), 90)
+        geom1.cutout(geom2)
+        assert geom1.polygons.area <= 0.0001
+        assert not geom2.polygons.equals(circle)
+
+    def test_ftlgeom2d_add_roundrect(self):
+        geom = FTLGeom2D()
+        geom.add_roundrect((0, 0), (1, 1), 0.1)
+        bxmin, bymin, bxmax, bymax = geom.polygons.bounds
+        bxmin = round(bxmin, 10)
+        bymin = round(bymin, 10)
+        bxmax = round(bxmax, 10)
+        bymax = round(bymax, 10)
+        assert (bxmin, bymin, bxmax, bymax) == (0, 0, 1, 1)
+        assert geom.polygons.area < 1
+        assert geom.polygons.area > 0.99
+        assert geom.polygons.equals(
+            sh.geometry.box(0.1, 0.1, 0.9, 0.9).buffer(0.1)
+        )
+
+    def test_ftlgeom2d_get_roundrect(self):
+        geom = FTLGeom2D.get_roundrect((0, 0), (1, 1), 0.1)
+        bxmin, bymin, bxmax, bymax = geom.polygons.bounds
+        bxmin = round(bxmin, 10)
+        bymin = round(bymin, 10)
+        bxmax = round(bxmax, 10)
+        bymax = round(bymax, 10)
+        assert (bxmin, bymin, bxmax, bymax) == (0, 0, 1, 1)
+        assert geom.polygons.area < 1
+        assert geom.polygons.area > 0.99
+        assert geom.polygons.equals(
+            sh.geometry.box(0.1, 0.1, 0.9, 0.9).buffer(0.1)
+        )
+
     def test_ftlgeom2d_get_rectangle(self):
         assert FTLGeom2D.get_rectangle((0, 0), (1, 1)).polygons.equals(
             sh.geometry.box(0, 0, 1, 1)

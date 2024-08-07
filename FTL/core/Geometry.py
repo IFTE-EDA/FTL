@@ -81,6 +81,17 @@ class FTLGeom2D:
         ret.add_ellipse(center, radii, angle)
         return ret
 
+    @classmethod
+    def get_roundrect(
+        cls,
+        start: tuple[float, float],
+        end: tuple[float, float],
+        radius: float,
+    ) -> FTLGeom2D:
+        ret = FTLGeom2D()
+        ret.add_roundrect(start, end, radius)
+        return ret
+
     def is_empty(self) -> bool:
         if isinstance(self.polygons, sh.Polygon):
             return True if self.polygons.is_empty else False
@@ -126,6 +137,21 @@ class FTLGeom2D:
         if angle != 0:
             ellipse = sh.affinity.rotate(ellipse, angle, center)
         self.add_polygon(ellipse)
+
+    def add_roundrect(
+        self,
+        start: tuple[float, float],
+        end: tuple[float, float],
+        radius: float,
+    ) -> None:
+        self.add_polygon(
+            sh.geometry.box(
+                start[0] + radius,
+                start[1] + radius,
+                end[0] - radius,
+                end[1] - radius,
+            ).buffer(radius)
+        )
 
     def cutout(self, geom: (FTLGeom2D, sh.Polygon)) -> None:
         if isinstance(geom, FTLGeom2D):
@@ -185,7 +211,6 @@ class FTLGeom2D:
 
     def plot(self):
         def _plot(geom):
-            print(f"Printing {type(geom)}...")
             if isinstance(geom, sh.Polygon):
                 x, y = geom.exterior.xy
                 # plt.plot(x, y)
