@@ -92,6 +92,14 @@ class FTLGeom2D:
         ret.add_roundrect(start, end, radius)
         return ret
 
+    @classmethod
+    def get_line(
+        cls, start: tuple[float, float], end: tuple[float, float], width: float
+    ) -> FTLGeom2D:
+        ret = FTLGeom2D()
+        ret.add_line(start, end, width)
+        return ret
+
     def is_empty(self) -> bool:
         if isinstance(self.polygons, sh.Polygon):
             return True if self.polygons.is_empty else False
@@ -152,6 +160,14 @@ class FTLGeom2D:
                 end[1] - radius,
             ).buffer(radius)
         )
+
+    def add_line(
+        self,
+        start: tuple[float, float],
+        end: tuple[float, float],
+        width: float,
+    ) -> None:
+        self.add_polygon(sh.LineString([start, end]).buffer(width / 2))
 
     def cutout(self, geom: (FTLGeom2D, sh.Polygon)) -> None:
         if isinstance(geom, FTLGeom2D):

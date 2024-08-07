@@ -52,10 +52,20 @@ class Test_FTLGeom2D:
         geom.add_rectangle((0, 0), (1, 1))
         assert geom.polygons.equals(sh.geometry.box(0, 0, 1, 1))
 
+    def test_ftlgeom2d_get_rectangle(self):
+        assert FTLGeom2D.get_rectangle((0, 0), (1, 1)).polygons.equals(
+            sh.geometry.box(0, 0, 1, 1)
+        )
+
     def test_ftlgeom2d_add_circle(self):
         geom = FTLGeom2D()
         geom.add_circle((0, 0), 1)
         assert geom.polygons.equals(sh.geometry.Point(0, 0).buffer(1))
+
+    def test_ftlgeom2d_add_circle_1arg(self):
+        geom = FTLGeom2D()
+        geom.add_circle(2)
+        assert geom.polygons.equals(sh.geometry.Point(0, 0).buffer(2))
 
     def test_ftlgeom2d_get_circle(self):
         assert FTLGeom2D.get_circle(1).polygons.equals(
@@ -106,21 +116,26 @@ class Test_FTLGeom2D:
         bxmax = round(bxmax, 10)
         bymax = round(bymax, 10)
         assert (bxmin, bymin, bxmax, bymax) == (0, 0, 1, 1)
-        assert geom.polygons.area < 1
-        assert geom.polygons.area > 0.99
+        assert round(geom.polygons.area, 10) == 0.9913654849
         assert geom.polygons.equals(
             sh.geometry.box(0.1, 0.1, 0.9, 0.9).buffer(0.1)
         )
 
-    def test_ftlgeom2d_get_rectangle(self):
-        assert FTLGeom2D.get_rectangle((0, 0), (1, 1)).polygons.equals(
-            sh.geometry.box(0, 0, 1, 1)
+    def test_ftlgeom2d_add_line(self):
+        geom = FTLGeom2D()
+        geom.add_line((0, 0), (1, 1), 0.1)
+        # geom.plot()
+        assert round(geom.polygons.area, 10) == 0.1492627275
+        assert geom.polygons.equals(
+            sh.geometry.LineString([(0, 0), (1, 1)]).buffer(0.05)
         )
 
-    def test_ftlgeom2d_add_circle_1arg(self):
-        geom = FTLGeom2D()
-        geom.add_circle(2)
-        assert geom.polygons.equals(sh.geometry.Point(0, 0).buffer(2))
+    def test_ftlgeom2d_get_line(self):
+        geom = FTLGeom2D.get_line((0, 0), (1, 1), 0.1)
+        assert round(geom.polygons.area, 10) == 0.1492627275
+        assert geom.polygons.equals(
+            sh.geometry.LineString([(0, 0), (1, 1)]).buffer(0.05)
+        )
 
     def test__ftlgeom2d_cutout(self):
         geom = FTLGeom2D()
