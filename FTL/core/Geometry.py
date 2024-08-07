@@ -1,12 +1,12 @@
 # This file contains the geometry classes and functions for the FTL library
 
 from __future__ import annotations
-import shapely as sh
-import vedo as v
-from copy import deepcopy
-from matplotlib import pyplot as plt
 import math
 import numpy as np
+from copy import deepcopy
+from matplotlib import pyplot as plt
+import shapely as sh
+import vedo as v
 
 
 # Base class for all geometry classes
@@ -15,7 +15,7 @@ class FTLGeom:
 
 
 # 2D geometry class
-class FTLGeom2D:
+class FTLGeom2D(FTLGeom):
     polygons: sh.MultiPolygon = sh.MultiPolygon()
     z: float = 0
 
@@ -94,10 +94,10 @@ class FTLGeom2D:
 
     @classmethod
     def get_line(
-        cls, start: tuple[float, float], end: tuple[float, float], width: float
+        cls, pts: list[tuple[float, float]], width: float
     ) -> FTLGeom2D:
         ret = FTLGeom2D()
-        ret.add_line(start, end, width)
+        ret.add_line(pts, width)
         return ret
 
     @classmethod
@@ -175,11 +175,10 @@ class FTLGeom2D:
 
     def add_line(
         self,
-        start: tuple[float, float],
-        end: tuple[float, float],
+        pts: list[tuple[float, float]],
         width: float,
     ) -> None:
-        self.add_polygon(sh.LineString([start, end]).buffer(width / 2))
+        self.add_polygon(sh.LineString(pts).buffer(width / 2))
 
     def add_arc(
         self,
@@ -316,7 +315,7 @@ class FTLGeom2D:
 
 
 # 3D geometry class
-class FTLGeom3D:
+class FTLGeom3D(FTLGeom):
     objects: list[v.Mesh] = []
     _geom2d: FTLGeom2D = None
 

@@ -124,15 +124,15 @@ class Test_FTLGeom2D:
 
     def test_ftlgeom2d_add_line(self):
         geom = FTLGeom2D()
-        geom.add_line((0, 0), (1, 1), 0.1)
+        geom.add_line(((0, 0), (1, 1), (2, 1)), 0.1)
         # geom.plot()
-        assert round(geom.polygons.area, 10) == 0.1492627275
+        assert round(geom.polygons.area, 10) == 0.249207365
         assert geom.polygons.equals(
-            sh.geometry.LineString([(0, 0), (1, 1)]).buffer(0.05)
+            sh.geometry.LineString([(0, 0), (1, 1), (2, 1)]).buffer(0.05)
         )
 
     def test_ftlgeom2d_get_line(self):
-        geom = FTLGeom2D.get_line((0, 0), (1, 1), 0.1)
+        geom = FTLGeom2D.get_line(((0, 0), (1, 1)), 0.1)
         assert round(geom.polygons.area, 10) == 0.1492627275
         assert geom.polygons.equals(
             sh.geometry.LineString([(0, 0), (1, 1)]).buffer(0.05)
