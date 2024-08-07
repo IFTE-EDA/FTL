@@ -5,6 +5,9 @@ import math
 import numpy as np
 from copy import deepcopy
 from matplotlib import pyplot as plt
+from matplotlib.path import Path
+from matplotlib.patches import PathPatch
+from matplotlib.collections import PatchCollection
 import shapely as sh
 import vedo as v
 
@@ -26,8 +29,8 @@ class FTLGeom2D(FTLGeom):
 
     @classmethod
     def make_compound(cls, geoms: FTLGeom2D) -> FTLGeom2D:
-        if isinstance(geoms, FTLGeom2D):
-            return geoms
+        # if isinstance(geoms, FTLGeom2D):
+        #    return geoms
 
         def _flatten(lst):
             for el in lst:
@@ -42,7 +45,8 @@ class FTLGeom2D(FTLGeom):
         if isinstance(geoms, (list, tuple)):
             # geoms = reduce(operator.concat, geoms)
             geoms = list(_flatten(geoms))
-        z = geoms[0].z
+        z = geoms[0].z if len(geoms) > 0 else 0
+        print(geoms)
         polys = sh.union_all([g.polygons for g in geoms])
         return cls(z, polys)
 
@@ -296,19 +300,30 @@ class FTLGeom2D(FTLGeom):
 
     def plot(self):
         def _plot(geom):
+            print(f"Type: {type(geom)}")
             if isinstance(geom, sh.Polygon):
-                x, y = geom.exterior.xy
-                # plt.plot(x, y)
-                axs.fill(x, y, "b")
-                for hole in geom.interiors:
-                    x, y = hole.xy
-                    # plt.plot(x, y)
-                    axs.fill(x, y, "w")
+                print(f"Drawing Exterior of {geom}")
+                path = Path.make_compound_path(
+                    Path(np.asarray(geom.exterior.coords)),
+                    *[
+                        Path(np.asarray(hole.coords))
+                        for hole in geom.interiors
+                    ],
+                )
+
+                patch = PathPatch(path)
+                collection = PatchCollection([patch])
+
+                axs.add_collection(collection, autolim=True)
+                axs.autoscale_view()
             else:
                 for elem in geom.geoms:
                     _plot(elem)
 
         fig, axs = plt.subplots()
+        # axs.xaxis.set_major_locator(plt.NullLocator())
+        # axs.yaxis.set_major_locator(plt.NullLocator())
+        axs.patch.set_color("w")
         axs.set_aspect("equal", "datalim")
         _plot(self.polygons)
         plt.show()
