@@ -1,0 +1,400 @@
+from __future__ import annotations
+import sys
+from kicad_parser import KicadPCB
+from pathlib import Path
+from itertools import chain
+import shapely as sh
+from abc import ABC, abstractmethod
+
+sys.path.append(r"..\..")
+from FTL.Util.logging import Logger, Loggable
+from FTL.core.Geometry import FTLGeom2D
+
+
+class KiCADParser(Loggable):
+    file: Path = None
+    logger = None
+
+    def __init__(self, file_path: Path, logger=None):
+        if logger is None:
+            self.logger = Logger("KiCADParser")
+            self.logger.info("Starting parser...")
+        else:
+            self.logger = logger
+        super().__init__(self.logger)
+        self.file_path = file_path
+        self.pcb = KicadPCB.load(file_path)
+
+        self.layers = self.pcb.layers
+        self.nets = dict(chain(self.pcb["net"]))
+        self.footprints = [
+            KiCADPart(self, part) for part in self.pcb["footprint"]
+        ]
+        # self.polygons = [KiCADPolygon(poly) for poly in self.pcb["gr_poly"]]
+        self.geoms = {
+            "gr_text_box": [],
+            "gr_line": [],
+            "gr_rect": [],
+            "gr_circle": [],
+            "gr_arc": [],
+            "gr_poly": [],
+            "gr_curve": [],
+            "segment": [],
+            "via": [],
+        }
+        if "gr_text_box" in self.pcb:
+            # self.geoms["gr_text_box"] = self.pcb["gr_text_box"]
+            pass
+            # raise Exception("Text Boxes not supported yet.")
+        if "gr_line" in self.pcb:
+            # self.geoms["gr_line"] = self.pcb["gr_line"]
+            pass
+            # raise Exception("Lines not supported yet.")
+        if "gr_rect" in self.pcb:
+            self.geoms["gr_rect"] = [
+                KiCADRect(self, rect) for rect in self.pcb["gr_rect"]
+            ]
+            # raise Exception("Rectangles not supported yet.")
+        if "gr_circle" in self.pcb:
+            # self.geoms["gr_circle"] = self.pcb["gr_circle"]
+            pass
+            # raise Exception("Circles not supported yet.")
+        if "gr_arc" in self.pcb:
+            # self.geoms["gr_arc"] = self.pcb["gr_arc"]
+            pass
+            # raise Exception("Arcs not supported yet.")
+        if "gr_poly" in self.pcb:
+            # self.geoms["gr_poly"] = self.pcb["gr_poly"]
+            self.geoms["gr_poly"] = [
+                KiCADPolygon(self, poly) for poly in self.pcb["gr_poly"]
+            ]
+        if "gr_curve" in self.pcb:
+            # self.geoms["gr_curve"] = self.pcb["gr_curve"]
+            pass
+            # raise Exception("Curves not supported yet.")
+        if "segment" in self.pcb:
+            self.geoms["segment"] = self.pcb["segment"]
+            pass
+        if "via" in self.pcb:
+            self.geoms["via"] = [
+                KiCADVia(self, via) for via in self.pcb["via"]
+            ]
+
+    def render(self):
+        fps = self.render_footprints()
+        shapes = self.render_shapes()
+        vias = self.render_vias()
+        return FTLGeom2D.make_compound((shapes, fps, vias))
+
+    def render_footprints(self):
+        rendered_footprints = []
+        self.log_info(f"Rendering {len(self.footprints)} footprints...")
+        for footprint in self.footprints:
+            rendered_footprints.append(footprint.render())
+        return FTLGeom2D.make_compound(rendered_footprints)
+
+    def render_shapes(self):
+        geom = []
+        if len(self.geoms["gr_poly"]) > 0:
+            self.log_info(
+                f"Rendering {len(self.geoms['gr_poly'])} polygons..."
+            )
+            geom.extend([poly.render() for poly in self.geoms["gr_poly"]])
+        if len(self.geoms["gr_rect"]) > 0:
+            self.log_info(
+                f"Rendering {len(self.geoms['gr_rect'])} rectangles..."
+            )
+            geom.extend([rect.render() for rect in self.geoms["gr_rect"]])
+            # FTLGeom2D.make_compound([rect.render() for rect in self.geoms["gr_poly"]]).plot()
+        if len(self.geoms["segment"]) > 0:
+            self.log_info(
+                f"Rendering {len(self.geoms['segment'])} segments..."
+            )
+            for segment in self.geoms["segment"]:
+                geom.append(
+                    FTLGeom2D.get_line(
+                        (segment["start"], segment["end"]), segment["width"]
+                    )
+                )
+        return FTLGeom2D.make_compound(geom)
+
+    def render_vias(self):
+        geom = []
+        if len(self.geoms["via"]) > 0:
+            self.log_info(f"Rendering {len(self.geoms['via'])} vias...")
+            geom = [via.render() for via in self.geoms["via"]]
+        return FTLGeom2D.make_compound(geom)
+
+
+class KiCADObject(ABC, Loggable):
+    def __init__(self, parent, params: dict):
+        Loggable.__init__(self, parent)
+        self.params = params
+        self.name = params[0] if 0 in params else None
+        # self.layer = params["layer"]
+        self.at = params["at"]
+        self.angle = self.at[2] if len(self.at) > 2 else 0
+        # self.descr = params["descr"]
+        # self.tags = params["tags"]
+        # self.path = params["path"] if "path" in params else None
+
+    @abstractmethod
+    def render(self):
+        pass
+
+    @property
+    def x(self):
+        return self.at[0]
+
+    @property
+    def y(self):
+        return self.at[1]
+
+    def move_relative(self, dx: float = None, dy: float = None):
+        if isinstance(dx, (tuple, list)) and dy is None:
+            dx, dy = dx[0], dx[1]
+        self.at = (self.at[0] + dx, self.at[1] + dy)
+
+
+class KiCADPolygon(Loggable):
+    def __init__(self, parent: Loggable, params: dict):
+        super().__init__(parent)
+        self.points = list(params["pts"]["xy"])
+        self.points.append(self.points[0])
+        self.stroke_type = params["stroke"]["type"]
+        self.stroke_width = params["stroke"]["width"]
+        self.fill = params["fill"]
+        self.log_debug(
+            f"Making polygon with {len(self.points)} points, stroke type {self.stroke_type}, width {self.stroke_width} and fill {self.fill}..."
+        )
+
+    def render(self):
+        geom = FTLGeom2D()
+        if self.fill == "none" and self.stroke_width:
+            geom.add_line(self.points, self.stroke_width)
+        elif self.fill != "none" and not self.stroke_width:
+            self.log_critical("-----TODO: Fill Polygon-----")
+        else:
+            raise Exception(
+                "Unsupported combination of stroke and fill: stroke_type = <{self.stroke_type}>, stroke_width = {self.stroke_width}, fill = <{self.fill}>"
+            )
+        return geom
+
+
+class KiCADRect(KiCADPolygon):
+    def __init__(self, parent: Loggable, params: dict):
+        # Loggable.__init__(self, parent)
+        params["pts"] = {
+            "xy": [
+                params["start"],
+                (params["end"][0], params["start"][1]),
+                params["end"],
+                (params["start"][0], params["end"][1]),
+            ]
+        }
+        KiCADPolygon.__init__(self, parent, params)
+        # self.log_debug(f"Making rectangle with {params}...")
+
+    def render(self):
+        return super().render()
+
+
+class KiCADPart(KiCADObject):
+    def __init__(self, parent: Loggable, params: dict):
+        KiCADObject.__init__(self, parent, params)
+        # self.angle = self.at[2] if len(self.at) > 2 else 0
+        self.descr = dict["descr"]
+        self.tags = dict["tags"]
+        self.layer = params["layer"]
+        self.path = params["path"] if "path" in params else None
+        self.pads = params["pad"] if "pad" in params else None
+        self.pads = params["pad"] if "pad" in params else None
+        self.geoms = {
+            "fp_text": [],
+            "fp_line": [],
+            "fp_circle": [],
+            "fp_arc": [],
+            "fp_poly": [],
+            "fp_curve": [],
+        }
+        for key in self.geoms.keys():
+            self.geoms[key] = params[key] if key in params else []
+
+    def render(self) -> FTLGeom2D:
+        self.log_info(f"Rendering part {self.name} at {self.at}...")
+        self.log_info("->Rendering pads...")
+        pads = self.render_pads()
+        self.log_info("->Rendering shapes...")
+        shapes = self.render_shapes()
+        return FTLGeom2D.make_compound((pads, shapes))
+
+    def render_pads(self) -> FTLGeom2D:
+        rendered_pads = []
+        for pad_obj in self.pads:
+            # print(pad_obj)
+            pad = KiCADPad(self, pad_obj)
+            pad.move_relative(self.at[0], self.at[1])
+            rendered_pads.append(pad.render())
+        return FTLGeom2D.make_compound(rendered_pads)
+
+    def render_shapes(self):
+        geom = []
+        if len(self.geoms["fp_line"]) > 0:
+            self.log_info(f"Rendering {len(self.geoms['fp_line'])} lines...")
+            for line in self.geoms["fp_line"]:
+                if line["stroke"]["type"] == "solid":
+                    geom.append(
+                        FTLGeom2D.get_line(
+                            (line["start"], line["end"]),
+                            line["stroke"]["width"],
+                        )
+                    )
+                else:
+                    raise Exception(
+                        f"Unsupported line stroke type: <{line['stroke']['type']}>"
+                    )
+        if len(self.geoms["fp_circle"]) > 0:
+            self.log_info(
+                f"Rendering {len(self.geoms['fp_circle'])} circles..."
+            )
+            self.log_debug(
+                f"Rendering circle at {self.geoms['fp_circle'][0]['center']} with radius {self.geoms['fp_circle'][0]['radius']}"
+            )
+            for circle in self.geoms["fp_circle"]:
+                geom.append(
+                    FTLGeom2D.get_circle(circle["center"], circle["radius"])
+                )
+        if len(self.geoms["fp_arc"]) > 0:
+            self.log_info(f"Rendering {len(self.geoms['fp_arc'])} arcs...")
+            for arc in self.geoms["fp_arc"]:
+                self.log_debug(
+                    f"Rendering arc from {arc['start']} to {arc['end']} with mid {arc['mid']}"
+                )
+                self.log_debug(
+                    f"Stroke type: {arc['stroke']['type']}, stroke width: {arc['stroke']['width']}"
+                )
+                start = arc["start"]
+                mid = arc["mid"]
+                end = arc["end"]
+                stroke_type = arc["stroke"]["type"]
+                stroke_width = arc["stroke"]["width"]
+                if stroke_type == "solid":
+                    geom.append(
+                        FTLGeom2D.get_arc(start, mid, end, stroke_width)
+                    )
+                else:
+                    raise Exception(
+                        f"Unsupported arc stroke type: <{stroke_type}>"
+                    )
+        if len(self.geoms["fp_poly"]) > 0:
+            self.log_info(
+                f"Rendering {len(self.geoms['fp_poly'])} polygons..."
+            )
+            raise Exception("Polygons not supported yet.")
+        if len(self.geoms["fp_curve"]) > 0:
+            self.log_info(f"Rendering {len(self.geoms['fp_curve'])} curves...")
+            raise Exception("Curves not supported yet.")
+        ret = FTLGeom2D.make_compound(geom)
+        ret.translate(self.at[0], self.at[1])
+        return ret
+
+    def render_text(self):
+        pass
+
+
+class KiCADPad(KiCADObject):
+    def __init__(self, parent: Loggable, params: dict):
+        super().__init__(parent, params)
+        self.log_debug(f"Making pad with {params}")
+        self.log_debug(f"{params[0]} - {params[1]} - {params[2]}")
+        # self.name = pad_dict[0]
+        self.type = params[1]
+        self.shape = params[2].strip()
+        # self.at = pad_dict["at"]
+        # self.x = self.at[0]
+        # self.y = self.at[1]
+        # self.angle = self.at[2] if len(self.at) > 2 else 0
+        self.size = params["size"]
+        self.layers = params["layers"]
+        self.net = params["net"] if "net" in params else None
+        self.drill = params["drill"] if "drill" in params else None
+        self.pintype = params["pintype"] if "path" in params else None
+
+    def render(self):
+        geom = FTLGeom2D()
+        self.log_debug(
+            f"Making Pad at {self.at} with size {self.size} and shape {self.shape}..."
+        )
+        if not isinstance(self.shape, str):
+            raise Exception(
+                f"Unsupported pad shape type: <{type(self.shape)}>"
+            )
+        if self.shape == "rect":
+            self.log_debug(
+                f"Rendering rectangle at {self.at} with size {self.size}"
+            )
+            geom.add_rectangle(
+                (self.at[0] - self.size[0] / 2, self.at[1] - self.size[1] / 2),
+                (self.at[0] + self.size[0] / 2, self.at[1] + self.size[1] / 2),
+            )
+        elif self.shape == "circle":
+            self.log_debug(
+                f"Rendering circle at {self.at} with size {self.size}"
+            )
+            geom.add_circle(self.at, self.size[0] / 2)
+        elif self.shape == "oval":
+            self.log_debug(
+                f"Rendering oval at {self.at} with size {self.size}"
+            )
+            geom.add_ellipse(
+                self.at,
+                (
+                    self.size[0] / 2,
+                    self.size[1] / 2,
+                ),
+            )
+        elif self.shape == "roundrect":
+            rratio = self.params["roundrect_rratio"]
+            radius = min(self.size[0], self.size[1]) * rratio
+            geom.add_roundrect(
+                (self.at[0] - self.size[0] / 2, self.at[1] - self.size[1] / 2),
+                (self.at[0] + self.size[0] / 2, self.at[1] + self.size[1] / 2),
+                radius,
+            )
+            self.log_debug(
+                f"Making roundrect at {self.at} with size {self.size} and rratio {self.params['roundrect_rratio']}"
+            )
+            # return geom.add_roundrect()
+        elif self.shape == "trapezoid":
+            raise Exception(f"Unsupported pad shape: <{self.shape}>")
+        else:
+            raise Exception(f"Unsupported pad shape: <{self.shape}>")
+
+        if self.drill is not None:
+            self.log_debug(
+                f"Drilling hole at {self.at} with drill size {self.drill[0]}"
+            )
+            # if len(self.drill) > 1:
+            #    print("Multiple Arguments...")
+            #    if not self.drill[1] in ("oval", "circle"):
+            #        raise Exception(f"Unsupported drill shape: <{self.drill[1]}>")
+            # geom.cutout(FTLGeom2D.get_circle(self.at, self.drill))
+            geom.cutout(sh.Point(self.at).buffer(float(self.drill[0] / 2)))
+
+        if self.angle != 0:
+            geom.rotate(self.angle, self.at)
+
+        return geom
+
+
+class KiCADVia(KiCADObject):
+    def __init__(self, parent: Loggable, params: dict):
+        super().__init__(parent, params)
+        self.size = params["size"]
+        self.drill = params["drill"]
+
+    def render(self):
+        geom = FTLGeom2D()
+        geom.add_circle(self.at, self.size / 2)
+        geom.cutout(sh.Point(self.at).buffer(float(self.drill / 2)))
+        return geom
