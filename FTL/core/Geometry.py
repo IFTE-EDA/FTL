@@ -46,7 +46,6 @@ class FTLGeom2D(FTLGeom):
             # geoms = reduce(operator.concat, geoms)
             geoms = list(_flatten(geoms))
         z = geoms[0].z if len(geoms) > 0 else 0
-        print(geoms)
         polys = sh.union_all([g.polygons for g in geoms])
         return cls(z, polys)
 
@@ -300,9 +299,7 @@ class FTLGeom2D(FTLGeom):
 
     def plot(self):
         def _plot(geom):
-            print(f"Type: {type(geom)}")
             if isinstance(geom, sh.Polygon):
-                print(f"Drawing Exterior of {geom}")
                 path = Path.make_compound_path(
                     Path(np.asarray(geom.exterior.coords)),
                     *[
