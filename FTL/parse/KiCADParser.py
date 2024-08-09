@@ -11,10 +11,11 @@ from FTL.Util.logging import Logger, Loggable
 from FTL.core.Geometry import FTLGeom2D
 
 
-class KiCADParser(Loggable):
-    file: Path = None
-    logger = None
+class KiCADConfig:
+    via_metalization = 15  # 15µm metalization
 
+
+class KiCADParser(Loggable):
     def __init__(self, file_path: Path, logger=None):
         if logger is None:
             self.logger = Logger("KiCADParser")
@@ -27,9 +28,19 @@ class KiCADParser(Loggable):
 
         self.create_layers()
         self.nets = dict(chain(self.pcb["net"]))
-        self.footprints = [
-            KiCADPart(self, part) for part in self.pcb["footprint"]
-        ]
+        # self.footprints = [
+        #    KiCADPart(self, part) for part in self.pcb["footprint"]
+        # ]
+        if "footprint" in self.pcb:
+            self.log_info(f"Found {len(self.pcb['footprint'])} footprints...")
+            for footprint in self.pcb["footprint"]:
+                self.layers[footprint["layer"].strip('"')].add_footprint(
+                    KiCADPart(self, footprint)
+                )
+                self.log_debug(
+                    f"Added footprint {footprint['descr']} to layer {footprint['layer']}"
+                )
+            # self.layers[footprint["layer"]].add_footprint(footprint)
         # self.polygons = [KiCADPolygon(poly) for poly in self.pcb["gr_poly"]]
         self.geoms = {
             "gr_text_box": [],
@@ -51,9 +62,10 @@ class KiCADParser(Loggable):
             pass
             # raise Exception("Lines not supported yet.")
         if "gr_rect" in self.pcb:
-            self.geoms["gr_rect"] = [
-                KiCADRect(self, rect) for rect in self.pcb["gr_rect"]
-            ]
+            for rect in self.pcb["gr_rect"]:
+                self.layers[rect["layer"].strip('"')].add_geometry(
+                    KiCADRect(self, rect)
+                )
             # raise Exception("Rectangles not supported yet.")
         if "gr_circle" in self.pcb:
             # self.geoms["gr_circle"] = self.pcb["gr_circle"]
@@ -66,19 +78,24 @@ class KiCADParser(Loggable):
         if "gr_poly" in self.pcb:
             # self.geoms["gr_poly"] = self.pcb["gr_poly"]
             for poly in self.pcb["gr_poly"]:
-                obj = KiCADPolygon(self, poly)
-                self.geoms["gr_poly"].append(obj)
+                self.layers[poly["layer"].strip('"')].add_geometry(
+                    KiCADPolygon(self, poly)
+                )
         if "gr_curve" in self.pcb:
             # self.geoms["gr_curve"] = self.pcb["gr_curve"]
             pass
             # raise Exception("Curves not supported yet.")
         if "segment" in self.pcb:
-            self.geoms["segment"] = self.pcb["segment"]
-            pass
+            for segment in self.pcb["segment"]:
+                self.layers[segment["layer"].strip('"')].add_segment(segment)
         if "via" in self.pcb:
-            self.geoms["via"] = [
-                KiCADVia(self, via) for via in self.pcb["via"]
-            ]
+            for via in self.pcb["via"]:
+                self.layers[via["layers"][0].strip('"')].add_geometry(
+                    KiCADVia(self, via)
+                )
+                self.layers[via["layers"][1].strip('"')].add_geometry(
+                    KiCADVia(self, via)
+                )
 
     def create_layers(self):
         self.layers = {}
@@ -91,66 +108,38 @@ class KiCADParser(Loggable):
             # self.layers.append(layer.name, layer)
         self.layers = dict(zip(names, layers))
         self.log_info(f"Created {len(self.layers)} layers...")
-        # self.log_debug(f"Layers: {self.layers}")
+        self.log_debug(f"Layers: {self.layers}")
+
+    def render_layers(self):
+        self.log_info("Rendering PCB...")
+        names = []
+        renders = []
+        for name, layer in self.layers.items():
+            self.log_info(f"Rendering layer '{name}'...")
+            names.append(name.strip('"'))
+            renders.append(layer.render())
+        return dict(zip(names, renders))
 
     def render(self):
-        fps = self.render_footprints()
-        shapes = self.render_shapes()
-        vias = self.render_vias()
-        return FTLGeom2D.make_compound((shapes, fps, vias))
-
-    def render_footprints(self):
-        rendered_footprints = []
-        self.log_info(f"Rendering {len(self.footprints)} footprints...")
-        for footprint in self.footprints:
-            rendered_footprints.append(footprint.render())
-        return FTLGeom2D.make_compound(rendered_footprints)
-
-    def render_shapes(self):
-        geom = []
-        if len(self.geoms["gr_poly"]) > 0:
-            self.log_info(
-                f"Rendering {len(self.geoms['gr_poly'])} polygons..."
-            )
-            geom.extend([poly.render() for poly in self.geoms["gr_poly"]])
-        if len(self.geoms["gr_rect"]) > 0:
-            self.log_info(
-                f"Rendering {len(self.geoms['gr_rect'])} rectangles..."
-            )
-            geom.extend([rect.render() for rect in self.geoms["gr_rect"]])
-            # FTLGeom2D.make_compound([rect.render() for rect in self.geoms["gr_poly"]]).plot()
-        if len(self.geoms["segment"]) > 0:
-            self.log_info(
-                f"Rendering {len(self.geoms['segment'])} segments..."
-            )
-            for segment in self.geoms["segment"]:
-                geom.append(
-                    FTLGeom2D.get_line(
-                        (segment["start"], segment["end"]), segment["width"]
-                    )
-                )
-        return FTLGeom2D.make_compound(geom)
-
-    def render_vias(self):
-        geom = []
-        if len(self.geoms["via"]) > 0:
-            self.log_info(f"Rendering {len(self.geoms['via'])} vias...")
-            geom = [via.render() for via in self.geoms["via"]]
-        return FTLGeom2D.make_compound(geom)
+        renders = self.render_layers()
+        renders["Edge.Cuts"].extrude(1.4).show()
+        renders["F.Cu"]
+        return renders["F.Cu"]
 
 
 class KiCADLayer(Loggable):
-    geoms = []
-
     def __init__(self, parent, id, params):
         Loggable.__init__(self, parent)
         self.params = params
-        self.name = params[0]
+        self.name = params[0].strip('"')
         self.type = params[1]
         self.name_long = params[2] if 2 in params else None
         self.log_debug(
             f"Created layer #{id} '{self.name}' of type '{self.type}'..."
         )
+        self.geoms = []
+        self.segments = []
+        self.footprints = []
 
     def add_geometry(self, geom):
         if isinstance(geom, list):
@@ -158,8 +147,65 @@ class KiCADLayer(Loggable):
         else:
             self.geoms.append(geom)
 
+    def add_segment(self, segment):
+        if isinstance(segment, list):
+            self.segments.extend(segment)
+        else:
+            self.segments.append(segment)
+
+    def add_footprint(self, footprint):
+        if isinstance(footprint, list):
+            self.footprints.extend(footprint)
+        else:
+            self.footprints.append(footprint)
+
     def render(self):
-        pass
+        fps = self.render_footprints()
+        shapes = self.render_shapes()
+        # vias = self.render_vias()
+        segments = self.render_segments()
+        return FTLGeom2D.make_compound((shapes, fps, segments))
+
+    def render_footprints(self):
+        rendered_footprints = []
+        if len(self.footprints) > 0:
+            self.log_info(f"Rendering {len(self.footprints)} footprints...")
+            for footprint in self.footprints:
+                rendered_footprints.append(footprint.render())
+        return FTLGeom2D.make_compound(rendered_footprints)
+
+    def render_shapes(self):
+        renders = []
+        if len(self.geoms) > 0:
+            self.log_info(f"Rendering {len(self.geoms)} geometries...")
+            if self.name == "Edge.Cuts":
+                for geom in self.geoms:
+                    renders.append(geom.render(force_fill=True))
+            else:
+                for geom in self.geoms:
+                    renders.append(geom.render())
+        if self.name == "Edge.Cuts":
+            FTLGeom2D.make_compound(renders).plot()
+        return FTLGeom2D.make_compound(renders)
+
+    def render_vias(self):
+        renders = []
+        if len(self.geoms["via"]) > 0:
+            self.log_info(f"Rendering {len(self.geoms['via'])} vias...")
+            renders = [via.render() for via in self.geoms["via"]]
+        return FTLGeom2D.make_compound(renders)
+
+    def render_segments(self):
+        renders = []
+        if len(self.segments) > 0:
+            self.log_info(f"Rendering {len(self.segments)} segments...")
+            for segment in self.segments:
+                renders.append(
+                    FTLGeom2D.get_line(
+                        (segment["start"], segment["end"]), segment["width"]
+                    )
+                )
+        return FTLGeom2D.make_compound(renders)
 
 
 class KiCADObject(ABC, Loggable):
@@ -205,6 +251,15 @@ class KiCADEntity(KiCADObject):
         self.at = (self.at[0] + dx, self.at[1] + dy)
 
 
+class KiCADSegment(KiCADObject):
+    def __init__(self, parent: Loggable, params: dict):
+        super().__init__(parent, params)
+        self.start = params["start"]
+        self.end = params["end"]
+        self.width = params["width"]
+        self.layer = params["layer"]
+
+
 class KiCADPolygon(KiCADObject):
     def __init__(self, parent: Loggable, params: dict):
         super().__init__(parent, params)
@@ -217,12 +272,16 @@ class KiCADPolygon(KiCADObject):
             f"Making polygon with {len(self.points)} points, stroke type {self.stroke_type}, width {self.stroke_width} and fill {self.fill}..."
         )
 
-    def render(self):
+    def render(self, force_fill=False):
         geom = FTLGeom2D()
-        if self.fill == "none" and self.stroke_width:
+        if force_fill:
+            self.log_debug(f"Point 1: {self.points[0]}")
+            geom.add_polygon(sh.Polygon(self.points))
+        elif self.fill == "none" and self.stroke_width:
             geom.add_line(self.points, self.stroke_width)
         elif self.fill != "none" and not self.stroke_width:
-            self.log_critical("-----TODO: Fill Polygon-----")
+            geom.add_polygon(sh.Polygon(self.points))
+            self.log_warning("Filling of polygons is currently not tested.")
         else:
             raise Exception(
                 "Unsupported combination of stroke and fill: stroke_type = <{self.stroke_type}>, stroke_width = {self.stroke_width}, fill = <{self.fill}>"
@@ -244,8 +303,8 @@ class KiCADRect(KiCADPolygon):
         KiCADPolygon.__init__(self, parent, params)
         # self.log_debug(f"Making rectangle with {params}...")
 
-    def render(self):
-        return super().render()
+    def render(self, force_fill=False):
+        return super().render(force_fill)
 
 
 class KiCADPart(KiCADEntity):
@@ -441,5 +500,17 @@ class KiCADVia(KiCADEntity):
     def render(self):
         geom = FTLGeom2D()
         geom.add_circle(self.at, self.size / 2)
-        geom.cutout(sh.Point(self.at).buffer(float(self.drill / 2)))
+        # geom.cutout(sh.Point(self.at).buffer(float(self.drill / 2)))
         return geom
+
+    def get_drill(self):
+        return sh.Point(self.at).buffer(float(self.drill / 2))
+
+    def get_metal(self):
+        ret = self.get_drill()
+        ret.cutout(
+            sh.Point(self.at).buffer(
+                float((self.drill - KiCADConfig.via_metalization) / 2)
+            )
+        )
+        return ret
