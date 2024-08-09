@@ -132,7 +132,7 @@ class FTLGeom2D(FTLGeom):
         if isinstance(polygon, sh.Polygon):
             self.polygons = self.polygons.union(polygon)
         else:
-            self.polygons.union(sh.Polygon(polygon, holes))
+            self.polygons = self.polygons.union(sh.Polygon(polygon, holes))
 
     def add_rectangle(
         self, start: tuple[float, float], end: tuple[float, float]

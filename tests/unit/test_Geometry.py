@@ -21,6 +21,26 @@ class Test_FTLGeom2D:
         assert len(geom.polygons.geoms) == 0
         assert geom.is_empty()
 
+    def test_ftlgeom2d_add_polygon_from_list(self):
+        geom = FTLGeom2D()
+        geom.add_polygon([(0, 0), (0, 1), (1, 1), (1, 0), (0, 0)])
+        assert geom.polygons.equals(sh.geometry.box(0, 0, 1, 1))
+
+    def test_ftlgeom2d_add_shapely_polygon(self):
+        geom = FTLGeom2D()
+        geom.add_polygon(sh.Polygon([(0, 0), (0, 1), (1, 1), (1, 0), (0, 0)]))
+        assert geom.polygons.equals(sh.geometry.box(0, 0, 1, 1))
+
+    def test_ftlgeom2d_add_polygon_with_holes_from_list(self):
+        geom = FTLGeom2D()
+        geom.add_polygon([(0, 0), (0, 1), (1, 1), (1, 0), (0, 0)])
+        geom.cutout(sh.box(0.25, 0.25, 0.75, 0.75))
+        assert geom.polygons.equals(
+            sh.geometry.box(0, 0, 1, 1).difference(
+                sh.box(0.25, 0.25, 0.75, 0.75)
+            )
+        )
+
     def test_ftlgeom2d_add_shapely_polygons_disjunct(self):
         geom = FTLGeom2D()
         # geom.add_polygon(sh.Rectangle((0, 0), (1, 1)))
