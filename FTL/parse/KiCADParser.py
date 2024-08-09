@@ -25,7 +25,7 @@ class KiCADParser(Loggable):
         self.file_path = file_path
         self.pcb = KicadPCB.load(file_path)
 
-        self.layers = self.pcb.layers
+        self.create_layers()
         self.nets = dict(chain(self.pcb["net"]))
         self.footprints = [
             KiCADPart(self, part) for part in self.pcb["footprint"]
@@ -65,9 +65,9 @@ class KiCADParser(Loggable):
             # raise Exception("Arcs not supported yet.")
         if "gr_poly" in self.pcb:
             # self.geoms["gr_poly"] = self.pcb["gr_poly"]
-            self.geoms["gr_poly"] = [
-                KiCADPolygon(self, poly) for poly in self.pcb["gr_poly"]
-            ]
+            for poly in self.pcb["gr_poly"]:
+                obj = KiCADPolygon(self, poly)
+                self.geoms["gr_poly"].append(obj)
         if "gr_curve" in self.pcb:
             # self.geoms["gr_curve"] = self.pcb["gr_curve"]
             pass
@@ -79,6 +79,19 @@ class KiCADParser(Loggable):
             self.geoms["via"] = [
                 KiCADVia(self, via) for via in self.pcb["via"]
             ]
+
+    def create_layers(self):
+        self.layers = {}
+        names = []
+        layers = []
+        for layer in self.pcb["layers"]:
+            layer = KiCADLayer(self, layer, self.pcb["layers"][layer])
+            names.append(layer.name)
+            layers.append(layer)
+            # self.layers.append(layer.name, layer)
+        self.layers = dict(zip(names, layers))
+        self.log_info(f"Created {len(self.layers)} layers...")
+        # self.log_debug(f"Layers: {self.layers}")
 
     def render(self):
         fps = self.render_footprints()
@@ -126,14 +139,36 @@ class KiCADParser(Loggable):
         return FTLGeom2D.make_compound(geom)
 
 
+class KiCADLayer(Loggable):
+    geoms = []
+
+    def __init__(self, parent, id, params):
+        Loggable.__init__(self, parent)
+        self.params = params
+        self.name = params[0]
+        self.type = params[1]
+        self.name_long = params[2] if 2 in params else None
+        self.log_debug(
+            f"Created layer #{id} '{self.name}' of type '{self.type}'..."
+        )
+
+    def add_geometry(self, geom):
+        if isinstance(geom, list):
+            self.geoms.extend(geom)
+        else:
+            self.geoms.append(geom)
+
+    def render(self):
+        pass
+
+
 class KiCADObject(ABC, Loggable):
     def __init__(self, parent, params: dict):
         Loggable.__init__(self, parent)
         self.params = params
-        self.name = params[0] if 0 in params else None
-        # self.layer = params["layer"]
-        self.at = params["at"]
-        self.angle = self.at[2] if len(self.at) > 2 else 0
+        # self.name = params[0] if 0 in params else None
+        self.layer = params["layer"] if "layer" in params else None
+        self.layers = params["layers"] if "layers" in params else None
         # self.descr = params["descr"]
         # self.tags = params["tags"]
         # self.path = params["path"] if "path" in params else None
@@ -141,6 +176,20 @@ class KiCADObject(ABC, Loggable):
     @abstractmethod
     def render(self):
         pass
+
+
+class KiCADEntity(KiCADObject):
+    def __init__(self, parent, params: dict):
+        KiCADObject.__init__(self, parent, params)
+        self.params = params
+        self.name = params[0] if 0 in params else None
+        self.layer = params["layer"] if "layer" in params else None
+        self.layers = params["layers"] if "layers" in params else None
+        self.at = params["at"]
+        self.angle = self.at[2] if len(self.at) > 2 else 0
+        # self.descr = params["descr"]
+        # self.tags = params["tags"]
+        # self.path = params["path"] if "path" in params else None
 
     @property
     def x(self):
@@ -156,9 +205,9 @@ class KiCADObject(ABC, Loggable):
         self.at = (self.at[0] + dx, self.at[1] + dy)
 
 
-class KiCADPolygon(Loggable):
+class KiCADPolygon(KiCADObject):
     def __init__(self, parent: Loggable, params: dict):
-        super().__init__(parent)
+        super().__init__(parent, params)
         self.points = list(params["pts"]["xy"])
         self.points.append(self.points[0])
         self.stroke_type = params["stroke"]["type"]
@@ -199,9 +248,9 @@ class KiCADRect(KiCADPolygon):
         return super().render()
 
 
-class KiCADPart(KiCADObject):
+class KiCADPart(KiCADEntity):
     def __init__(self, parent: Loggable, params: dict):
-        KiCADObject.__init__(self, parent, params)
+        KiCADEntity.__init__(self, parent, params)
         # self.angle = self.at[2] if len(self.at) > 2 else 0
         self.descr = dict["descr"]
         self.tags = dict["tags"]
@@ -302,7 +351,7 @@ class KiCADPart(KiCADObject):
         pass
 
 
-class KiCADPad(KiCADObject):
+class KiCADPad(KiCADEntity):
     def __init__(self, parent: Loggable, params: dict):
         super().__init__(parent, params)
         self.log_debug(f"Making pad with {params}")
@@ -310,10 +359,6 @@ class KiCADPad(KiCADObject):
         # self.name = pad_dict[0]
         self.type = params[1]
         self.shape = params[2].strip()
-        # self.at = pad_dict["at"]
-        # self.x = self.at[0]
-        # self.y = self.at[1]
-        # self.angle = self.at[2] if len(self.at) > 2 else 0
         self.size = params["size"]
         self.layers = params["layers"]
         self.net = params["net"] if "net" in params else None
@@ -387,7 +432,7 @@ class KiCADPad(KiCADObject):
         return geom
 
 
-class KiCADVia(KiCADObject):
+class KiCADVia(KiCADEntity):
     def __init__(self, parent: Loggable, params: dict):
         super().__init__(parent, params)
         self.size = params["size"]
