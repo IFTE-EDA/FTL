@@ -297,7 +297,7 @@ class FTLGeom2D(FTLGeom):
         ret.geom2d = deepcopy(self)
         return ret
 
-    def plot(self):
+    def plot(self, title: str = None):
         def _plot(geom):
             if isinstance(geom, sh.Polygon):
                 path = Path.make_compound_path(
@@ -323,6 +323,8 @@ class FTLGeom2D(FTLGeom):
         axs.patch.set_color("w")
         axs.set_aspect("equal", "datalim")
         _plot(self.polygons)
+        if title is not None:
+            plt.title(title)
         plt.show()
 
 
