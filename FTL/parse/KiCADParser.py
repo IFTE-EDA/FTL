@@ -29,7 +29,9 @@ class KiCADParser(Loggable):
         self.file_path = file_path
         self.pcb = KicadPCB.load(file_path)
 
-        self.layers = KiCADLayerContainer(self, self.pcb["layers"])
+        self.stackup = KiCADStackupManager(
+            self, self.pcb["layers"], self.pcb.setup["stackup"]
+        )
         self.nets = dict(chain(self.pcb["net"]))
         self.footprints = [
             KiCADPart(self, part) for part in self.pcb["footprint"]
@@ -57,7 +59,7 @@ class KiCADParser(Loggable):
             # raise Exception("Lines not supported yet.")
         if "gr_rect" in self.pcb:
             for rect in self.pcb["gr_rect"]:
-                self.layers.add_geometry(rect["layer"], KiCADRect(self, rect))
+                self.stackup.add_geometry(rect["layer"], KiCADRect(self, rect))
             # raise Exception("Rectangles not supported yet.")
         if "gr_circle" in self.pcb:
             # self.geoms["gr_circle"] = self.pcb["gr_circle"]
@@ -70,7 +72,7 @@ class KiCADParser(Loggable):
         if "gr_poly" in self.pcb:
             # self.geoms["gr_poly"] = self.pcb["gr_poly"]
             for poly in self.pcb["gr_poly"]:
-                self.layers.add_geometry(
+                self.stackup.add_geometry(
                     poly["layer"], KiCADPolygon(self, poly)
                 )
         if "gr_curve" in self.pcb:
@@ -79,14 +81,16 @@ class KiCADParser(Loggable):
             # raise Exception("Curves not supported yet.")
         if "segment" in self.pcb:
             for segment in self.pcb["segment"]:
-                self.layers.add_segment(segment["layer"], segment)
+                self.stackup.add_segment(segment["layer"], segment)
         if "via" in self.pcb:
             for via in self.pcb["via"]:
                 for layer in via["layers"]:
-                    self.layers.add_geometry(layer, KiCADVia(self, via))
+                    via_obj = KiCADVia(self, via)
+                    self.stackup.add_geometry(layer, via_obj)
+                    via_obj.make_drills(self.stackup)
 
     def create_layers(self):
-        self.layers = {}
+        self.stackup = {}
         names = []
         layers = []
         for layer in self.pcb["layers"]:
@@ -94,22 +98,22 @@ class KiCADParser(Loggable):
             names.append(layer.name)
             layers.append(layer)
             # self.layers.append(layer.name, layer)
-        self.layers = dict(zip(names, layers))
-        self.log_info(f"Created {len(self.layers)} layers...")
-        self.log_debug(f"Layers: {self.layers}")
+        self.stackup = dict(zip(names, layers))
+        self.log_info(f"Created {len(self.stackup)} layers...")
+        self.log_debug(f"Layers: {self.stackup}")
 
     def render_footprints(self):
         if len(self.footprints) > 0:
             self.log_info(f"Rendering {len(self.footprints)} footprints...")
             for footprint in self.footprints:
                 self.log_info(f"->Rendering {footprint.name}")
-                footprint.render(self.layers)
+                footprint.render(self.stackup)
 
     def render_layers(self):
         self.log_info("Rendering PCB...")
         names = []
         renders = []
-        for name, layer in self.layers.items():
+        for name, layer in self.stackup.items():
             self.log_info(f"Rendering layer '{name}'...")
             names.append(name.strip('"'))
             renders.append(layer.render())
@@ -117,28 +121,32 @@ class KiCADParser(Loggable):
 
     def render(self):
         self.render_footprints()
+        self.stackup.add_drill("*", FTLGeom2D.get_circle((0, 0), 6))
         renders = self.render_layers()
-        sub = renders["Edge.Cuts"].extrude(1.4).c("green")
-        top_cu = renders["F.Cu"].extrude(0.035, zpos=1.4).c("orange")
-        bot_cu = renders["B.Cu"].extrude(0.035, zpos=-0.035).c("orange")
-        vedo.show(sub, top_cu, bot_cu, axes=1, viewup="y", interactive=True)
+        # sub = renders["Edge.Cuts"].extrude(1.4).c("green")
+        # top_cu = renders["F.Cu"].extrude(0.035, zpos=1.4).c("orange")
+        # bot_cu = renders["B.Cu"].extrude(0.035, zpos=-0.035).c("orange")
+        # vedo.show(sub, top_cu, bot_cu, axes=1, viewup="y", interactive=True)
+        for layer in self.stackup.get_layer_names():
+            if self.stackup.layer_has_objects(layer):
+                renders[layer].plot(layer)
+        # renders["F.Cu"].plot("F.Cu")
         return renders["F.Cu"]
 
 
-class KiCADLayerContainer(Loggable):
-    def __init__(self, parent: Loggable, params):
+class KiCADStackupManager(Loggable):
+    def __init__(self, parent: Loggable, layer_params, stackup_params):
         Loggable.__init__(self, parent)
         self.layers = {}
         names = []
         layers = []
-        for layer in params:
-            layer = KiCADLayer(self, layer, params[layer])
+        for layer in layer_params:
+            layer = KiCADLayer(self, layer, layer_params[layer])
             names.append(layer.name)
             layers.append(layer)
             # self.layers.append(layer.name, layer)
         self.layers = dict(zip(names, layers))
         self.log_info(f"Created {len(self.layers)} layers...")
-        self.log_debug(f"Layers: {self.layers}")
 
     def _dispatch(self, dest: str, obj: KiCADObject, func):
         dest = dest.strip('"')
@@ -164,6 +172,9 @@ class KiCADLayerContainer(Loggable):
     def _dispatch_footprint(self, dest: str, obj: KiCADObject):
         self._dispatch(dest, obj, KiCADLayer.add_footprint)
 
+    def _dispatch_drill(self, dest: str, obj: KiCADObject):
+        self._dispatch(dest, obj, KiCADLayer.add_drill)
+
     def add_footprint(self, dest: str, obj: KiCADObject):
         self._dispatch_footprint(dest, obj)
 
@@ -176,6 +187,9 @@ class KiCADLayerContainer(Loggable):
     def add_layer(self, layer):
         self.layers[layer.name] = layer
 
+    def add_drill(self, dest: str, obj):
+        self._dispatch_drill(dest, obj)
+
     def get_layer(self, name):
         return self.layers[name]
 
@@ -185,8 +199,8 @@ class KiCADLayerContainer(Loggable):
     def items(self):
         return self.layers.items()
 
-    def render(self):
-        pass
+    def layer_has_objects(self, name):
+        return self.layers[name].has_objects()
 
     def render_layer(self, name):
         return self.layers[name].render()
@@ -205,6 +219,14 @@ class KiCADLayer(Loggable):
         self.geoms = []
         self.segments = []
         self.footprints = []
+        self.drills = []
+
+    def has_objects(self):
+        return (
+            len(self.geoms) > 0
+            or len(self.segments) > 0
+            or len(self.footprints) > 0
+        )
 
     def add_geometry(self, geom):
         if isinstance(geom, list):
@@ -224,12 +246,21 @@ class KiCADLayer(Loggable):
         else:
             self.footprints.append(geom)
 
+    def add_drill(self, drill):
+        if isinstance(drill, list):
+            self.drills.extend(drill)
+        else:
+            self.drills.append(drill)
+
     def render(self):
         # fps = self.render_footprints()
         shapes = self.render_shapes()
         # vias = self.render_vias()
         segments = self.render_segments()
-        return FTLGeom2D.make_compound((self.footprints, shapes, segments))
+        ret = FTLGeom2D.make_compound((self.footprints, shapes, segments))
+        drills_rendered = FTLGeom2D.make_compound(self.drills)
+        ret.cutout(drills_rendered)
+        return ret
 
     def render_shapes(self):
         renders = []
@@ -396,7 +427,7 @@ class KiCADPart(KiCADEntity):
             # print(pad_obj)
             pad = KiCADPad(self, pad_obj)
             pad.move_relative(self.at[0], self.at[1])
-            render = pad.render()
+            render = pad.render(layers)
             if layers is None:
                 rendered_pads.append(render)
             else:
@@ -495,7 +526,7 @@ class KiCADPad(KiCADEntity):
         self.drill = params["drill"] if "drill" in params else None
         self.pintype = params["pintype"] if "path" in params else None
 
-    def render(self):
+    def render(self, layers: KiCADStackupManager = None):
         geom = FTLGeom2D()
         self.log_debug(
             f"Making Pad at {self.at} with size {self.size} and shape {self.shape}..."
@@ -554,7 +585,10 @@ class KiCADPad(KiCADEntity):
             #    if not self.drill[1] in ("oval", "circle"):
             #        raise Exception(f"Unsupported drill shape: <{self.drill[1]}>")
             # geom.cutout(FTLGeom2D.get_circle(self.at, self.drill))
-            geom.cutout(sh.Point(self.at).buffer(float(self.drill[0] / 2)))
+            drill = FTLGeom2D.get_circle(self.at, self.drill[0] / 2)
+            for layer in self.layers:
+                layers.add_drill(layer, drill)
+                layers.add_drill("Edge.Cuts", drill)
 
         if self.angle != 0:
             geom.rotate(self.angle, self.at)
@@ -569,13 +603,24 @@ class KiCADVia(KiCADEntity):
         self.drill = params["drill"]
 
     def render(self, layers: KiCADLayer = None):
-        geom = FTLGeom2D()
-        geom.add_circle(self.at, self.size / 2)
-        # geom.cutout(sh.Point(self.at).buffer(float(self.drill / 2)))
+        geom = FTLGeom2D.get_circle(self.at, self.size / 2)
+        # drill = FTLGeom2D.get_circle(self.at, self.drill / 2)
         return geom
 
     def get_drill(self):
-        return sh.Point(self.at).buffer(float(self.drill / 2))
+        return FTLGeom2D.get_circle(self.at, self.drill / 2)
+
+    def make_drills(self, layers: KiCADLayer):
+        self.log_debug(f"Making drills for via at {self.at}...")
+        if layers is not None:
+            for layer in self.layers:
+                layers.add_drill(
+                    layer, FTLGeom2D.get_circle(self.at, self.drill / 2)
+                )
+            layers.add_drill(
+                "Edge.Cuts", FTLGeom2D.get_circle(self.at, self.drill / 2)
+            )
+            # geom.cutout(sh.Point(self.at).buffer(float(self.drill / 2)))
 
     def get_metal(self):
         ret = self.get_drill()
