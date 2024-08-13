@@ -11,6 +11,7 @@ from abc import ABC, abstractmethod
 
 sys.path.append(r"..\..")
 from FTL.parse.kicad_parser import KicadPCB
+from FTL.parse.kicad_parser import SexpList
 from FTL.Util.logging import Logger, Loggable
 from FTL.core.Geometry import FTLGeom2D
 
@@ -59,7 +60,8 @@ class KiCADParser(Loggable):
             pass
             # raise Exception("Lines not supported yet.")
         if "gr_rect" in self.pcb:
-            if not isinstance(self.pcb["gr_rect"], list):
+            if not isinstance(self.pcb["gr_rect"], SexpList):
+                print(type(self.pcb["gr_rect"]))
                 self.stackup.add_geometry(
                     self.pcb["gr_rect"]["layer"],
                     KiCADRect(self, self.pcb["gr_rect"]),
@@ -91,6 +93,9 @@ class KiCADParser(Loggable):
         if "segment" in self.pcb:
             for segment in self.pcb["segment"]:
                 self.stackup.add_segment(segment["layer"], segment)
+        if "arc" in self.pcb:
+            for arc in self.pcb["arc"]:
+                self.stackup.add_arc(arc["layer"], arc)
         if "via" in self.pcb:
             for via in self.pcb["via"]:
                 for layer in via["layers"]:
@@ -248,6 +253,9 @@ class KiCADStackupManager(Loggable):
     def _dispatch_segment(self, dest: str, obj: KiCADObject):
         self._dispatch(dest, obj, KiCADLayer.add_segment)
 
+    def _dispatch_arc(self, dest: str, obj: KiCADObject):
+        self._dispatch(dest, obj, KiCADLayer.add_arc)
+
     def _dispatch_footprint(self, dest: str, obj: KiCADObject):
         self._dispatch(dest, obj, KiCADLayer.add_footprint)
 
@@ -262,6 +270,9 @@ class KiCADStackupManager(Loggable):
 
     def add_segment(self, dest: str, obj: KiCADObject):
         self._dispatch_segment(dest, obj)
+
+    def add_arc(self, dest: str, obj: KiCADObject):
+        self._dispatch_arc(dest, obj)
 
     def add_drill(self, dest: str, obj):
         self._dispatch_drill(dest, obj)
@@ -347,6 +358,7 @@ class KiCADLayer(Loggable):
         )
         self.geoms = []
         self.segments = []
+        self.arcs = []
         self.footprints = []
         self.drills = []
         self.zmin = 0
@@ -372,6 +384,12 @@ class KiCADLayer(Loggable):
         else:
             self.segments.append(segment)
 
+    def add_arc(self, arc):
+        if isinstance(arc, list):
+            self.arcs.extend(arc)
+        else:
+            self.arcs.append(arc)
+
     def add_footprint(self, geom):
         if isinstance(geom, list):
             self.footprints.extend(geom)
@@ -389,7 +407,10 @@ class KiCADLayer(Loggable):
         shapes = self.render_shapes()
         # vias = self.render_vias()
         segments = self.render_segments()
-        ret = FTLGeom2D.make_compound((self.footprints, shapes, segments))
+        arcs = self.render_arcs()
+        ret = FTLGeom2D.make_compound(
+            (self.footprints, shapes, segments, arcs)
+        )
         drills_rendered = FTLGeom2D.make_compound(self.drills)
         ret.cutout(drills_rendered)
         return ret
@@ -421,6 +442,21 @@ class KiCADLayer(Loggable):
                 renders.append(
                     FTLGeom2D.get_line(
                         (segment["start"], segment["end"]), segment["width"]
+                    )
+                )
+        return FTLGeom2D.make_compound(renders)
+
+    def render_arcs(self):
+        renders = []
+        if len(self.arcs) > 0:
+            self.log_info(f"Rendering {len(self.arcs)} arcs...")
+            for arc in self.arcs:
+                renders.append(
+                    FTLGeom2D.get_arc(
+                        arc["start"],
+                        arc["mid"],
+                        arc["end"],
+                        arc["width"],
                     )
                 )
         return FTLGeom2D.make_compound(renders)
