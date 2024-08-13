@@ -1,21 +1,22 @@
 from __future__ import annotations
 import sys
 
-import vedo
+import vedo as v
 
-from kicad_parser import KicadPCB
+sys.path.append(r".")
 from pathlib import Path
 from itertools import chain
 import shapely as sh
 from abc import ABC, abstractmethod
 
 sys.path.append(r"..\..")
+from FTL.parse.kicad_parser import KicadPCB
 from FTL.Util.logging import Logger, Loggable
 from FTL.core.Geometry import FTLGeom2D
 
 
 class KiCADConfig:
-    via_metalization = 15  # 15µm metalization
+    via_metalization = 0.015  # 15µm metalization
 
 
 class KiCADParser(Loggable):
@@ -87,20 +88,12 @@ class KiCADParser(Loggable):
                 for layer in via["layers"]:
                     via_obj = KiCADVia(self, via)
                     self.stackup.add_geometry(layer, via_obj)
+                    self.stackup.add_via_metalization(
+                        via_obj.get_layer_names(),
+                        via_obj.at,
+                        via_obj.get_metalization(),
+                    )
                     via_obj.make_drills(self.stackup)
-
-    def create_layers(self):
-        self.stackup = {}
-        names = []
-        layers = []
-        for layer in self.pcb["layers"]:
-            layer = KiCADLayer(self, layer, self.pcb["layers"][layer])
-            names.append(layer.name)
-            layers.append(layer)
-            # self.layers.append(layer.name, layer)
-        self.stackup = dict(zip(names, layers))
-        self.log_info(f"Created {len(self.stackup)} layers...")
-        self.log_debug(f"Layers: {self.stackup}")
 
     def render_footprints(self):
         if len(self.footprints) > 0:
@@ -121,16 +114,40 @@ class KiCADParser(Loggable):
 
     def render(self):
         self.render_footprints()
-        self.stackup.add_drill("*", FTLGeom2D.get_circle((0, 0), 6))
+        # self.stackup.add_drill("*", FTLGeom2D.get_circle((0, 0), 6))
         renders = self.render_layers()
+        renders_3d = []
+        for name, layer in self.stackup.stackup.items():
+            if layer.name.endswith("Cu"):
+                color = "orange"
+            elif layer.name.endswith("Silk"):
+                color = "white"
+            elif layer.name.endswith("Mask"):
+                color = "green"
+            elif layer.name.endswith("Paste"):
+                color = "gray"
+            elif layer.name.endswith("Cuts"):
+                color = "blue"
+            else:
+                color = "pink"
+            self.log_info(f"Rendering layer '{name}' in {color}...")
+            render = (
+                renders[name]
+                .extrude(layer.thickness, zpos=layer.zmin)
+                .c(color)
+            )
+            renders_3d.append(render)
+        metalization = self.stackup.fill_vias()
+        metalization.c("orange")
         # sub = renders["Edge.Cuts"].extrude(1.4).c("green")
         # top_cu = renders["F.Cu"].extrude(0.035, zpos=1.4).c("orange")
         # bot_cu = renders["B.Cu"].extrude(0.035, zpos=-0.035).c("orange")
         # vedo.show(sub, top_cu, bot_cu, axes=1, viewup="y", interactive=True)
-        for layer in self.stackup.get_layer_names():
-            if self.stackup.layer_has_objects(layer):
-                renders[layer].plot(layer)
+        # for layer in self.stackup.get_layer_names():
+        #    if self.stackup.layer_has_objects(layer):
+        #        renders[layer].plot(layer)
         # renders["F.Cu"].plot("F.Cu")
+        v.show(renders_3d, metalization, axes=1, viewup="y", interactive=True)
         return renders["F.Cu"]
 
 
@@ -138,6 +155,7 @@ class KiCADStackupManager(Loggable):
     def __init__(self, parent: Loggable, layer_params, stackup_params):
         Loggable.__init__(self, parent)
         self.layers = {}
+        self.metalizations = []
         names = []
         layers = []
         for layer in layer_params:
@@ -146,7 +164,56 @@ class KiCADStackupManager(Loggable):
             layers.append(layer)
             # self.layers.append(layer.name, layer)
         self.layers = dict(zip(names, layers))
+        self.log_info(f"Created {len(self.layers)} layer references...")
+        self.layer_params = layer_params
+        self.stackup_params = stackup_params
+        self.build_stackup(stackup_params)
+
+    def build_stackup(self, stackup_params):
+        self.log_info(
+            f"Building stackup of {len(stackup_params['layer'])} layers..."
+        )
+        curr_z = 0
+        names = []
+        layers = []
+        for lay in stackup_params["layer"]:
+            layer_type = lay["type"].strip('"')
+            layer_name = (
+                lay[0].strip('"') if layer_type != "core" else "Edge.Cuts"
+            )
+            layer_thickness = lay["thickness"] if "thickness" in lay else 0
+            self.log_debug(
+                f"...adding layer '{layer_name}' with thickness {layer_thickness} and type {layer_type}to stackup..."
+            )
+            layer = self.get_layer(layer_name)
+            layer.thickness = layer_thickness
+            layer.zmax = curr_z
+            layer.zmin = curr_z - layer_thickness
+            self.log_debug(
+                f"-> Layer '{layer_name}' has zmin {layer.zmin} and zmax {layer.zmax}..."
+            )
+            curr_z -= layer_thickness
+            names.append(layer.name)
+            layers.append(layer)
+            # self.layers.append(layer.name, layer)
+        self.stackup = dict(zip(names, layers))
         self.log_info(f"Created {len(self.layers)} layers...")
+        print(stackup_params)
+
+    def fill_vias(self):
+        renders = []
+        for via in self.metalizations:
+            layer1 = self.get_layer(via[0][0])
+            layer2 = self.get_layer(via[0][1])
+            pos = via[1]
+            shape = via[2]
+            self.log_debug(
+                f"Adding via metalization between layers {via[0][0]} and {via[0][1]} at {pos}..."
+            )
+            zmin = min(layer1.zmin, layer2.zmin)
+            zmax = max(layer1.zmax, layer2.zmax)
+            renders.append(shape.extrude(zmax - zmin, zpos=zmin))
+        return v.merge(renders)
 
     def _dispatch(self, dest: str, obj: KiCADObject, func):
         dest = dest.strip('"')
@@ -184,17 +251,67 @@ class KiCADStackupManager(Loggable):
     def add_segment(self, dest: str, obj: KiCADObject):
         self._dispatch_segment(dest, obj)
 
-    def add_layer(self, layer):
-        self.layers[layer.name] = layer
-
     def add_drill(self, dest: str, obj):
         self._dispatch_drill(dest, obj)
+
+    def add_via_metalization(
+        self, dest: tuple(str, str), at: tuple(float, float), obj: FTLGeom2D
+    ):
+        if len(dest) != 2:
+            raise Exception("Destination must be a tuple of two layer names.")
+        if dest[0] not in self.layers or dest[1] not in self.layers:
+            raise Exception(
+                f"One or both of the layers do not exist: {dest[0]}, {dest[1]}"
+            )
+        if len(at) != 2:
+            raise Exception("Via position must be a tuple of two floats.")
+        if not isinstance(obj, FTLGeom2D):
+            raise Exception("Via geometry must be an FTLGeom2D object.")
+        self.metalizations.append((dest, at, obj))
 
     def get_layer(self, name):
         return self.layers[name]
 
+    def get_layers_from_pattern(self, patterns):
+        layers = []
+        for pattern in patterns:
+            pattern = pattern.strip('"')
+            self.log_debug(f"Selecting layers by pattern '{pattern}'...")
+            if pattern.startswith("*"):
+                for layer in self.get_layer_names():
+                    if layer.endswith(pattern[1:]):
+                        layers.append(self.get_layer(layer))
+                        self.log_debug(
+                            f"Adding layer '{layer}' to selection..."
+                        )
+            else:
+                layers.append(self.get_layer(pattern))
+                self.log_debug(f"Adding layer '{pattern}' to selection...")
+            # for layer in self.layers:
+            #    if layer.endswith(pattern):
+            #        layers.append(layer)
+        return set(layers)
+
+    def get_layer_names_from_pattern(self, patterns):
+        return [layer.name for layer in self.get_layers_from_pattern(patterns)]
+
+    def get_lowest_layer(self, layers: list()):
+        ret = None
+        for layer in self.get_stackup_layer_names():
+            if layer in layers:
+                ret = self.layers[layer]
+        return ret
+
+    def get_highest_layer(self, layers: list()):
+        for layer in self.get_stackup_layer_names():
+            if layer in layers:
+                return self.layers[layer]
+
     def get_layer_names(self):
         return self.layers.keys()
+
+    def get_stackup_layer_names(self):
+        return self.stackup.keys()
 
     def items(self):
         return self.layers.items()
@@ -220,6 +337,9 @@ class KiCADLayer(Loggable):
         self.segments = []
         self.footprints = []
         self.drills = []
+        self.zmin = 0
+        self.zmax = 0
+        self.thickness = 0
 
     def has_objects(self):
         return (
@@ -452,7 +572,10 @@ class KiCADPart(KiCADEntity):
                     if layers is None:
                         geom.append(render)
                     else:
-                        layers.add_footprint(line["layer"], render)
+                        layers.add_footprint(
+                            line["layer"],
+                            render.translate(self.at[0], self.at[1]),
+                        )
                 else:
                     raise Exception(
                         f"Unsupported line stroke type: <{line['stroke']['type']}>"
@@ -471,7 +594,10 @@ class KiCADPart(KiCADEntity):
                 if layers is None:
                     geom.append(render)
                 else:
-                    layers.add_footprint(circle["layer"], render)
+                    layers.add_footprint(
+                        circle["layer"],
+                        render.translate(self.at[0], self.at[1]),
+                    )
         if len(self.geoms["fp_arc"]) > 0:
             self.log_info(f"Rendering {len(self.geoms['fp_arc'])} arcs...")
             for arc in self.geoms["fp_arc"]:
@@ -495,7 +621,9 @@ class KiCADPart(KiCADEntity):
                 if layers is None:
                     geom.append(render)
                 else:
-                    layers.add_footprint(arc["layer"], render)
+                    layers.add_footprint(
+                        arc["layer"], render.translate(self.at[0], self.at[1])
+                    )
         if len(self.geoms["fp_poly"]) > 0:
             self.log_info(
                 f"Rendering {len(self.geoms['fp_poly'])} polygons..."
@@ -589,11 +717,41 @@ class KiCADPad(KiCADEntity):
             for layer in self.layers:
                 layers.add_drill(layer, drill)
                 layers.add_drill("Edge.Cuts", drill)
+            matched_layers = layers.get_layer_names_from_pattern(self.layers)
+            self.log_debug(f"Adding pad to layers {matched_layers}...")
+            lowest_layer = layers.get_lowest_layer(matched_layers).name
+            highest_layer = layers.get_highest_layer(matched_layers).name
+            layers.add_via_metalization(
+                (lowest_layer, highest_layer), self.at, self.get_metalization()
+            )
 
         if self.angle != 0:
             geom.rotate(self.angle, self.at)
 
         return geom
+
+    def get_drill(self):
+        if self.drill is not None:
+            return FTLGeom2D.get_circle(self.at, self.drill[0] / 2)
+        else:
+            raise Exception("No drill size specified.")
+
+    def make_drills(self, layers: KiCADLayer):
+        self.log_debug(f"Making drills for via at {self.at}...")
+        if layers is not None:
+            for layer in self.layers:
+                layers.add_drill(layer, self.get_drill())
+            layers.add_drill("Edge.Cuts", self.get_drill())
+            # geom.cutout(sh.Point(self.at).buffer(float(self.drill / 2)))
+
+    def get_metalization(self):
+        ret = self.get_drill()
+        ret.cutout(
+            FTLGeom2D.get_circle(
+                self.at, self.drill[0] / 2 - KiCADConfig.via_metalization
+            )
+        )
+        return ret
 
 
 class KiCADVia(KiCADEntity):
@@ -607,6 +765,9 @@ class KiCADVia(KiCADEntity):
         # drill = FTLGeom2D.get_circle(self.at, self.drill / 2)
         return geom
 
+    def get_layer_names(self):
+        return [layer.strip('"') for layer in self.layers]
+
     def get_drill(self):
         return FTLGeom2D.get_circle(self.at, self.drill / 2)
 
@@ -614,19 +775,15 @@ class KiCADVia(KiCADEntity):
         self.log_debug(f"Making drills for via at {self.at}...")
         if layers is not None:
             for layer in self.layers:
-                layers.add_drill(
-                    layer, FTLGeom2D.get_circle(self.at, self.drill / 2)
-                )
-            layers.add_drill(
-                "Edge.Cuts", FTLGeom2D.get_circle(self.at, self.drill / 2)
-            )
+                layers.add_drill(layer, self.get_drill())
+            layers.add_drill("Edge.Cuts", self.get_drill())
             # geom.cutout(sh.Point(self.at).buffer(float(self.drill / 2)))
 
-    def get_metal(self):
+    def get_metalization(self):
         ret = self.get_drill()
         ret.cutout(
-            sh.Point(self.at).buffer(
-                float((self.drill - KiCADConfig.via_metalization) / 2)
+            FTLGeom2D.get_circle(
+                self.at, self.drill / 2 - KiCADConfig.via_metalization
             )
         )
         return ret
