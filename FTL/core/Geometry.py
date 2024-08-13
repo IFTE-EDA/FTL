@@ -128,45 +128,49 @@ class FTLGeom2D(FTLGeom):
 
     def add_polygon(
         self, polygon: sh.Polygon, holes: list[sh.Polygon] = []
-    ) -> None:
+    ) -> FTLGeom2D:
         if isinstance(polygon, sh.Polygon):
             self.polygons = self.polygons.union(polygon)
         else:
             self.polygons = self.polygons.union(sh.Polygon(polygon, holes))
+        return self
 
     def add_rectangle(
         self, start: tuple[float, float], end: tuple[float, float]
-    ) -> None:
+    ) -> FTLGeom2D:
         self.polygons = self.polygons.union(
             sh.box(start[0], start[1], end[0], end[1])
         )
+        return self
 
     def add_circle(
         self, center: tuple[float, float], radius: float = None
-    ) -> None:
+    ) -> FTLGeom2D:
         if radius is None:
             radius = center
             center = (0, 0)
         self.add_polygon(sh.geometry.Point(center).buffer(radius))
+        return self
 
     def add_ellipse(
         self,
         center: tuple[float, float],
         radii: tuple[float, float],
         angle: float = 0,
-    ) -> None:
+    ) -> FTLGeom2D:
         circle = sh.geometry.Point(center).buffer(1)
         ellipse = sh.affinity.scale(circle, radii[0], radii[1])
         if angle != 0:
             ellipse = sh.affinity.rotate(ellipse, angle, center)
         self.add_polygon(ellipse)
+        return self
 
     def add_roundrect(
         self,
         start: tuple[float, float],
         end: tuple[float, float],
         radius: float,
-    ) -> None:
+    ) -> FTLGeom2D:
         self.add_polygon(
             sh.geometry.box(
                 start[0] + radius,
@@ -175,13 +179,15 @@ class FTLGeom2D(FTLGeom):
                 end[1] - radius,
             ).buffer(radius)
         )
+        return self
 
     def add_line(
         self,
         pts: list[tuple[float, float]],
         width: float,
-    ) -> None:
+    ) -> FTLGeom2D:
         self.add_polygon(sh.LineString(pts).buffer(width / 2))
+        return self
 
     def add_arc(
         self,
@@ -189,7 +195,7 @@ class FTLGeom2D(FTLGeom):
         mid: tuple[float, float],
         end: tuple[float, float],
         width: float,
-    ) -> None:
+    ) -> FTLGeom2D:
         def _center(p1, p2, p3):
             dx1 = p2[0] - p1[0]
             dy1 = p2[1] - p1[1]
@@ -240,19 +246,23 @@ class FTLGeom2D(FTLGeom):
         arc.append(_polar(angle_end))
 
         self.add_polygon(sh.LineString(arc).buffer(width / 2))
+        return self
 
-    def cutout(self, geom: (FTLGeom2D, sh.Polygon)) -> None:
+    def cutout(self, geom: (FTLGeom2D, sh.Polygon)) -> FTLGeom2D:
         if isinstance(geom, FTLGeom2D):
             geom = geom.polygons
         self.polygons = self.polygons.difference(geom)
+        return self
 
-    def translate(self, x: float = 0, y: float = 0) -> None:
+    def translate(self, x: float = 0, y: float = 0) -> FTLGeom2D:
         self.polygons = sh.affinity.translate(self.polygons, x, y)
+        return self
 
     def rotate(
         self, angle: float = 0, center: tuple(float, float) = (0, 0)
-    ) -> None:
+    ) -> FTLGeom2D:
         self.polygons = sh.affinity.rotate(self.polygons, angle, center)
+        return self
 
     def _create_surface(self, polygon: sh.Polygon) -> v.Mesh:
         ext_coords = list(polygon.exterior.coords)
