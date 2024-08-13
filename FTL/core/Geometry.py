@@ -233,6 +233,19 @@ class FTLGeom2D(FTLGeom):
         angle_start = _angle(start)
         angle_end = _angle(end)
 
+        def _restrict_angle(angle):
+            if angle < -180:
+                angle += 360
+            if angle > 180:
+                angle -= 360
+            return angle
+
+        angle_start = _restrict_angle(angle_start)
+        angle_end = _restrict_angle(angle_end)
+
+        if _restrict_angle(angle_end - angle_start) < 0:
+            angle_start, angle_end = angle_end, angle_start
+
         if angle_start > angle_end:
             angle_start = angle_start - 360
         else:
