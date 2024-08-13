@@ -59,8 +59,16 @@ class KiCADParser(Loggable):
             pass
             # raise Exception("Lines not supported yet.")
         if "gr_rect" in self.pcb:
-            for rect in self.pcb["gr_rect"]:
-                self.stackup.add_geometry(rect["layer"], KiCADRect(self, rect))
+            if not isinstance(self.pcb["gr_rect"], list):
+                self.stackup.add_geometry(
+                    self.pcb["gr_rect"]["layer"],
+                    KiCADRect(self, self.pcb["gr_rect"]),
+                )
+            else:
+                for rect in self.pcb["gr_rect"]:
+                    self.stackup.add_geometry(
+                        rect["layer"], KiCADRect(self, rect)
+                    )
             # raise Exception("Rectangles not supported yet.")
         if "gr_circle" in self.pcb:
             # self.geoms["gr_circle"] = self.pcb["gr_circle"]
@@ -118,6 +126,8 @@ class KiCADParser(Loggable):
         renders = self.render_layers()
         renders_3d = []
         for name, layer in self.stackup.stackup.items():
+            if not layer.has_objects():
+                continue
             if layer.name.endswith("Cu"):
                 color = "orange"
             elif layer.name.endswith("Silk"):
@@ -138,7 +148,10 @@ class KiCADParser(Loggable):
             )
             renders_3d.append(render)
         metalization = self.stackup.fill_vias()
-        metalization.c("orange")
+        if metalization is not None:
+            metalization.c("orange")
+        else:
+            self.log_warning("No metalizations found.")
         # sub = renders["Edge.Cuts"].extrude(1.4).c("green")
         # top_cu = renders["F.Cu"].extrude(0.035, zpos=1.4).c("orange")
         # bot_cu = renders["B.Cu"].extrude(0.035, zpos=-0.035).c("orange")
@@ -183,7 +196,7 @@ class KiCADStackupManager(Loggable):
             )
             layer_thickness = lay["thickness"] if "thickness" in lay else 0
             self.log_debug(
-                f"...adding layer '{layer_name}' with thickness {layer_thickness} and type {layer_type}to stackup..."
+                f"...adding layer '{layer_name}' with thickness {layer_thickness} and type {layer_type} to stackup..."
             )
             layer = self.get_layer(layer_name)
             layer.thickness = layer_thickness
@@ -198,7 +211,6 @@ class KiCADStackupManager(Loggable):
             # self.layers.append(layer.name, layer)
         self.stackup = dict(zip(names, layers))
         self.log_info(f"Created {len(self.layers)} layers...")
-        print(stackup_params)
 
     def fill_vias(self):
         renders = []
@@ -506,7 +518,7 @@ class KiCADRect(KiCADPolygon):
             ]
         }
         KiCADPolygon.__init__(self, parent, params)
-        # self.log_debug(f"Making rectangle with {params}...")
+        self.log_debug(f"Making rectangle with {params}...")
 
     def render(self, force_fill=False):
         return super().render(force_fill)
@@ -544,7 +556,6 @@ class KiCADPart(KiCADEntity):
     def render_pads(self, layers=None) -> FTLGeom2D:
         rendered_pads = []
         for pad_obj in self.pads:
-            # print(pad_obj)
             pad = KiCADPad(self, pad_obj)
             pad.move_relative(self.at[0], self.at[1])
             render = pad.render(layers)
