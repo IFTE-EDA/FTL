@@ -93,6 +93,9 @@ class KiCADParser(Loggable):
         if "segment" in self.pcb:
             for segment in self.pcb["segment"]:
                 self.stackup.add_segment(segment["layer"], segment)
+        if "zone" in self.pcb:
+            for zone in self.pcb["zone"]:
+                self.stackup.add_zone(zone["layer"], KiCADZone(self, zone))
         if "arc" in self.pcb:
             for arc in self.pcb["arc"]:
                 self.stackup.add_arc(arc["layer"], arc)
@@ -259,6 +262,9 @@ class KiCADStackupManager(Loggable):
     def _dispatch_footprint(self, dest: str, obj: KiCADObject):
         self._dispatch(dest, obj, KiCADLayer.add_footprint)
 
+    def _dispatch_zone(self, dest: str, obj: KiCADObject):
+        self._dispatch(dest, obj, KiCADLayer.add_zone)
+
     def _dispatch_drill(self, dest: str, obj: KiCADObject):
         self._dispatch(dest, obj, KiCADLayer.add_drill)
 
@@ -273,6 +279,9 @@ class KiCADStackupManager(Loggable):
 
     def add_arc(self, dest: str, obj: KiCADObject):
         self._dispatch_arc(dest, obj)
+
+    def add_zone(self, dest: str, obj: KiCADObject):
+        self._dispatch_zone(dest, obj)
 
     def add_drill(self, dest: str, obj):
         self._dispatch_drill(dest, obj)
@@ -359,6 +368,7 @@ class KiCADLayer(Loggable):
         self.geoms = []
         self.segments = []
         self.arcs = []
+        self.zones = []
         self.footprints = []
         self.drills = []
         self.zmin = 0
@@ -396,6 +406,12 @@ class KiCADLayer(Loggable):
         else:
             self.footprints.append(geom)
 
+    def add_zone(self, zone):
+        if isinstance(zone, list):
+            self.zones.extend(zone)
+        else:
+            self.zones.append(zone)
+
     def add_drill(self, drill):
         if isinstance(drill, list):
             self.drills.extend(drill)
@@ -408,8 +424,9 @@ class KiCADLayer(Loggable):
         # vias = self.render_vias()
         segments = self.render_segments()
         arcs = self.render_arcs()
+        zones = self.render_zones()
         ret = FTLGeom2D.make_compound(
-            (self.footprints, shapes, segments, arcs)
+            (self.footprints, shapes, segments, arcs, zones)
         )
         drills_rendered = FTLGeom2D.make_compound(self.drills)
         ret.cutout(drills_rendered)
@@ -459,6 +476,14 @@ class KiCADLayer(Loggable):
                         arc["width"],
                     )
                 )
+        return FTLGeom2D.make_compound(renders)
+
+    def render_zones(self):
+        renders = []
+        if len(self.zones) > 0:
+            self.log_info(f"Rendering {len(self.zones)} zones...")
+            for zone in self.zones:
+                renders.append(zone.render())
         return FTLGeom2D.make_compound(renders)
 
 
@@ -514,6 +539,31 @@ class KiCADSegment(KiCADObject):
         self.layer = params["layer"]
 
 
+class KiCADZone(KiCADObject):
+    def __init__(self, parent: Loggable, params: dict):
+        super().__init__(parent, params)
+        self.net = params["net"]
+        self.net_name = params["net_name"]
+        self.layer = params["layer"]
+        self.hatch = params["hatch"]
+        self.connect_pads = params["connect_pads"]
+        self.min_thickness = params["min_thickness"]
+        self.fill = params["fill"]
+        # self.thermal_width = params["thermal_width"]
+        # self.thermal_gap = params["thermal_gap"]
+        # self.thermal_bridge = params["thermal_bridge"]
+        self.polygon = params["polygon"]
+        self.filled_polygon = []
+        for filled_polygon in params["filled_polygon"]:
+            self.filled_polygon.append(
+                KiCADFilledPolygon(self, filled_polygon)
+            )
+
+    def render(self):
+        geom = [poly.render() for poly in self.filled_polygon]
+        return FTLGeom2D.make_compound(geom)
+
+
 class KiCADPolygon(KiCADObject):
     def __init__(self, parent: Loggable, params: dict):
         super().__init__(parent, params)
@@ -539,6 +589,24 @@ class KiCADPolygon(KiCADObject):
             raise Exception(
                 "Unsupported combination of stroke and fill: stroke_type = <{self.stroke_type}>, stroke_width = {self.stroke_width}, fill = <{self.fill}>"
             )
+        return geom
+
+
+class KiCADFilledPolygon(KiCADObject):
+    def __init__(self, parent: Loggable, params: dict):
+        super().__init__(parent, params)
+        self.points = list(params["pts"]["xy"])
+        self.points.append(self.points[0])
+        # self.stroke_type = params["stroke"]["type"]
+        # self.stroke_width = params["stroke"]["width"]
+        # self.fill = params["fill"]
+        self.log_debug(
+            f"Making filled polygon with {len(self.points)} points..."
+        )
+
+    def render(self, force_fill=False):
+        geom = FTLGeom2D()
+        geom.add_polygon(sh.Polygon(self.points))
         return geom
 
 
