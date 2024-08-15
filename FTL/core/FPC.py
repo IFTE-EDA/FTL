@@ -18,11 +18,14 @@ class FPC:
 class FPCLayer:
     """FPC Layer class."""
 
-    name = ""
+    name = "Unnamed Layer"
+    z = 0.0
     thickness = 0.0
     material = None
 
-    def __init__(self, name: str, thickness: float, material: Material):
+    def __init__(
+        self, name: str, thickness: float = 0, material: Material = None
+    ):
         if name is not None:
             self.name = name
         self.thickness = thickness
