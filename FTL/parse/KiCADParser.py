@@ -597,16 +597,92 @@ class KiCADFilledPolygon(KiCADObject):
         super().__init__(parent, params)
         self.points = list(params["pts"]["xy"])
         self.points.append(self.points[0])
+        visited_indices = []
+        visited_points = []
+        # self.holes = []
+        polys = []
+        pts = [(p[0], p[1]) for p in self.points]
+        """
+        edges = list(sh.Polygon(pts).boundary.coords)
+        edges_copy = edges.copy()
+        edges_new = []
+        self.log_debug(f"Starting with {len(edges)} edges: {edges}")
+        i = 0
+        while  i < len(edges):
+            self.log_debug(f"Step {i} of {len(edges)}...")
+            edge = edges[i]
+            if edge[0] == edge[1]:
+                self.log_debug(f"0len: {edge}")
+                i += 1
+                continue
+            if edge in edges_new:
+                self.log_debug(f"Skipping: {edge}")
+                i += 1
+                continue
+            del edges_copy[i]
+            if not edge in edges_copy:
+                edges_new.append(edge)
+                #edges_new.append(edges_copy[edges_copy.index(edge)])
+                self.log_debug(f"Found edge: {edge}")
+            else:
+                self.log_debug(f"Double Edge: {edge}")
+
+            i += 1
+
+        self.log_debug(f"Stopping with {len(edges_new)} edges: {edges_new}")
+
+        raise Exception("End.")
+        """
+
+        i = 0
+        while i < len(pts):
+            pt = (pts[i][0], pts[i][1])
+            print(f"Visiting point #{i}={pt}...")
+            if pt == pts[0]:
+                if i >= len(pts) - 1:
+                    print("Closing now.")
+                    break
+                else:
+                    i += 1
+                    continue
+            if pt in visited_points and i != len(pts) - 1:
+                print("->I know that one!")
+                pos = visited_points.index(pt)
+                index = visited_indices[pos]
+                if pts[index] == pt:
+                    print("--->Match!")
+                    print(f"--->Adding: <{pts[index:(i)]}>")
+                    polys.append(pts[index:i])
+                    print(f"--->Deleting: <{pts[index - 1:i + 1]}>")
+                    del pts[index - 1 : i + 1]
+                    i = index
+                    continue
+            visited_points.append(pt)
+            visited_indices.append(i)
+            i += 1
+        # visited_points.append(pt)
+        self.holes = polys
+        self.exterior = pts[:-2]
         # self.stroke_type = params["stroke"]["type"]
         # self.stroke_width = params["stroke"]["width"]
         # self.fill = params["fill"]
         self.log_debug(
-            f"Making filled polygon with {len(self.points)} points..."
+            f"Making filled polygon with {len(self.exterior)} points and {len(self.holes)} holes...: {self.holes}"
         )
+        # self.log_debug(f"Exterior: {self.exterior}")
+        self.log_debug(f"Holes:    {self.holes}")
 
     def render(self, force_fill=False):
         geom = FTLGeom2D()
-        geom.add_polygon(sh.Polygon(self.points))
+        # print(f"Rendering polygon with {self.exterior} and {self.holes}")
+        print(f"Num holes: {len(self.holes)}")
+        print(self.holes)
+        geom.add_polygon_orient(self.exterior, self.holes)
+        print(f"Ext: {geom.polygons.exterior}")
+        print(f"Int: {list(geom.polygons.interiors)}")
+        geom.extrude(1).wireframe().show()
+        # vis = [sh.geometry.polygon.orient(sh.Polygon(p)) for p in self.exterior]
+        # FTLGeom2D.make_compound(vis).plot()
         return geom
 
 
