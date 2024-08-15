@@ -9,6 +9,7 @@ from matplotlib.path import Path
 from matplotlib.patches import PathPatch
 from matplotlib.collections import PatchCollection
 import shapely as sh
+from shapely.geometry.polygon import orient
 import vedo as v
 
 
@@ -55,6 +56,14 @@ class FTLGeom2D(FTLGeom):
     ) -> FTLGeom2D:
         ret = FTLGeom2D()
         ret.add_polygon(polygon, holes)
+        return ret
+
+    @classmethod
+    def get_polygon_orient(
+        self, polygon: sh.Polygon, holes: list[sh.Polygon] = []
+    ) -> FTLGeom2D:
+        ret = FTLGeom2D()
+        ret.add_polygon_orient(polygon, holes)
         return ret
 
     @classmethod
@@ -133,6 +142,16 @@ class FTLGeom2D(FTLGeom):
             self.polygons = self.polygons.union(polygon)
         else:
             self.polygons = self.polygons.union(sh.Polygon(polygon, holes))
+        return self
+
+    def add_polygon_orient(
+        self, polygon: sh.Polygon, holes: list[sh.Polygon] = []
+    ) -> FTLGeom2D:
+        if isinstance(polygon, sh.Polygon):
+            new_poly = orient(polygon)
+        else:
+            new_poly = orient(sh.Polygon(polygon, holes))
+        self.polygons = self.polygons.union(new_poly)
         return self
 
     def add_rectangle(
@@ -277,9 +296,10 @@ class FTLGeom2D(FTLGeom):
         self.polygons = sh.affinity.rotate(self.polygons, angle, center)
         return self
 
-    def _create_surface(self, polygon: sh.Polygon) -> v.Mesh:
-        ext_coords = list(polygon.exterior.coords)
-        int_coords = [list(int.coords) for int in polygon.interiors]
+    def _create_surface(self, geom, polygon: sh.Polygon) -> v.Mesh:
+        poly = orient(polygon)
+        ext_coords = list(poly.exterior.coords)
+        int_coords = [list(int.coords) for int in poly.interiors]
         line_ext = v.Line(ext_coords)
         lines_int = [v.Line(int_coords) for int_coords in int_coords]
         return v.merge(line_ext, *lines_int).triangulate()
