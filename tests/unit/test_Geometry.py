@@ -210,54 +210,6 @@ class Test_FTLGeom2D:
         geom.rotate(90, (1, 1))
         assert geom.polygons.equals(sh.geometry.box(1, 1, 2, 0))
 
-    def test_ftlgeom2d_extrude_rectangle(self):
-        geom = FTLGeom2D()
-        box1 = sh.geometry.box(0, 0, 1, 1)
-        geom.add_polygon(box1)
-        extrusion = geom.extrude(0.1)
-        comp = np.array(
-            [
-                [1, 0, 0],
-                [1, 1, 0],
-                [0, 1, 0],
-                [0, 0, 0],
-                [1, 0, 0],
-                [1, 0, 0.1],
-                [1, 1, 0.1],
-                [0, 1, 0.1],
-                [0, 0, 0.1],
-                [1, 0, 0.1],
-            ]
-        )
-        # assert len(extrusion) == 1
-        print(extrusion.vertices)
-        print(comp)
-        assert comp.__str__() == extrusion.vertices.__str__()
-
-    def test_ftlgeom2d_extrude_rectangle_z(self):
-        geom = FTLGeom2D()
-        box1 = sh.geometry.box(0, 0, 1, 1)
-        geom.add_polygon(box1)
-        extrusion = geom.extrude(0.1, zpos=0.2)
-        comp = np.array(
-            [
-                [1, 0, 0.2],
-                [1, 1, 0.2],
-                [0, 1, 0.2],
-                [0, 0, 0.2],
-                [1, 0, 0.2],
-                [1, 0, 0.3],
-                [1, 1, 0.3],
-                [0, 1, 0.3],
-                [0, 0, 0.3],
-                [1, 0, 0.3],
-            ]
-        )
-        # assert len(extrusion) == 1
-        print(extrusion.vertices)
-        print(comp)
-        assert comp.__str__() == extrusion.vertices.__str__()
-
     def test_ftlgeom2d_make_compound(self):
         geom1 = FTLGeom2D()
         geom1.add_polygon(sh.geometry.box(0, 0, 1, 1))
@@ -269,6 +221,22 @@ class Test_FTLGeom2D:
         assert compound.polygons.equals(
             sh.MultiPolygon([geom1.polygons, geom2.polygons])
         )
+
+    def test_ftlgeom2d_extrude_rectangle(self):
+        geom = FTLGeom2D()
+        box1 = sh.geometry.box(0, 0, 1, 1)
+        geom.add_polygon(box1)
+        extrusion = geom.extrude(1)
+        assert list(extrusion.bounds()) == [0.0, 1.0, 0.0, 1.0, 0.0, 1.0]
+        assert extrusion.is_closed()
+
+    def test_ftlgeom2d_extrude_rectangle_z(self):
+        geom = FTLGeom2D()
+        box1 = sh.geometry.box(0, 0, 1, 1)
+        geom.add_polygon(box1)
+        extrusion = geom.extrude(1, zpos=2)
+        assert list(extrusion.bounds()) == [0.0, 1.0, 0.0, 1.0, 2.0, 3]
+        assert extrusion.is_closed()
 
     def test_ftlgeom2d_extrude_rectangles_disjunct(self):
         geom = FTLGeom2D()

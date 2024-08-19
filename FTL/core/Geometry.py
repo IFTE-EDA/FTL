@@ -11,6 +11,8 @@ from matplotlib.collections import PatchCollection
 import shapely as sh
 from shapely.geometry.polygon import orient
 import vedo as v
+import gmsh
+import pygmsh
 
 
 # Base class for all geometry classes
@@ -271,9 +273,10 @@ class FTLGeom2D(FTLGeom):
             pass
 
         arc = []
-        for a in np.linspace(
-            angle_start, angle_end, round((angle_end - angle_start) / 90 * 20)
-        ):
+        steps = round((angle_end - angle_start) / 90 * 20)
+        if not steps:
+            steps = 2
+        for a in np.linspace(angle_start, angle_end, steps, endpoint=True):
             arc.append(_polar(a))
         arc.append(_polar(angle_end))
 
@@ -296,44 +299,103 @@ class FTLGeom2D(FTLGeom):
         self.polygons = sh.affinity.rotate(self.polygons, angle, center)
         return self
 
-    def _create_surface(self, geom, polygon: sh.Polygon) -> v.Mesh:
-        poly = orient(polygon)
-        ext_coords = list(poly.exterior.coords)
-        int_coords = [list(int.coords) for int in poly.interiors]
-        line_ext = v.Line(ext_coords)
-        lines_int = [v.Line(int_coords) for int_coords in int_coords]
-        return v.merge(line_ext, *lines_int).triangulate()
-
     def _extrude_surface(
-        self, surface: v.Mesh, thickness: float, zpos: float
+        self, thickness: float, zpos: float, part=None
     ) -> v.Mesh:
-        translate_z = self.z if zpos is None else zpos
+        def _create_surface(geom, polygon: sh.Polygon) -> v.Mesh:
+            import collections
 
-        if translate_z == 0:
-            return surface.extrude(thickness)
-        else:
-            return surface.z(translate_z).extrude(thickness)
+            print(f"Points before: {len(polygon.exterior.coords)}")
+            polygon = orient(polygon).simplify(1e-4)
+            print(f"Points after: {len(polygon.exterior.coords)}")
+            # gmsh.option.setNumber("Geometry.Tolerance", 1e-11)
+            gmsh.option.setNumber("Mesh.MeshSizeMin", 1e-2)
+
+            pts = list(polygon.exterior.coords[:-1])
+            # print(f"Dupes in exterior: {[item for item, count in collections.Counter(pts).items() if count > 1]}")
+            resolution = 1
+            if len(polygon.interiors) == 0:
+                poly = geom.add_polygon(pts, resolution, make_surface=True)
+            else:
+                print("Making holes for polygon...")
+                holes = [
+                    geom.add_polygon(
+                        list(ring.coords[:-1]), resolution, make_surface=False
+                    )
+                    for ring in polygon.interiors
+                ]
+                # for hole in holes:
+                # print(f"Dupes in hole: {[item for item, count in collections.Counter(hole).items() if count > 1]}")
+                if not gmsh.isInitialized():
+                    print("Initing GMSH...")
+                    gmsh.initialize()
+                poly = geom.add_polygon(pts, holes=holes, make_surface=True)
+            return poly
+
+        if thickness == 0:
+            thickness = 0.05
+        if part is None:
+            part = self.polygons
+        translate_z = self.z if zpos is None else zpos
+        if not gmsh.isInitialized():
+            print("Initing GMSH...")
+            gmsh.initialize()
+        with pygmsh.geo.Geometry() as geom:
+            print("Started geo kernel")
+            # gmsh.option.setNumber("Geometry.Tolerance", 1e-11)
+            poly = _create_surface(geom, part)
+            print("Surface created.")
+            if translate_z != 0:
+                geom.translate(poly, [0, 0, translate_z])
+            print("Extruding...")
+            geom.extrude(poly, translation_axis=[0, 0, thickness])
+            print("Extruded. Synchronizing...")
+            geom.synchronize()
+            print("Synchronized. Generating mesh...")
+            msh = geom.generate_mesh(dim=3)
+        print("GMSH done.")
+        lines, triangles, tetras, vertices = msh.cells
+        vmsh = v.TetMesh([msh.points, tetras.data]).tomesh(fill=True)
+        try:
+            gmsh.clear()
+            gmsh.finalize()
+        except Exception:
+            pass
+
+        return vmsh
 
     def extrude(
         self, thickness: float, zpos: float = None, fuse: bool = True
     ) -> v.Mesh:
-        surfaces = []
         if isinstance(self.polygons, sh.Polygon):
-            surf = self._create_surface(self.polygons)
-            return self._extrude_surface(surf, thickness, zpos)
+            # surf = self._create_surface(self.polygons)
+            # return self._extrude_surface(surf, thickness, zpos)
+            return self._extrude_surface(thickness, zpos)
 
         # self.polygons is a MultiPolygon or GeometryCollection...
-        for geom in self.polygons.geoms:
-            surf = self._create_surface(geom)
-            surfaces.append(surf)
+        geoms = []
+        for part in self.polygons.geoms:
+            print(f"Making part with area {part.area}...")
+            if (part.area <= 2) or part.is_empty:
+                print("-> Skipped.")
+                continue
+            print("------------------")
+            print(f"Ext: {list(part.exterior.coords)}")
+            print(f"Int: {[list(hole.coords) for hole in part.interiors]}")
+            # surf = self._create_surface(geom)
+            submesh = self._extrude_surface(thickness, zpos, part=part)
+            geoms.append(submesh)
+            print("Done!")
         if fuse:
-            mesh = v.merge(*surfaces)
-            return self._extrude_surface(mesh, thickness, zpos)
+            # mesh = v.merge(*surfaces)
+            # return self._extrude_surface(mesh, thickness, zpos)
+            return v.merge(geoms)
         else:
-            meshes = []
-            for surf in surfaces:
-                meshes.append(self._extrude_surface(surf, thickness, zpos))
-            return meshes
+            # meshes = []
+            # for surf in surfaces:
+            #    meshes.append(self._extrude_surface(surf, thickness, zpos))
+            # return meshes
+            return geoms
 
     def to_3D(self, thickness: float, zpos: float = None) -> FTLGeom3D:
         ret = FTLGeom3D(self.extrude(thickness, zpos, fuse=False))
