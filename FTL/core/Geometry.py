@@ -150,7 +150,12 @@ class FTLGeom2D(FTLGeom):
         if isinstance(polygon, sh.Polygon):
             new_poly = orient(polygon)
         else:
-            new_poly = orient(sh.Polygon(polygon, holes))
+            try:
+                new_poly = orient(sh.Polygon(polygon, holes))
+            except Exception:
+                print(f"Poly: {polygon}")
+                print(f"Holes: {holes}")
+                raise Exception("Error in orienting polygon")
         self.polygons = self.polygons.union(new_poly)
         return self
 
@@ -271,9 +276,10 @@ class FTLGeom2D(FTLGeom):
             pass
 
         arc = []
-        for a in np.linspace(
-            angle_start, angle_end, round((angle_end - angle_start) / 90 * 20)
-        ):
+        steps = round((angle_end - angle_start) / 90 * 20)
+        if not steps:
+            steps = 2
+        for a in np.linspace(angle_start, angle_end, steps, endpoint=True):
             arc.append(_polar(a))
         arc.append(_polar(angle_end))
 
@@ -296,13 +302,16 @@ class FTLGeom2D(FTLGeom):
         self.polygons = sh.affinity.rotate(self.polygons, angle, center)
         return self
 
-    def _create_surface(self, geom, polygon: sh.Polygon) -> v.Mesh:
+    def _create_surface(self, polygon: sh.Polygon) -> v.Mesh:
         poly = orient(polygon)
         ext_coords = list(poly.exterior.coords)
         int_coords = [list(int.coords) for int in poly.interiors]
         line_ext = v.Line(ext_coords)
         lines_int = [v.Line(int_coords) for int_coords in int_coords]
-        return v.merge(line_ext, *lines_int).triangulate()
+        return v.merge(
+            line_ext.join_segments(),
+            *[line.join_segments() for line in lines_int],
+        ).triangulate()
 
     def _extrude_surface(
         self, surface: v.Mesh, thickness: float, zpos: float
