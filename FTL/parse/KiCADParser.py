@@ -6,12 +6,13 @@ import vedo as v
 sys.path.append(r".")
 from pathlib import Path
 from itertools import chain
-import shapely as sh
 from abc import ABC, abstractmethod
+import numpy as np
+import shapely as sh
 
-sys.path.append(r"..\..")
-from FTL.parse.kicad_parser import KicadPCB
-from FTL.parse.kicad_parser import SexpList
+# sys.path.append(r"..\..")
+from .kicad_parser import KicadPCB
+from .kicad_parser import SexpList
 from FTL.Util.logging import Logger, Loggable
 from FTL.core.Geometry import FTLGeom2D
 
@@ -95,7 +96,15 @@ class KiCADParser(Loggable):
                 self.stackup.add_segment(segment["layer"], segment)
         if "zone" in self.pcb:
             for zone in self.pcb["zone"]:
-                self.stackup.add_zone(zone["layer"], KiCADZone(self, zone))
+                if "layer" in zone:
+                    self.stackup.add_zone(zone["layer"], KiCADZone(self, zone))
+                else:
+                    print(zone["layers"])
+                    layers = self.stackup.get_layer_names_from_pattern(
+                        zone["layers"]
+                    )
+                    for layer in layers:
+                        self.stackup.add_zone(layer, KiCADZone(self, zone))
         if "arc" in self.pcb:
             for arc in self.pcb["arc"]:
                 self.stackup.add_arc(arc["layer"], arc)
@@ -149,6 +158,7 @@ class KiCADParser(Loggable):
             else:
                 color = "pink"
             self.log_info(f"Rendering layer '{name}' in {color}...")
+            renders[name].plot(name)
             render = (
                 renders[name]
                 .extrude(layer.thickness, zpos=layer.zmin)
@@ -306,8 +316,25 @@ class KiCADStackupManager(Loggable):
 
     def get_layers_from_pattern(self, patterns):
         layers = []
+        if isinstance(patterns, str):
+            patterns = [patterns]
+        print(f"Looking for layers from pattern {patterns}...")
         for pattern in patterns:
+            print(f"before strip < {pattern} > ")
             pattern = pattern.strip('"')
+            print(f"After strip <{pattern}>")
+            if "&" in pattern:
+                split = pattern.split("&")
+                first_part = split[0]
+                split2 = split[1].split(".")
+                second_part = split2[0]
+                suffix = split2[1]
+                patterns.append(first_part + "." + suffix)
+                patterns.append(second_part + "." + suffix)
+                continue
+            else:
+                print("No '&' in pattern...")
+
             self.log_debug(f"Selecting layers by pattern '{pattern}'...")
             if pattern.startswith("*"):
                 for layer in self.get_layer_names():
@@ -544,7 +571,7 @@ class KiCADZone(KiCADObject):
         super().__init__(parent, params)
         self.net = params["net"]
         self.net_name = params["net_name"]
-        self.layer = params["layer"]
+        # self.layer = params["layer"]
         self.hatch = params["hatch"]
         self.connect_pads = params["connect_pads"]
         self.min_thickness = params["min_thickness"]
@@ -602,58 +629,27 @@ class KiCADFilledPolygon(KiCADObject):
         # self.holes = []
         polys = []
         pts = [(p[0], p[1]) for p in self.points]
-        """
-        edges = list(sh.Polygon(pts).boundary.coords)
-        edges_copy = edges.copy()
-        edges_new = []
-        self.log_debug(f"Starting with {len(edges)} edges: {edges}")
-        i = 0
-        while  i < len(edges):
-            self.log_debug(f"Step {i} of {len(edges)}...")
-            edge = edges[i]
-            if edge[0] == edge[1]:
-                self.log_debug(f"0len: {edge}")
-                i += 1
-                continue
-            if edge in edges_new:
-                self.log_debug(f"Skipping: {edge}")
-                i += 1
-                continue
-            del edges_copy[i]
-            if not edge in edges_copy:
-                edges_new.append(edge)
-                #edges_new.append(edges_copy[edges_copy.index(edge)])
-                self.log_debug(f"Found edge: {edge}")
-            else:
-                self.log_debug(f"Double Edge: {edge}")
-
-            i += 1
-
-        self.log_debug(f"Stopping with {len(edges_new)} edges: {edges_new}")
-
-        raise Exception("End.")
-        """
 
         i = 0
         while i < len(pts):
             pt = (pts[i][0], pts[i][1])
-            print(f"Visiting point #{i}={pt}...")
+            # print(f"Visiting point #{i}={pt}...")
             if pt == pts[0]:
                 if i >= len(pts) - 1:
-                    print("Closing now.")
+                    # print("Closing now.")
                     break
                 else:
                     i += 1
                     continue
             if pt in visited_points and i != len(pts) - 1:
-                print("->I know that one!")
+                # print("->I know that one!")
                 pos = visited_points.index(pt)
                 index = visited_indices[pos]
                 if pts[index] == pt:
-                    print("--->Match!")
-                    print(f"--->Adding: <{pts[index:(i)]}>")
+                    # print("--->Match!")
+                    # print(f"--->Adding: <{pts[index:(i)]}>")
                     polys.append(pts[index:i])
-                    print(f"--->Deleting: <{pts[index - 1:i + 1]}>")
+                    # print(f"--->Deleting: <{pts[index - 1:i + 1]}>")
                     del pts[index - 1 : i + 1]
                     i = index
                     continue
@@ -662,15 +658,15 @@ class KiCADFilledPolygon(KiCADObject):
             i += 1
         # visited_points.append(pt)
         self.holes = polys
-        self.exterior = pts[:-2]
+        self.exterior = pts[:-1]
         # self.stroke_type = params["stroke"]["type"]
         # self.stroke_width = params["stroke"]["width"]
         # self.fill = params["fill"]
         self.log_debug(
-            f"Making filled polygon with {len(self.exterior)} points and {len(self.holes)} holes...: {self.holes}"
+            f"Making filled polygon with {len(self.exterior)} points and {len(self.holes)} holes..."  #: {self.holes}"
         )
         # self.log_debug(f"Exterior: {self.exterior}")
-        self.log_debug(f"Holes:    {self.holes}")
+        # self.log_debug(f"Holes:    {self.holes}")
 
     def render(self, force_fill=False):
         geom = FTLGeom2D()
@@ -680,7 +676,7 @@ class KiCADFilledPolygon(KiCADObject):
         geom.add_polygon_orient(self.exterior, self.holes)
         print(f"Ext: {geom.polygons.exterior}")
         print(f"Int: {list(geom.polygons.interiors)}")
-        geom.extrude(1).wireframe().show()
+        # geom.extrude(1).wireframe().show().close()
         # vis = [sh.geometry.polygon.orient(sh.Polygon(p)) for p in self.exterior]
         # FTLGeom2D.make_compound(vis).plot()
         return geom
@@ -776,12 +772,16 @@ class KiCADPart(KiCADEntity):
                 f"Rendering {len(self.geoms['fp_circle'])} circles..."
             )
             for circle in self.geoms["fp_circle"]:
+                p_center = (circle["center"][0], circle["center"][1])
+                p_end = (circle["end"][0], circle["end"][1])
+                radius = np.sqrt(
+                    (p_end[0] - p_center[0]) ** 2
+                    + ((p_end[1] - p_center[1])) ** 2
+                )
                 self.log_debug(
-                    f"Rendering circle at {self.geoms['fp_circle'][0]['center']} with radius {self.geoms['fp_circle'][0]['radius']}"
+                    f"Rendering circle at {self.geoms['fp_circle'][0]['center']}->{self.geoms['fp_circle'][0]['end']} with radius {radius}"
                 )
-                render = FTLGeom2D.get_circle(
-                    circle["center"], circle["radius"]
-                )
+                render = FTLGeom2D.get_circle(circle["center"], radius)
                 if layers is None:
                     geom.append(render)
                 else:
@@ -819,7 +819,18 @@ class KiCADPart(KiCADEntity):
             self.log_info(
                 f"Rendering {len(self.geoms['fp_poly'])} polygons..."
             )
-            raise Exception("Polygons not supported yet.")
+            for poly in self.geoms["fp_poly"]:
+                self.log_debug(
+                    f"Rendering polygon with {len(poly['pts']['xy'])} points..."
+                )
+                render = KiCADPolygon(self, poly).render()
+                if layers is None:
+                    geom.append(render)
+                else:
+                    layers.add_footprint(
+                        poly["layer"], render.translate(self.at[0], self.at[1])
+                    )
+
         if len(self.geoms["fp_curve"]) > 0:
             self.log_info(f"Rendering {len(self.geoms['fp_curve'])} curves...")
             raise Exception("Curves not supported yet.")
