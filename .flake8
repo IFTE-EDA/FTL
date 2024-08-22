@@ -5,5 +5,11 @@ max-complexity = 18
 select = B,C,E,F,W,T4,B9
 exclude=
 	FTL/parse/kicad_parser*,
-	FTL/Util/pyUNV*
+	FTL/Util/pyUNV*,
+	.tox*,
+	.git, 
+	__pycache__, 
+	.eggs, 
+	*.egg
+	
 	
