@@ -1,7 +1,3 @@
-[submodule "VMeshTools"]
-	path = FTL/Util/VMeshTools
-	url = https://github.com/IFTE-EDA/VMeshTools
-	branch = dev
 [submodule "pyUNV"]
 	path = FTL/Util/pyUNV
 	url = https://github.com/nico-arnold/pyUNV.git
