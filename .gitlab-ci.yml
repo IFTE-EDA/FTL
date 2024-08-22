@@ -4,7 +4,8 @@ image:
 #  name: arnoldnico/ifte-ci:py3.10.4-vedo-bullseye
   entrypoint: [ '/bin/bash', '-s' ]
  
-
+variables:
+  GIT_SUBMODULE_STRATEGY: recursive
  
 stages:          # List of stages for jobs, and their order of execution
   - info
