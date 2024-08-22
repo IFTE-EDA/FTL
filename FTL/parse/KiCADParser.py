@@ -10,7 +10,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 import shapely as sh
 
-# sys.path.append(r"..\..")
+sys.path.append(r"../..")
 from FTL.parse.kicad_parser import KicadPCB, SexpList
 
 # from FTL.parse.kicad_parser import SexpList
