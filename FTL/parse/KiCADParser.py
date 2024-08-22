@@ -11,8 +11,9 @@ import numpy as np
 import shapely as sh
 
 # sys.path.append(r"..\..")
-from .kicad_parser import KicadPCB
-from .kicad_parser import SexpList
+from FTL.parse.kicad_parser import KicadPCB, SexpList
+
+# from FTL.parse.kicad_parser import SexpList
 from FTL.Util.logging import Logger, Loggable
 from FTL.core.Geometry import FTLGeom2D
 
