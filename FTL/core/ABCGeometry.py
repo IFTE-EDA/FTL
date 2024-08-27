@@ -158,14 +158,14 @@ class AbstractGeom2D(ABC, FTLGeom):
         pass
 
 
-def AbstractGeom3D(ABC, FTLGeom):
+class AbstractGeom3D(ABC, FTLGeom):
     # 3D geometry class
 
     # objects: list = []
     # _geom2d: AbstractGeom2D = None
 
-    def __init__(self, objects: list = []):
-        pass
+    # def __init__(self, objects: list = []):
+    #    pass
 
     @abstractmethod
     def is_empty(self) -> bool:
@@ -175,12 +175,12 @@ def AbstractGeom3D(ABC, FTLGeom):
     def add_object(self, obj) -> None:
         pass
 
-    @abstractmethod
     @property
+    @abstractmethod
     def geom2d(self) -> AbstractGeom2D:
         pass
 
-    @abstractmethod
     @geom2d.setter
+    @abstractmethod
     def geom2d(self, geom2d: AbstractGeom2D):
         pass

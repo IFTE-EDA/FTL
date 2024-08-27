@@ -1,6 +1,5 @@
-# This file contains the geometry classes and functions for the FTL library
-
 from __future__ import annotations
+
 import math
 import numpy as np
 from copy import deepcopy
@@ -12,14 +11,10 @@ import shapely as sh
 from shapely.geometry.polygon import orient
 import vedo as v
 
-
-# Base class for all geometry classes
-class FTLGeom:
-    pass
+from FTL.core.ABCGeometry import AbstractGeom2D, AbstractGeom3D
 
 
-# 2D geometry class
-class FTLGeom2D(FTLGeom):
+class FTLGeom2D(AbstractGeom2D):
     polygons: sh.MultiPolygon = sh.MultiPolygon()
     z: float = 0
 
@@ -381,7 +376,7 @@ class FTLGeom2D(FTLGeom):
 
 
 # 3D geometry class
-class FTLGeom3D(FTLGeom):
+class FTLGeom3D(AbstractGeom3D):
     objects: list[v.Mesh] = []
     _geom2d: FTLGeom2D = None
 
