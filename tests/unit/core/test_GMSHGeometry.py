@@ -1,0 +1,600 @@
+from __future__ import annotations
+
+import sys
+import os
+import math
+
+import shapely as sh
+import gmsh
+
+
+import numpy as np
+import vedo as v
+from FTL.core.GMSHGeometry import GMSHGeom2D  # , GMSHGeom3D
+
+
+class Test_GMSHGeom2D:
+    def setup_class(self):
+        pass
+
+    def test_gmshgeom2d_empty_by_default(self):
+        geom = GMSHGeom2D()
+        assert len(geom.geoms) == 0
+        assert geom.is_empty()
+        assert geom.geoms == []
+
+    def test_gmshgeom2d_add_polygon_from_list(self):
+        gmsh.clear()
+        geom = GMSHGeom2D()
+        geom.add_polygon([(0, 0), (0, 1), (1, 1), (1, 0), (0, 0)])
+        assert (2, 1) in gmsh.model.occ.getEntities()
+        assert gmsh.model.occ.getMass(2, 1) == 1
+        assert gmsh.model.occ.getCenterOfMass(2, 1) == (0.5, 0.5, 0)
+        assert geom.geoms == [1]
+
+    # TODO: Change that. This test shall fail this way! The mass/area cannot be bigger than 1. Polys need to be reordered.
+    def test_gmshgeom2d_add_polygon_with_holes_from_list_wrong_orientation(
+        self,
+    ):
+        gmsh.clear()
+        geom = GMSHGeom2D()
+        geom.add_polygon(
+            [(0, 0), (0, 1), (1, 1), (1, 0), (0, 0)],
+            [[(0.2, 0.2), (0.8, 0.2), (0.8, 0.8), (0.2, 0.8)]],
+        )
+        # geom.render()
+        # gmsh.fltk.run()
+        # geom.cutout(sh.box(0.25, 0.25, 0.75, 0.75))
+        assert (2, 1) in gmsh.model.occ.getEntities() and (
+            1,
+            8,
+        ) in gmsh.model.occ.getEntities()
+        assert gmsh.model.occ.getMass(2, 1) == 1.36
+        assert gmsh.model.occ.getCenterOfMass(2, 1) == (0.5, 0.5, 0)
+        assert geom.geoms == [1]
+
+    def test_gmshgeom2d_add_polygon_with_holes_from_list_right_orientation(
+        self,
+    ):
+        gmsh.clear()
+        geom = GMSHGeom2D()
+        geom.add_polygon(
+            [(0, 0), (0, 1), (1, 1), (1, 0), (0, 0)],
+            [[(0.2, 0.2), (0.2, 0.8), (0.8, 0.8), (0.8, 0.2)]],
+        )
+        # geom.render()
+        # gmsh.fltk.run()
+        # geom.cutout(sh.box(0.25, 0.25, 0.75, 0.75))
+        assert (2, 1) in gmsh.model.occ.getEntities() and (
+            1,
+            8,
+        ) in gmsh.model.occ.getEntities()
+        assert round(gmsh.model.occ.getMass(2, 1), 2) == 0.64
+        assert geom.geoms == [1]
+        # assert gmsh.model.occ.getCenterOfMass(2, 1) == (0.5, 0.5, 0)
+
+    def test_gmshgeom2d_add_shapely_polygon(self):
+        gmsh.clear()
+        geom = GMSHGeom2D()
+        geom.add_polygon(sh.Polygon([(0, 0), (0, 1), (1, 1), (1, 0), (0, 0)]))
+        print(gmsh.model.occ.getEntities())
+        assert (2, 1) in gmsh.model.occ.getEntities()
+        assert round(gmsh.model.occ.getMass(2, 1), 5) == 1
+        assert geom.geoms == [1]
+
+    def test_gmshgeom2d_add_shapely_polygon_holes(self):
+        gmsh.clear()
+        geom = GMSHGeom2D()
+        geom.add_polygon(
+            sh.Polygon(
+                [(0, 0), (0, 1), (1, 1), (1, 0), (0, 0)],
+                [
+                    [(0.2, 0.2), (0.2, 0.4), (0.4, 0.4), (0.4, 0.2)],
+                    [(0.6, 0.6), (0.6, 0.8), (0.8, 0.8), (0.8, 0.6)],
+                    [(0.2, 0.6), (0.2, 0.8), (0.4, 0.8), (0.4, 0.6)],
+                    [(0.6, 0.2), (0.6, 0.4), (0.8, 0.4), (0.8, 0.2)],
+                ],
+            )
+        )
+        print(gmsh.model.occ.getEntities())
+        assert (2, 1) in gmsh.model.occ.getEntities() and (
+            1,
+            20,
+        ) in gmsh.model.occ.getEntities()
+        assert round(gmsh.model.occ.getMass(2, 1), 5) == 0.84
+        assert geom.geoms == [1]
+
+    def test_gmshgeom2d_add_shapely_polygons_disjunct(self):
+        gmsh.clear()
+        geom = GMSHGeom2D()
+        # geom.add_polygon(sh.Rectangle((0, 0), (1, 1)))
+        box1 = sh.geometry.box(-2, -2, -1, -1)
+        box2 = sh.geometry.box(1, 1, 2, 2)
+        geom.add_polygon(box1)
+        print(gmsh.model.occ.getEntities())
+        assert (2, 1) in gmsh.model.occ.getEntities()
+        assert round(gmsh.model.occ.getMass(2, 1), 5) == 1.0
+        assert gmsh.model.occ.getCenterOfMass(2, 1) == (-1.5, -1.5, 0)
+        geom.add_polygon(box2)
+        assert (2, 2) in gmsh.model.occ.getEntities()
+        assert round(gmsh.model.occ.getMass(2, 2), 5) == 1.0
+        assert gmsh.model.occ.getCenterOfMass(2, 2) == (1.5, 1.5, 0)
+        assert geom.geoms == [1, 2]
+
+    def test_gmshgeom2d_add_shapely_polygons_overlapping(self):
+        gmsh.clear()
+        geom = GMSHGeom2D()
+        # geom.add_polygon(sh.Rectangle((0, 0), (1, 1)))
+        box1 = sh.geometry.box(-2, -2, 1, 1)
+        box2 = sh.geometry.box(-1, -1, 2, 2)
+        geom.add_polygon(box1)
+        geom.add_polygon(box2)
+        assert (2, 1) in gmsh.model.occ.getEntities()
+        assert round(gmsh.model.occ.getMass(2, 1), 5) == 9.0
+        assert gmsh.model.occ.getCenterOfMass(2, 1) == (-0.5, -0.5, 0)
+        assert (2, 2) in gmsh.model.occ.getEntities()
+        assert round(gmsh.model.occ.getMass(2, 2), 5) == 9.0
+        assert gmsh.model.occ.getCenterOfMass(2, 2) == (0.5, 0.5, 0)
+        assert geom.geoms == [1, 2]
+
+    def test_gmshgeom2d_add_shapely_polygon_rectangle(self):
+        gmsh.clear()
+        geom = GMSHGeom2D()
+        geom.add_polygon(sh.geometry.box(0, 0, 1, 1))
+        assert (2, 1) in gmsh.model.occ.getEntities()
+        assert round(gmsh.model.occ.getMass(2, 1), 5) == 1.0
+        assert gmsh.model.occ.getCenterOfMass(2, 1) == (0.5, 0.5, 0)
+        assert geom.geoms == [1]
+
+    def test_gmshgeom2d_add_rectangle(self):
+        gmsh.clear()
+        geom = GMSHGeom2D()
+        geom.add_rectangle((0, 0), (1, 1))
+        assert (2, 1) in gmsh.model.occ.getEntities()
+        assert gmsh.model.occ.getMass(2, 1) == 1
+        assert gmsh.model.occ.getCenterOfMass(2, 1) == (0.5, 0.5, 0)
+        assert geom.geoms == [1]
+
+    def test_gmshgeom2d_get_rectangle(self):
+        gmsh.clear()
+        geom = GMSHGeom2D.get_rectangle((0, 0), (1, 1))
+        tag = geom.geoms[0]
+        assert (2, tag) in gmsh.model.occ.getEntities()
+        assert gmsh.model.occ.getMass(2, tag) == 1
+        assert gmsh.model.occ.getCenterOfMass(2, tag) == (0.5, 0.5, 0)
+        assert geom.geoms == [tag]
+
+    def test_gmshgeom2d_add_circle(self):
+        gmsh.clear()
+        geom = GMSHGeom2D()
+        geom.add_circle((0, 0), 1)
+        assert (2, 1) in gmsh.model.occ.getEntities()
+        assert round(gmsh.model.occ.getMass(2, 1), 2) == 3.14
+        CoM_rounded = [
+            round(i, 2) for i in gmsh.model.occ.getCenterOfMass(2, 1)
+        ]
+        assert CoM_rounded == [0.0, 0.0, 0.0]
+        bounding_box_rounded = [
+            round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 1)
+        ]
+        print(bounding_box_rounded)
+        assert bounding_box_rounded == [-1.0, -1.0, 0.0, 1.0, 1.0, 0.0]
+        assert geom.geoms == [1]
+
+    def test_gmshgeom2d_add_circle_1arg(self):
+        gmsh.clear()
+        geom = GMSHGeom2D()
+        geom.add_circle(2)
+        assert (2, 1) in gmsh.model.occ.getEntities()
+        assert round(gmsh.model.occ.getMass(2, 1), 2) == 12.57
+        CoM_rounded = [
+            round(i, 2) for i in gmsh.model.occ.getCenterOfMass(2, 1)
+        ]
+        assert CoM_rounded == [0.0, 0.0, 0.0]
+        bounding_box_rounded = [
+            round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 1)
+        ]
+        print(bounding_box_rounded)
+        assert bounding_box_rounded == [-2.0, -2.0, 0.0, 2.0, 2.0, 0.0]
+        assert geom.geoms == [1]
+
+    def test_gmshgeom2d_get_circle(self):
+        gmsh.clear()
+        c1 = GMSHGeom2D.get_circle(1)
+        assert (2, 1) in gmsh.model.occ.getEntities()
+        assert round(gmsh.model.occ.getMass(2, 1), 2) == 3.14
+        CoM_rounded = [
+            round(i, 2) for i in gmsh.model.occ.getCenterOfMass(2, 1)
+        ]
+        assert CoM_rounded == [0.0, 0.0, 0.0]
+        bounding_box_rounded = [
+            round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 1)
+        ]
+        print(bounding_box_rounded)
+        assert bounding_box_rounded == [-1.0, -1.0, 0.0, 1.0, 1.0, 0.0]
+        assert c1.geoms == [1]
+
+        c2 = GMSHGeom2D.get_circle((1, 1), 1)
+        assert (2, 2) in gmsh.model.occ.getEntities()
+        assert round(gmsh.model.occ.getMass(2, 2), 2) == 3.14
+        CoM_rounded = [
+            round(i, 2) for i in gmsh.model.occ.getCenterOfMass(2, 2)
+        ]
+        assert CoM_rounded == [1.0, 1.0, 0.0]
+        bounding_box_rounded = [
+            round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 2)
+        ]
+        print(bounding_box_rounded)
+        assert bounding_box_rounded == [0.0, 0.0, 0.0, 2.0, 2.0, 0.0]
+        assert c2.geoms == [2]
+
+    """
+    def test_gmshgeom2d_add_ellipse(self):
+        circle = sh.geometry.Point(0, 0).buffer(1)
+        geom1 = GMSHGeom2D()
+        geom2 = GMSHGeom2D()
+        geom1.add_ellipse((0, 0), (1, 2))
+        geom2.add_ellipse((0, 0), (2, 1), 90)
+        geom1.cutout(geom2)
+        assert geom1.polygons.area <= 0.0001
+        assert not geom2.polygons.equals(circle)
+
+    def test_gmshgeom2d_get_ellipse(self):
+        circle = sh.geometry.Point(0, 0).buffer(1)
+        geom1 = GMSHGeom2D.get_ellipse((0, 0), (1, 2))
+        geom2 = GMSHGeom2D.get_ellipse((0, 0), (2, 1), 90)
+        geom1.cutout(geom2)
+        assert geom1.polygons.area <= 0.0001
+        assert not geom2.polygons.equals(circle)
+
+    def test_gmshgeom2d_add_roundrect(self):
+        geom = GMSHGeom2D()
+        geom.add_roundrect((0, 0), (1, 1), 0.1)
+        bxmin, bymin, bxmax, bymax = geom.polygons.bounds
+        bxmin = round(bxmin, 10)
+        bymin = round(bymin, 10)
+        bxmax = round(bxmax, 10)
+        bymax = round(bymax, 10)
+        assert (bxmin, bymin, bxmax, bymax) == (0, 0, 1, 1)
+        assert geom.polygons.area < 1
+        assert geom.polygons.area > 0.99
+        assert geom.polygons.equals(
+            sh.geometry.box(0.1, 0.1, 0.9, 0.9).buffer(0.1)
+        )
+
+    def test_gmshgeom2d_get_roundrect(self):
+        geom = GMSHGeom2D.get_roundrect((0, 0), (1, 1), 0.1)
+        bxmin, bymin, bxmax, bymax = geom.polygons.bounds
+        bxmin = round(bxmin, 10)
+        bymin = round(bymin, 10)
+        bxmax = round(bxmax, 10)
+        bymax = round(bymax, 10)
+        assert (bxmin, bymin, bxmax, bymax) == (0, 0, 1, 1)
+        assert round(geom.polygons.area, 10) == 0.9913654849
+        assert geom.polygons.equals(
+            sh.geometry.box(0.1, 0.1, 0.9, 0.9).buffer(0.1)
+        )
+
+    def test_gmshgeom2d_add_line(self):
+        geom = GMSHGeom2D()
+        geom.add_line(((0, 0), (1, 1), (2, 1)), 0.1)
+        # geom.plot()
+        assert round(geom.polygons.area, 10) == 0.249207365
+        assert geom.polygons.equals(
+            sh.geometry.LineString([(0, 0), (1, 1), (2, 1)]).buffer(0.05)
+        )
+
+    def test_gmshgeom2d_get_line(self):
+        geom = GMSHGeom2D.get_line(((0, 0), (1, 1)), 0.1)
+        assert round(geom.polygons.area, 10) == 0.1492627275
+        assert geom.polygons.equals(
+            sh.geometry.LineString([(0, 0), (1, 1)]).buffer(0.05)
+        )
+
+    def test_gmshgeom2d_add_half_arc(self):
+        geom = GMSHGeom2D()
+        geom.add_arc((1, 0), (0, 1), (-1, 0), 0.1)
+        assert round(geom.polygons.area, 10) == 0.321909497
+        # assure orientation
+        clip_rect = sh.geometry.box(-1, -0.1, 1, -1)
+        geom.cutout(clip_rect)
+        assert round(geom.polygons.area, 10) == 0.321909497
+
+    def test_gmshgeom2d_add_quarter_arc(self):
+        geom = GMSHGeom2D()
+        geom.add_arc(
+            (1, 0), (math.cos(math.pi / 4), math.sin(math.pi / 4)), (0, 1), 0.1
+        )
+        assert round(geom.polygons.area, 10) == 0.1648730949
+        # assure orientation
+        clip_rect = sh.geometry.box(-0.1, -0.1, 1.1, 1.1)
+        geom.cutout(clip_rect)
+        assert round(geom.polygons.area, 10) == 0
+
+    def test_gmshgeom2d_get_arc(self):
+        geom = GMSHGeom2D.get_arc((1, 0), (0, 1), (-1, 0), 0.1)
+        assert round(geom.polygons.area, 10) == 0.321909497
+
+    def test__gmshgeom2d_cutout(self):
+        geom = GMSHGeom2D()
+        geom.add_polygon(sh.geometry.box(0, 0, 2, 2))
+        geom.cutout(sh.geometry.box(0.5, 0.5, 1.5, 1.5))
+        assert geom.polygons.equals(
+            sh.geometry.box(0, 0, 2, 2).difference(
+                sh.geometry.box(0.5, 0.5, 1.5, 1.5)
+            )
+        )
+
+    def test_gmshgeom2d_translate(self):
+        geom = GMSHGeom2D()
+        geom.add_polygon(sh.geometry.box(0, 0, 1, 1))
+        geom.translate(1, 1)
+        assert geom.polygons.equals(sh.geometry.box(1, 1, 2, 2))
+
+    def test_gmshgeom2d_rotate_origin(self):
+        geom = GMSHGeom2D()
+        geom.add_polygon(sh.geometry.box(0, 0, 1, 1))
+        geom.rotate(90)
+        assert geom.polygons.equals(sh.geometry.box(-1, 1, 0, 0))
+
+    def test_gmshgeom2d_rotate_corner(self):
+        geom = GMSHGeom2D()
+        geom.add_polygon(sh.geometry.box(0, 0, 1, 1))
+        geom.rotate(90, (1, 1))
+        assert geom.polygons.equals(sh.geometry.box(1, 1, 2, 0))
+
+    def test_gmshgeom2d_extrude_rectangle(self):
+        geom = GMSHGeom2D()
+        box1 = sh.geometry.box(0, 0, 1, 1)
+        geom.add_polygon(box1)
+        extrusion = geom.extrude(0.1)
+        comp = np.array(
+            [
+                [1, 0, 0],
+                [1, 1, 0],
+                [0, 1, 0],
+                [0, 0, 0],
+                [1, 0, 0.1],
+                [1, 1, 0.1],
+                [0, 1, 0.1],
+                [0, 0, 0.1],
+            ]
+        )
+        # assert len(extrusion) == 1
+        print(extrusion.vertices)
+        print(comp)
+        assert comp.__str__() == extrusion.vertices.__str__()
+
+    def test_gmshgeom2d_extrude_rectangle_z(self):
+        geom = GMSHGeom2D()
+        box1 = sh.geometry.box(0, 0, 1, 1)
+        geom.add_polygon(box1)
+        extrusion = geom.extrude(0.1, zpos=0.2)
+        comp = np.array(
+            [
+                [1, 0, 0.2],
+                [1, 1, 0.2],
+                [0, 1, 0.2],
+                [0, 0, 0.2],
+                [1, 0, 0.3],
+                [1, 1, 0.3],
+                [0, 1, 0.3],
+                [0, 0, 0.3],
+            ]
+        )
+        # assert len(extrusion) == 1
+        print(extrusion.vertices)
+        print(comp)
+        assert comp.__str__() == extrusion.vertices.__str__()
+
+    def test_gmshgeom2d_make_compound(self):
+        geom1 = GMSHGeom2D()
+        geom1.add_polygon(sh.geometry.box(0, 0, 1, 1))
+        geom2 = GMSHGeom2D()
+        geom2.add_polygon(sh.geometry.box(2, 2, 3, 3))
+        compound = GMSHGeom2D.make_compound([geom1, geom2])
+        assert isinstance(compound, GMSHGeom2D)
+        assert len(compound.polygons.geoms) == 2
+        assert compound.polygons.equals(
+            sh.MultiPolygon([geom1.polygons, geom2.polygons])
+        )
+
+    def test_gmshgeom2d_extrude_rectangles_disjunct(self):
+        geom = GMSHGeom2D()
+        box1 = sh.geometry.box(0, 0, 1, 1)
+        box2 = sh.geometry.box(2, 2, 3, 3)
+        geom.add_polygon(box1)
+        geom.add_polygon(box2)
+        extrusion = geom.extrude(0.1)
+        assert isinstance(extrusion, v.Mesh)
+        comp = np.array(
+            [
+                [1.0, 0.0, 0.0],
+                [1.0, 1.0, 0.0],
+                [0.0, 1.0, 0.0],
+                [0.0, 0.0, 0.0],
+                [3.0, 2.0, 0.0],
+                [3.0, 3.0, 0.0],
+                [2.0, 3.0, 0.0],
+                [2.0, 2.0, 0.0],
+                [1.0, 0.0, 0.1],
+                [1.0, 1.0, 0.1],
+                [0.0, 1.0, 0.1],
+                [0.0, 0.0, 0.1],
+                [3.0, 2.0, 0.1],
+                [3.0, 3.0, 0.1],
+                [2.0, 3.0, 0.1],
+                [2.0, 2.0, 0.1],
+            ]
+        )
+        print(extrusion.vertices)
+        print(comp)
+        assert comp.__str__() == extrusion.vertices.__str__()
+
+    def test_gmshgeom2d_extrude_rectangles_unfused(self):
+        geom = GMSHGeom2D()
+        box1 = sh.geometry.box(0, 0, 1, 1)
+        box2 = sh.geometry.box(2, 2, 3, 3)
+        geom.add_polygon(box1)
+        geom.add_polygon(box2)
+        extrusion = geom.extrude(0.1, fuse=False)
+        assert isinstance(extrusion, list)
+        assert isinstance(extrusion[0], v.Mesh)
+        assert len(extrusion) == 2
+        comp1 = np.array(
+            [
+                [1.0, 0.0, 0.0],
+                [1.0, 1.0, 0.0],
+                [0.0, 1.0, 0.0],
+                [0.0, 0.0, 0.0],
+                [1.0, 0.0, 0.1],
+                [1.0, 1.0, 0.1],
+                [0.0, 1.0, 0.1],
+                [0.0, 0.0, 0.1],
+            ]
+        )
+        comp2 = np.array(
+            [
+                [3.0, 2.0, 0.0],
+                [3.0, 3.0, 0.0],
+                [2.0, 3.0, 0.0],
+                [2.0, 2.0, 0.0],
+                [3.0, 2.0, 0.1],
+                [3.0, 3.0, 0.1],
+                [2.0, 3.0, 0.1],
+                [2.0, 2.0, 0.1],
+            ]
+        )
+        print(extrusion[0].vertices)
+        print(extrusion[1].vertices)
+        print(comp1)
+        print(comp2)
+        assert comp1.__str__() == extrusion[0].vertices.__str__()
+        assert comp2.__str__() == extrusion[1].vertices.__str__()
+
+    def test_gmshgeom2d_extrude_rectangles_overlapping(self):
+        geom = GMSHGeom2D()
+        box1 = sh.geometry.box(0, 0, 2, 2)
+        box2 = sh.geometry.box(1, 1, 3, 3)
+        geom.add_polygon(box1)
+        geom.add_polygon(box2)
+        extrusion = geom.extrude(0.1)
+        assert isinstance(extrusion, v.Mesh)
+        comp = np.array(
+            [
+                [2.0, 0.0, 0.0],
+                [2.0, 1.0, 0.0],
+                [3.0, 1.0, 0.0],
+                [3.0, 3.0, 0.0],
+                [1.0, 3.0, 0.0],
+                [1.0, 2.0, 0.0],
+                [0.0, 2.0, 0.0],
+                [0.0, 0.0, 0.0],
+                [2.0, 0.0, 0.1],
+                [2.0, 1.0, 0.1],
+                [3.0, 1.0, 0.1],
+                [3.0, 3.0, 0.1],
+                [1.0, 3.0, 0.1],
+                [1.0, 2.0, 0.1],
+                [0.0, 2.0, 0.1],
+                [0.0, 0.0, 0.1],
+            ]
+        )
+        print(extrusion.vertices)
+        print(comp)
+        assert comp.__str__() == extrusion.vertices.__str__()
+
+    def test_gmshgeom2d_to_3d(self):
+        geom = GMSHGeom2D()
+        box1 = sh.geometry.box(0, 0, 1, 1)
+        box2 = sh.geometry.box(2, 2, 3, 3)
+        geom.add_polygon(box1)
+        geom.add_polygon(box2)
+        geom3d = geom.to_3D(0.1)
+        assert isinstance(geom3d.objects, list)
+        assert isinstance(geom3d.objects[0], v.Mesh)
+        assert len(geom3d.objects) == 2
+        comp1 = np.array(
+            [
+                [1.0, 0.0, 0.0],
+                [1.0, 1.0, 0.0],
+                [0.0, 1.0, 0.0],
+                [0.0, 0.0, 0.0],
+                [1.0, 0.0, 0.1],
+                [1.0, 1.0, 0.1],
+                [0.0, 1.0, 0.1],
+                [0.0, 0.0, 0.1],
+            ]
+        )
+        comp2 = np.array(
+            [
+                [3.0, 2.0, 0.0],
+                [3.0, 3.0, 0.0],
+                [2.0, 3.0, 0.0],
+                [2.0, 2.0, 0.0],
+                [3.0, 2.0, 0.1],
+                [3.0, 3.0, 0.1],
+                [2.0, 3.0, 0.1],
+                [2.0, 2.0, 0.1],
+            ]
+        )
+        print(geom3d.objects[0].vertices)
+        print(geom3d.objects[1].vertices)
+        print(comp1)
+        print(comp2)
+        assert comp1.__str__() == geom3d.objects[0].vertices.__str__()
+        assert comp2.__str__() == geom3d.objects[1].vertices.__str__()
+
+
+class Test_FTLGeom3D:
+    def setup_class(self):
+        pass
+
+    def test_gmshgeom3d_empty_by_default(self):
+        geom = FTLGeom3D()
+        assert geom.objects == []
+        assert geom.is_empty()
+
+    def test_gmshgeom3d_add_objects(self):
+        geom = FTLGeom3D()
+        geom.objects = []
+        geom.add_object(v.Box())
+        assert len(geom.objects) == 1
+        geom.add_object(v.Box())
+        assert len(geom.objects) == 2
+
+    def test_gmshgeom3d_geom2d_equal(self):
+        geom2d = GMSHGeom2D()
+        geom2d.add_polygon(sh.geometry.box(0, 0, 1, 1))
+        geom2d.add_polygon(sh.geometry.box(2, 2, 3, 3))
+        geom3d = geom2d.to_3D(0.1)
+        assert geom3d.geom2d.polygons.equals(geom2d.polygons)
+
+    def test_gmshgeom3d_geom2d_not_equal(self):
+        geom2d = GMSHGeom2D()
+        geom2d.add_polygon(sh.geometry.box(0, 0, 1, 1))
+        geom2d.add_polygon(sh.geometry.box(2, 2, 3, 3))
+        geom3d = geom2d.to_3D(0.1)
+        geom2d.add_polygon(sh.geometry.box(3, 3, 4, 4))
+        assert not geom3d.geom2d.polygons.equals(geom2d.polygons)
+
+    def test_gmshgeom3d_geom2d_none(self):
+        geom3d = FTLGeom3D()
+        try:
+            geom3d.geom2d
+        except AttributeError:
+            assert True
+        else:
+            assert False
+"""
+
+
+"""def test_gmshgeom2d_fix_list(self):
+        geom = GMSHGeom2D()
+        assert geom._fix_list([]) == []
+        assert geom._fix_list([1, 2, 3, 4]) == [1, 2, 3, 4]
+        assert geom._fix_list([1, 2, 3, 4, 1]) == [1, 2, 3, 4]
+        assert geom._fix_list([(1, 2), (3, 4)]) == [(1, 2), (3, 4)]
+        assert geom._fix_list([(1, 2), (3, 4), (1, 2)]) == [(1, 2), (3, 4)]
+        assert geom._fix_list([(1, 2), (3, 4), (1, 2)]) == [(1, 2), (3, 4), (1, 2)]
+"""
