@@ -9,7 +9,7 @@ import shapely as sh
 
 import numpy as np
 import vedo as v
-from FTL.core.Geometry import FTLGeom2D, FTLGeom3D
+from FTL.core.FTLGeometry import FTLGeom2D, FTLGeom3D
 
 
 class Test_FTLGeom2D:

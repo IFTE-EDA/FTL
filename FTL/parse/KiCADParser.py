@@ -15,7 +15,7 @@ from FTL.parse.kicad_parser import KicadPCB, SexpList
 
 # from FTL.parse.kicad_parser import SexpList
 from FTL.Util.logging import Logger, Loggable
-from FTL.core.Geometry import FTLGeom2D
+from FTL.core.FTLGeometry import FTLGeom2D
 
 
 class KiCADConfig:
@@ -95,7 +95,7 @@ class KiCADParser(Loggable):
         if "segment" in self.pcb:
             for segment in self.pcb["segment"]:
                 self.stackup.add_segment(segment["layer"], segment)
-        if "zone" in self.pcb:
+        """if "zone" in self.pcb:
             for zone in self.pcb["zone"]:
                 if "layer" in zone:
                     self.stackup.add_zone(zone["layer"], KiCADZone(self, zone))
@@ -106,6 +106,7 @@ class KiCADParser(Loggable):
                     )
                     for layer in layers:
                         self.stackup.add_zone(layer, KiCADZone(self, zone))
+        """
         if "arc" in self.pcb:
             for arc in self.pcb["arc"]:
                 self.stackup.add_arc(arc["layer"], arc)
@@ -704,7 +705,6 @@ class KiCADRect(KiCADPolygon):
 class KiCADPart(KiCADEntity):
     def __init__(self, parent: Loggable, params: dict):
         KiCADEntity.__init__(self, parent, params)
-        # self.angle = self.at[2] if len(self.at) > 2 else 0
         self.descr = dict["descr"]
         self.tags = dict["tags"]
         self.layer = params["layer"]
@@ -735,7 +735,9 @@ class KiCADPart(KiCADEntity):
         for pad_obj in self.pads:
             pad = KiCADPad(self, pad_obj)
             pad.move_relative(self.at[0], self.at[1])
+            # pad.angle += self.angle
             render = pad.render(layers)
+            render.rotate(self.angle, self.at[0:2])
             if layers is None:
                 rendered_pads.append(render)
             else:
@@ -757,6 +759,7 @@ class KiCADPart(KiCADEntity):
                         (line["start"], line["end"]),
                         line["stroke"]["width"],
                     )
+                    render.rotate(self.angle, self.at[0:2])
                     if layers is None:
                         geom.append(render)
                     else:
@@ -783,6 +786,7 @@ class KiCADPart(KiCADEntity):
                     f"Rendering circle at {self.geoms['fp_circle'][0]['center']}->{self.geoms['fp_circle'][0]['end']} with radius {radius}"
                 )
                 render = FTLGeom2D.get_circle(circle["center"], radius)
+                render.rotate(self.angle, self.at[0:2])
                 if layers is None:
                     geom.append(render)
                 else:
@@ -810,6 +814,7 @@ class KiCADPart(KiCADEntity):
                     raise Exception(
                         f"Unsupported arc stroke type: <{stroke_type}>"
                     )
+                render.rotate(self.angle, self.at[0:2])
                 if layers is None:
                     geom.append(render)
                 else:
@@ -825,6 +830,7 @@ class KiCADPart(KiCADEntity):
                     f"Rendering polygon with {len(poly['pts']['xy'])} points..."
                 )
                 render = KiCADPolygon(self, poly).render()
+                render.rotate(self.angle, self.at[0:2])
                 if layers is None:
                     geom.append(render)
                 else:
