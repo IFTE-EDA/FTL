@@ -358,7 +358,16 @@ class GMSHGeom2D(AbstractGeom2D):
     def rotate(
         self, angle: float = 0, center: tuple(float, float) = (0, 0)
     ) -> GMSHGeom2D:
-        self.polygons = sh.affinity.rotate(self.polygons, angle, center)
+        gmsh.model.occ.rotate(
+            self._dim_tags(),
+            x=center[0],
+            y=center[1],
+            z=0,
+            angle=math.radians(angle),
+            ax=0,
+            ay=0,
+            az=1,
+        )
         return self
 
     def _create_surface(self, polygon: sh.Polygon) -> v.Mesh:

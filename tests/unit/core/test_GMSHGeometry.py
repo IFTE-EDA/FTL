@@ -655,19 +655,47 @@ class Test_GMSHGeom2D:
         assert gmsh.model.occ.getCenterOfMass(2, 1) == (1.5, 1.5, 0)
         assert geom.geoms == [1]
 
-    """
     def test_gmshgeom2d_rotate_origin(self):
+        gmsh.clear()
         geom = GMSHGeom2D()
-        geom.add_polygon(sh.geometry.box(0, 0, 1, 1))
-        geom.rotate(90)
-        assert geom.polygons.equals(sh.geometry.box(-1, 1, 0, 0))
+        geom.add_polygon(sh.geometry.box(-1, -1, 1, 1))
+        geom.rotate(45)
+        CoM_rounded = [
+            round(i, 2) for i in gmsh.model.occ.getCenterOfMass(2, 1)
+        ]
+        assert CoM_rounded == [0, 0, 0]
+        bbox_rounded = [
+            round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 1)
+        ]
+        assert bbox_rounded == [-1.41, -1.41, 0, 1.41, 1.41, 0]
+        assert geom.geoms == [1]
+        geom.rotate(45)
+        CoM_rounded = [
+            round(i, 2) for i in gmsh.model.occ.getCenterOfMass(2, 1)
+        ]
+        assert CoM_rounded == [0, 0, 0]
+        bbox_rounded = [
+            round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 1)
+        ]
+        assert bbox_rounded == [-1, -1, 0, 1, 1, 0]
+        assert geom.geoms == [1]
 
     def test_gmshgeom2d_rotate_corner(self):
+        gmsh.clear()
         geom = GMSHGeom2D()
-        geom.add_polygon(sh.geometry.box(0, 0, 1, 1))
+        geom.add_polygon(sh.geometry.box(-1, -1, 1, 1))
         geom.rotate(90, (1, 1))
-        assert geom.polygons.equals(sh.geometry.box(1, 1, 2, 0))
+        CoM_rounded = [
+            round(i, 2) for i in gmsh.model.occ.getCenterOfMass(2, 1)
+        ]
+        assert CoM_rounded == [2, 0, 0]
+        bbox_rounded = [
+            round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 1)
+        ]
+        assert bbox_rounded == [1, -1, 0, 3, 1, 0]
+        assert geom.geoms == [1]
 
+    """
     def test_gmshgeom2d_extrude_rectangle(self):
         geom = GMSHGeom2D()
         box1 = sh.geometry.box(0, 0, 1, 1)
