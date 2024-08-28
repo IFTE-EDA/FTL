@@ -327,6 +327,7 @@ class Test_GMSHGeom2D:
         assert geom.geoms == [1]
 
     def test_gmshgeom2d_get_roundrect(self):
+        gmsh.clear()
         geom = GMSHGeom2D.get_roundrect((0, 0), (1, 1), 0.1)
         bbox_rounded = [
             round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 1)
