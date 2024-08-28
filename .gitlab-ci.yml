@@ -13,7 +13,6 @@ stages:          # List of stages for jobs, and their order of execution
   - bye
 
 before_script:
-  - apt-get install libglu1-mesa
   - echo -e "\e[0Ksection_start:`date +%s`:sct_beforescript[collapsed=true]\r\e[0K===BEFORE SCRIPT==="
   - git submodule update --remote
   - pip install pytest-cov pytest-order coverage flake8 
