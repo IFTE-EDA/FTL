@@ -322,16 +322,14 @@ class GMSHGeom2D(AbstractGeom2D):
         self.geoms.append(surface)
         return self
 
+    def _dim_tags(self) -> list[tuple[int, int]]:
+        return [(2, tag) for tag in self.geoms]
+
     def _fuse_all(self) -> int:
         if len(self.geoms) == 1:
             return self.geoms[0]
-        # print(f"Geoms: {self.geoms}")
-        objects = [(2, self.geoms[0])]
-        tools = [(2, tag) for tag in self.geoms[1:]]
-        # print(f"Objects: {objects}")
-        # print(f"Tools: {tools}")
-        fused = gmsh.model.occ.fuse(objects, tools)
-        # print(f"Fused: {fused}")
+        tags = self._dim_tags()
+        fused = gmsh.model.occ.fuse([tags[0]], tags[1:])
         self.geoms = [f[1] for f in fused[0]]
         return fused[0]
 
@@ -347,15 +345,14 @@ class GMSHGeom2D(AbstractGeom2D):
         if not isinstance(geoms, list):
             geoms = [geoms]
         self._fuse_all()
-        cut = gmsh.model.occ.cut(
-            [(2, g) for g in self.geoms],
+        gmsh.model.occ.cut(
+            self._dim_tags(),
             [(2, g) for g in geoms],
         )
-        print("Cut: ", cut)
         return self
 
     def translate(self, x: float = 0, y: float = 0) -> GMSHGeom2D:
-        self.polygons = sh.affinity.translate(self.polygons, x, y)
+        gmsh.model.occ.translate(self._dim_tags(), x, y, 0)
         return self
 
     def rotate(

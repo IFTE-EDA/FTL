@@ -644,13 +644,18 @@ class Test_GMSHGeom2D:
         assert geom.geoms == [1]
     """
 
-    """
     def test_gmshgeom2d_translate(self):
+        gmsh.clear()
         geom = GMSHGeom2D()
-        geom.add_polygon(sh.geometry.box(0, 0, 1, 1))
+        geom.add_rectangle((0, 0), (1, 1))
+        assert gmsh.model.occ.getCenterOfMass(2, 1) == (0.5, 0.5, 0)
+        assert gmsh.model.occ.getMass(2, 1) == 1
+        assert geom.geoms == [1]
         geom.translate(1, 1)
-        assert geom.polygons.equals(sh.geometry.box(1, 1, 2, 2))
+        assert gmsh.model.occ.getCenterOfMass(2, 1) == (1.5, 1.5, 0)
+        assert geom.geoms == [1]
 
+    """
     def test_gmshgeom2d_rotate_origin(self):
         geom = GMSHGeom2D()
         geom.add_polygon(sh.geometry.box(0, 0, 1, 1))
