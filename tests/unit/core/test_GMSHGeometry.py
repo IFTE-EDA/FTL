@@ -456,18 +456,195 @@ class Test_GMSHGeom2D:
         assert round(gmsh.model.occ.getMass(2, 1), 5) == 0.32201
         assert geom.geoms == [1]
 
-    """
-    def test__gmshgeom2d_cutout(self):
+    def test_gmshgeom2d_fuse_all_overlapping(self):
         gmsh.clear()
         geom = GMSHGeom2D()
-        geom.add_polygon(sh.geometry.box(0, 0, 2, 2))
-        geom.cutout(sh.geometry.box(0.5, 0.5, 1.5, 1.5))
-        assert geom.polygons.equals(
-            sh.geometry.box(0, 0, 2, 2).difference(
-                sh.geometry.box(0.5, 0.5, 1.5, 1.5)
-            )
+        geom.add_rectangle((0, 0), (2, 2))
+        geom.add_rectangle((1, 1), (3, 3))
+        geom.add_rectangle((2, 2), (4, 4))
+        assert (
+            (2, 1) in gmsh.model.occ.getEntities()
+            and (2, 2) in gmsh.model.occ.getEntities()
+            and (2, 3) in gmsh.model.occ.getEntities()
         )
+        geom._fuse_all()
+        assert (
+            (2, 1) in gmsh.model.occ.getEntities()
+            and not (2, 2) in gmsh.model.occ.getEntities()
+            and not (2, 3) in gmsh.model.occ.getEntities()
+        )
+        CoM_rounded = [
+            round(i, 2) for i in gmsh.model.occ.getCenterOfMass(2, 1)
+        ]
+        bbox_rounded = [
+            round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 1)
+        ]
+        assert CoM_rounded == [2.0, 2.0, 0.0]
+        assert bbox_rounded == [0, 0, 0, 4, 4, 0]
+        assert round(gmsh.model.occ.getMass(2, 1), 5) == 10
+        assert geom.geoms == [1]
 
+    def test_gmshgeom2d_fuse_all_disjunct(self):
+        gmsh.clear()
+        geom = GMSHGeom2D()
+        geom.add_rectangle((0, 0), (1, 1))
+        geom.add_rectangle((2, 2), (3, 3))
+        geom.add_rectangle((4, 4), (5, 5))
+        assert (
+            (2, 1) in gmsh.model.occ.getEntities()
+            and (2, 2) in gmsh.model.occ.getEntities()
+            and (2, 3) in gmsh.model.occ.getEntities()
+        )
+        geom._fuse_all()
+        assert (
+            (2, 1) in gmsh.model.occ.getEntities()
+            and (2, 2) in gmsh.model.occ.getEntities()
+            and (2, 3) in gmsh.model.occ.getEntities()
+        )
+        assert geom.geoms == [1, 2, 3]
+
+    def test_gmshgeom2d_fuse_all_touching_points(self):
+        gmsh.clear()
+        geom = GMSHGeom2D()
+        geom.add_rectangle((0, 0), (1, 1))
+        geom.add_rectangle((1, 1), (2, 2))
+        geom.add_rectangle((2, 2), (3, 3))
+        assert (
+            (2, 1) in gmsh.model.occ.getEntities()
+            and (2, 2) in gmsh.model.occ.getEntities()
+            and (2, 3) in gmsh.model.occ.getEntities()
+        )
+        geom._fuse_all()
+        assert (
+            (2, 1) in gmsh.model.occ.getEntities()
+            and (2, 2) in gmsh.model.occ.getEntities()
+            and (2, 3) in gmsh.model.occ.getEntities()
+        )
+        assert geom.geoms == [1, 2, 3]
+
+    def test_gmshgeom2d_cutout_gmshgeom2d(self):
+        gmsh.clear()
+        geom = GMSHGeom2D()
+        geom.add_rectangle((0, 0), (2, 2))
+        geom.cutout(GMSHGeom2D.get_rectangle((0.5, 0.5), (1.5, 1.5)))
+        print(gmsh.model.occ.getEntities())
+        assert (2, 1) in gmsh.model.occ.getEntities() and (
+            1,
+            12,
+        ) in gmsh.model.occ.getEntities()
+        assert gmsh.model.occ.getMass(2, 1) == 3
+        assert gmsh.model.occ.getCenterOfMass(2, 1) == (1, 1, 0)
+        bbox_rounded = [
+            round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 1)
+        ]
+        assert bbox_rounded == [0, 0, 0, 2, 2, 0]
+        assert geom.geoms == [1]
+
+    def test_gmshgeom2d_cutout_tag_list(self):
+        gmsh.clear()
+        geom = GMSHGeom2D()
+        geom.add_rectangle((0, 0), (2, 2))
+        assert geom.geoms == [1]
+        holes = [
+            GMSHGeom2D.get_rectangle((x - 0.3, y - 0.3), (x + 0.3, y + 0.3))
+            for x, y in [(0.6, 0.6), (1.4, 0.6), (0.6, 1.4), (1.4, 1.4)]
+        ]
+        assert (2, 5) in gmsh.model.occ.getEntities() and (
+            1,
+            20,
+        ) in gmsh.model.occ.getEntities()
+        geom.cutout([hole.geoms[0] for hole in holes])
+        print(gmsh.model.occ.getEntities())
+        assert (2, 1) in gmsh.model.occ.getEntities() and not (
+            2,
+            2,
+        ) in gmsh.model.occ.getEntities()
+        assert round(gmsh.model.occ.getMass(2, 1)) == 3
+        assert gmsh.model.occ.getCenterOfMass(2, 1) == (1, 1, 0)
+        bbox_rounded = [
+            round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 1)
+        ]
+        assert bbox_rounded == [0, 0, 0, 2, 2, 0]
+        assert geom.geoms == [1]
+
+    def test_gmshgeom2d_cutout_geom_list(self):
+        gmsh.clear()
+        geom = GMSHGeom2D()
+        geom.add_rectangle((0, 0), (2, 2))
+        assert geom.geoms == [1]
+        holes = [
+            GMSHGeom2D.get_rectangle((x - 0.3, y - 0.3), (x + 0.3, y + 0.3))
+            for x, y in [(0.6, 0.6), (1.4, 0.6), (0.6, 1.4), (1.4, 1.4)]
+        ]
+        assert (2, 5) in gmsh.model.occ.getEntities() and (
+            1,
+            20,
+        ) in gmsh.model.occ.getEntities()
+        geom.cutout(holes)
+        print(gmsh.model.occ.getEntities())
+        assert (2, 1) in gmsh.model.occ.getEntities() and not (
+            2,
+            2,
+        ) in gmsh.model.occ.getEntities()
+        assert round(gmsh.model.occ.getMass(2, 1)) == 3
+        assert gmsh.model.occ.getCenterOfMass(2, 1) == (1, 1, 0)
+        bbox_rounded = [
+            round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 1)
+        ]
+        assert bbox_rounded == [0, 0, 0, 2, 2, 0]
+        assert geom.geoms == [1]
+
+    def test_gmshgeom2d_cutout_multiple_geoms(self):
+        gmsh.clear()
+        geom = GMSHGeom2D()
+        geom.add_rectangle((-2, -2), (1, 1))
+        geom.add_rectangle((-1, -1), (2, 2))
+        geom.add_rectangle((-2, -1), (1, 2))
+        geom.add_rectangle((-1, -2), (2, 1))
+        assert all(
+            [(2, tag) in gmsh.model.occ.getEntities() for tag in [1, 2, 3, 4]]
+        )
+        geom.cutout(GMSHGeom2D.get_rectangle((-0.5, -0.5), (0.5, 0.5)))
+        # print("Fused: ", geom._fuse_all())
+        assert (2, 1) in gmsh.model.occ.getEntities() and not all(
+            [(2, tag) in gmsh.model.occ.getEntities() for tag in [2, 3, 4]]
+        )
+        assert gmsh.model.occ.getMass(2, 1) == 15
+        CoM_rounded = [
+            round(i, 2) for i in gmsh.model.occ.getCenterOfMass(2, 1)
+        ]
+        assert CoM_rounded == [0, 0, 0]
+        bbox_rounded = [
+            round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 1)
+        ]
+        assert bbox_rounded == [-2, -2, 0, 2, 2, 0]
+        assert geom.geoms == [1]
+
+    """
+    #TODO: Currently unneccesssary. Maybe implement in the future?
+    def test_gmshgeom2d_cutout_multigeom_list(self):
+        gmsh.clear()
+        geom = GMSHGeom2D()
+        geom.add_rectangle((0, 0), (2, 2))
+        assert geom.geoms == [1]
+        holes1 = [GMSHGeom2D.get_rectangle((x-0.3, y-0.3), (x+0.3, y+0.3)) for x, y in [(0.6, 0.6), (1.4, 0.6)]]
+        holes2 = [GMSHGeom2D.get_rectangle((x - 0.3, y - 0.3), (x + 0.3, y + 0.3)) for x, y in [(0.6, 0.6), (1.4, 0.6)]]
+        assert (2, 5) in gmsh.model.occ.getEntities() and (1, 20) in gmsh.model.occ.getEntities()
+        assert holes1.geoms == [2, 3]
+        assert holes2.geoms == [4, 5]
+        geom.cutout([holes1, holes2])
+        print(gmsh.model.occ.getEntities())
+        assert (2, 1) in gmsh.model.occ.getEntities() and not (2, 2) in gmsh.model.occ.getEntities()
+        assert round(gmsh.model.occ.getMass(2, 1)) == 3
+        assert gmsh.model.occ.getCenterOfMass(2, 1) == (1, 1, 0)
+        bbox_rounded = [
+            round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 1)
+        ]
+        assert bbox_rounded == [0, 0, 0, 2, 2, 0]
+        assert geom.geoms == [1]
+    """
+
+    """
     def test_gmshgeom2d_translate(self):
         geom = GMSHGeom2D()
         geom.add_polygon(sh.geometry.box(0, 0, 1, 1))

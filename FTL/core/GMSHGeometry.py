@@ -214,7 +214,7 @@ class GMSHGeom2D(AbstractGeom2D):
         self, start: tuple[float, float], end: tuple[float, float]
     ) -> GMSHGeom2D:
         rect = gmsh.model.occ.add_rectangle(
-            start[0], start[1], 0, end[0], end[1]
+            start[0], start[1], 0, end[0] - start[0], end[1] - start[1]
         )
         gmsh.model.occ.synchronize()
         self.geoms.append(rect)
@@ -322,10 +322,36 @@ class GMSHGeom2D(AbstractGeom2D):
         self.geoms.append(surface)
         return self
 
-    def cutout(self, geom: (GMSHGeom2D, sh.Polygon)) -> GMSHGeom2D:
-        if isinstance(geom, GMSHGeom2D):
-            geom = geom.polygons
-        self.polygons = self.polygons.difference(geom)
+    def _fuse_all(self) -> int:
+        if len(self.geoms) == 1:
+            return self.geoms[0]
+        # print(f"Geoms: {self.geoms}")
+        objects = [(2, self.geoms[0])]
+        tools = [(2, tag) for tag in self.geoms[1:]]
+        # print(f"Objects: {objects}")
+        # print(f"Tools: {tools}")
+        fused = gmsh.model.occ.fuse(objects, tools)
+        # print(f"Fused: {fused}")
+        self.geoms = [f[1] for f in fused[0]]
+        return fused[0]
+
+    def cutout(self, geoms: (GMSHGeom2D, sh.Polygon)) -> GMSHGeom2D:
+        if isinstance(geoms, GMSHGeom2D):
+            geoms = geoms.geoms
+        if isinstance(geoms, list) and isinstance(geoms[0], GMSHGeom2D):
+            ret = []
+            for g in geoms:
+                ret.extend(g.geoms)
+            print("Ret:", ret)
+            geoms = ret
+        if not isinstance(geoms, list):
+            geoms = [geoms]
+        self._fuse_all()
+        cut = gmsh.model.occ.cut(
+            [(2, g) for g in self.geoms],
+            [(2, g) for g in geoms],
+        )
+        print("Cut: ", cut)
         return self
 
     def translate(self, x: float = 0, y: float = 0) -> GMSHGeom2D:
