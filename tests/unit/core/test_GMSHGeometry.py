@@ -695,51 +695,35 @@ class Test_GMSHGeom2D:
         assert bbox_rounded == [1, -1, 0, 3, 1, 0]
         assert geom.geoms == [1]
 
-    """
     def test_gmshgeom2d_extrude_rectangle(self):
-        geom = GMSHGeom2D()
-        box1 = sh.geometry.box(0, 0, 1, 1)
-        geom.add_polygon(box1)
+        gmsh.clear()
+        geom = GMSHGeom2D.get_rectangle((0, 0), (1, 1))
         extrusion = geom.extrude(0.1)
-        comp = np.array(
-            [
-                [1, 0, 0],
-                [1, 1, 0],
-                [0, 1, 0],
-                [0, 0, 0],
-                [1, 0, 0.1],
-                [1, 1, 0.1],
-                [0, 1, 0.1],
-                [0, 0, 0.1],
-            ]
-        )
-        # assert len(extrusion) == 1
-        print(extrusion.vertices)
-        print(comp)
-        assert comp.__str__() == extrusion.vertices.__str__()
+        bbox_rounded = [
+            round(i, 2) for i in gmsh.model.occ.getBoundingBox(3, 1)
+        ]
+        assert (3, 1) in gmsh.model.occ.getEntities()
+        assert bbox_rounded == [0, 0, 0, 1, 1, 0.1]
+        assert round(gmsh.model.occ.getMass(3, 1), 5) == 0.1
+        assert extrusion.geoms == [1]
+        assert extrusion.geom2d == geom
+
+    # TODO: unextruded z shift test
 
     def test_gmshgeom2d_extrude_rectangle_z(self):
-        geom = GMSHGeom2D()
-        box1 = sh.geometry.box(0, 0, 1, 1)
-        geom.add_polygon(box1)
+        gmsh.clear()
+        geom = GMSHGeom2D.get_rectangle((0, 0), (1, 1))
         extrusion = geom.extrude(0.1, zpos=0.2)
-        comp = np.array(
-            [
-                [1, 0, 0.2],
-                [1, 1, 0.2],
-                [0, 1, 0.2],
-                [0, 0, 0.2],
-                [1, 0, 0.3],
-                [1, 1, 0.3],
-                [0, 1, 0.3],
-                [0, 0, 0.3],
-            ]
-        )
-        # assert len(extrusion) == 1
-        print(extrusion.vertices)
-        print(comp)
-        assert comp.__str__() == extrusion.vertices.__str__()
+        bbox_rounded = [
+            round(i, 2) for i in gmsh.model.occ.getBoundingBox(3, 1)
+        ]
+        assert (3, 1) in gmsh.model.occ.getEntities()
+        assert bbox_rounded == [0, 0, 0.2, 1, 1, 0.3]
+        assert round(gmsh.model.occ.getMass(3, 1), 5) == 0.1
+        assert extrusion.geoms == [1]
+        assert extrusion.geom2d == geom
 
+    """
     def test_gmshgeom2d_make_compound(self):
         geom1 = GMSHGeom2D()
         geom1.add_polygon(sh.geometry.box(0, 0, 1, 1))

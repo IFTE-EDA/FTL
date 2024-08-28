@@ -394,26 +394,19 @@ class GMSHGeom2D(AbstractGeom2D):
     def extrude(
         self, thickness: float, zpos: float = None, fuse: bool = True
     ) -> v.Mesh:
-        surfaces = []
-        if isinstance(self.polygons, sh.Polygon):
-            surf = self._create_surface(self.polygons)
-            return self._extrude_surface(surf, thickness, zpos)
-
-        # self.polygons is a MultiPolygon or GeometryCollection...
-        for geom in self.polygons.geoms:
-            surf = self._create_surface(geom)
-            surfaces.append(surf)
         if fuse:
-            mesh = v.merge(*surfaces)
-            return self._extrude_surface(mesh, thickness, zpos)
-        else:
-            meshes = []
-            for surf in surfaces:
-                meshes.append(self._extrude_surface(surf, thickness, zpos))
-            return meshes
+            self._fuse_all()
+        if zpos is None:
+            zpos = self.z
+        if zpos != 0:
+            gmsh.model.occ.translate(self._dim_tags(), 0, 0, zpos)
+        extr = gmsh.model.occ.extrude(self._dim_tags(), 0, 0, thickness)
+        extr = [e[1] for e in extr if e[0] == 3]
+        print("Extruded: ", extr)
+        return GMSHGeom3D(extr, self)
 
-    def to_3D(self, thickness: float, zpos: float = None) -> FTLGeom3D:
-        ret = FTLGeom3D(self.extrude(thickness, zpos, fuse=False))
+    def to_3D(self, thickness: float, zpos: float = None) -> GMSHGeom3D:
+        ret = GMSHGeom3D(self.extrude(thickness, zpos, fuse=False))
         ret.geom2d = deepcopy(self)
         return ret
 
@@ -448,5 +441,27 @@ class GMSHGeom2D(AbstractGeom2D):
         plt.show()
 
 
-class FTLGeom3D(AbstractGeom3D):
-    pass
+class GMSHGeom3D(AbstractGeom3D):
+    def __init__(self, geoms: list[int] = [], geom2d: GMSHGeom2D = None):
+        if len(geoms):
+            self.geoms = geoms
+        self._geom2d = geom2d
+
+    def is_empty(self) -> bool:
+        return not len(self.geoms)
+
+    def add_object(self, obj: int) -> None:
+        self.geoms.append(obj)
+
+    @property
+    def geom2d(self) -> GMSHGeom2D:
+        if self._geom2d is not None:
+            return self._geom2d
+        else:
+            raise AttributeError(
+                "This geometry was not created from a 2D geometry object."
+            )
+
+    @geom2d.setter
+    def geom2d(self, geom2d: GMSHGeom2D):
+        self._geom2d = geom2d
