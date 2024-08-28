@@ -341,23 +341,73 @@ class Test_GMSHGeom2D:
         assert gmsh.model.occ.getMass(2, 1) == 0.9914159265358979
         assert geom.geoms == [1]
 
-    """
-
-    def test_gmshgeom2d_add_line(self):
+    def test_gmshgeom2d_add_line_3points(self):
+        gmsh.clear()
         geom = GMSHGeom2D()
-        geom.add_line(((0, 0), (1, 1), (2, 1)), 0.1)
+        geom.add_line([(0, 0), (1, 1), (2, 1)], 0.1)
         # geom.plot()
-        assert round(geom.polygons.area, 10) == 0.249207365
-        assert geom.polygons.equals(
-            sh.geometry.LineString([(0, 0), (1, 1), (2, 1)]).buffer(0.05)
-        )
+        assert (2, 1) in gmsh.model.occ.getEntities()
+        CoM_rounded = [
+            round(i, 2) for i in gmsh.model.occ.getCenterOfMass(2, 1)
+        ]
+        bbox_rounded = [
+            round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 1)
+        ]
+        assert CoM_rounded == [0.92, 0.7, 0.0]
+        assert bbox_rounded == [-0.05, -0.05, 0, 2.05, 1.05, 0]
+        assert round(gmsh.model.occ.getMass(2, 1), 5) == 0.24922
+        assert geom.geoms == [1]
+
+    def test_gmshgeom2d_add_line_x(self):
+        gmsh.clear()
+        geom = GMSHGeom2D()
+        geom.add_line([(-1, 0), (1, 0)], 0.1)
+        # geom.plot()
+        assert (2, 1) in gmsh.model.occ.getEntities()
+        CoM_rounded = [
+            round(i, 2) for i in gmsh.model.occ.getCenterOfMass(2, 1)
+        ]
+        bbox_rounded = [
+            round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 1)
+        ]
+        assert CoM_rounded == [0.0, 0.0, 0.0]
+        assert bbox_rounded == [-1.05, -0.05, 0, 1.05, 0.05, 0]
+        assert round(gmsh.model.occ.getMass(2, 1), 5) == 0.20785
+        assert geom.geoms == [1]
+
+    def test_gmshgeom2d_add_line_y(self):
+        gmsh.clear()
+        geom = GMSHGeom2D()
+        geom.add_line([(0, -1), (0, 1)], 0.1)
+        # geom.plot()
+        assert (2, 1) in gmsh.model.occ.getEntities()
+        CoM_rounded = [
+            round(i, 2) for i in gmsh.model.occ.getCenterOfMass(2, 1)
+        ]
+        bbox_rounded = [
+            round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 1)
+        ]
+        assert CoM_rounded == [0.0, 0.0, 0.0]
+        assert bbox_rounded == [-0.05, -1.05, 0, 0.05, 1.05, 0]
+        assert round(gmsh.model.occ.getMass(2, 1), 5) == 0.20785
+        assert geom.geoms == [1]
 
     def test_gmshgeom2d_get_line(self):
-        geom = GMSHGeom2D.get_line(((0, 0), (1, 1)), 0.1)
-        assert round(geom.polygons.area, 10) == 0.1492627275
-        assert geom.polygons.equals(
-            sh.geometry.LineString([(0, 0), (1, 1)]).buffer(0.05)
-        )
+        gmsh.clear()
+        geom = GMSHGeom2D.get_line(((0, 0), (1, 1), (2, 1)), 0.1)
+        assert (2, 1) in gmsh.model.occ.getEntities()
+        CoM_rounded = [
+            round(i, 2) for i in gmsh.model.occ.getCenterOfMass(2, 1)
+        ]
+        bbox_rounded = [
+            round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 1)
+        ]
+        assert CoM_rounded == [0.92, 0.7, 0.0]
+        assert bbox_rounded == [-0.05, -0.05, 0, 2.05, 1.05, 0]
+        assert round(gmsh.model.occ.getMass(2, 1), 5) == 0.24922
+        assert geom.geoms == [1]
+
+    """
 
     def test_gmshgeom2d_add_half_arc(self):
         geom = GMSHGeom2D()

@@ -275,10 +275,34 @@ class GMSHGeom2D(AbstractGeom2D):
 
     def add_line(
         self,
-        pts: list[tuple[float, float]],
+        coords: list[tuple[float, float]],
         width: float,
     ) -> GMSHGeom2D:
-        self.add_polygon(sh.LineString(pts).buffer(width / 2))
+        if len(coords) < 3:
+            coords.append(coords[1])
+            coords[1] = (
+                (coords[0][0] + coords[2][0]) / 2,
+                (coords[0][1] + coords[2][1]) / 2,
+            )
+        print("Coords: ", coords)
+        pts = [gmsh.model.occ.add_point(x, y, 0) for x, y in coords]
+        lines = [
+            gmsh.model.occ.add_line(pts[i], pts[i + 1])
+            for i in range(len(pts) - 1)
+        ]
+        print("Points: ", pts)
+        print("Lines: ", lines)
+        # lines.append(gmsh.model.occ.add_line(pts[len(pts) - 1], pts[0]))
+        curve_loop = gmsh.model.occ.add_wire(lines)
+        print(f"Curve loop: {curve_loop}")
+        offset_curve = gmsh.model.occ.offset_curve(curve_loop, width / 2)
+        print(f"Offset curve: {offset_curve}")
+        surface_loop = gmsh.model.occ.add_curve_loop(
+            [c[1] for c in offset_curve]
+        )
+        surface = gmsh.model.occ.add_plane_surface([surface_loop])
+        gmsh.model.occ.synchronize()
+        self.geoms.append(surface)
         return self
 
     def add_arc(
