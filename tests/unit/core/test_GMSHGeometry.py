@@ -407,33 +407,58 @@ class Test_GMSHGeom2D:
         assert round(gmsh.model.occ.getMass(2, 1), 5) == 0.24922
         assert geom.geoms == [1]
 
-    """
-
     def test_gmshgeom2d_add_half_arc(self):
+        gmsh.clear()
         geom = GMSHGeom2D()
         geom.add_arc((1, 0), (0, 1), (-1, 0), 0.1)
-        assert round(geom.polygons.area, 10) == 0.321909497
-        # assure orientation
-        clip_rect = sh.geometry.box(-1, -0.1, 1, -1)
-        geom.cutout(clip_rect)
-        assert round(geom.polygons.area, 10) == 0.321909497
+        assert (2, 1) in gmsh.model.occ.getEntities()
+        CoM_rounded = [
+            round(i, 2) for i in gmsh.model.occ.getCenterOfMass(2, 1)
+        ]
+        bbox_rounded = [
+            round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 1)
+        ]
+        assert CoM_rounded == [0.0, 0.62, 0.0]
+        assert bbox_rounded == [-1.05, -0.05, 0, 1.05, 1.05, 0]
+        assert round(gmsh.model.occ.getMass(2, 1), 5) == 0.32201
+        assert geom.geoms == [1]
 
     def test_gmshgeom2d_add_quarter_arc(self):
+        gmsh.clear()
         geom = GMSHGeom2D()
         geom.add_arc(
             (1, 0), (math.cos(math.pi / 4), math.sin(math.pi / 4)), (0, 1), 0.1
         )
-        assert round(geom.polygons.area, 10) == 0.1648730949
-        # assure orientation
-        clip_rect = sh.geometry.box(-0.1, -0.1, 1.1, 1.1)
-        geom.cutout(clip_rect)
-        assert round(geom.polygons.area, 10) == 0
+        assert (2, 1) in gmsh.model.occ.getEntities()
+        CoM_rounded = [
+            round(i, 2) for i in gmsh.model.occ.getCenterOfMass(2, 1)
+        ]
+        bbox_rounded = [
+            round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 1)
+        ]
+        assert CoM_rounded == [0.63, 0.63, 0.0]
+        assert bbox_rounded == [-0.05, -0.05, 0, 1.05, 1.05, 0]
+        assert round(gmsh.model.occ.getMass(2, 1), 5) == 0.16493
+        assert geom.geoms == [1]
 
     def test_gmshgeom2d_get_arc(self):
+        gmsh.clear()
         geom = GMSHGeom2D.get_arc((1, 0), (0, 1), (-1, 0), 0.1)
-        assert round(geom.polygons.area, 10) == 0.321909497
+        assert (2, 1) in gmsh.model.occ.getEntities()
+        CoM_rounded = [
+            round(i, 2) for i in gmsh.model.occ.getCenterOfMass(2, 1)
+        ]
+        bbox_rounded = [
+            round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 1)
+        ]
+        assert CoM_rounded == [0.0, 0.62, 0.0]
+        assert bbox_rounded == [-1.05, -0.05, 0, 1.05, 1.05, 0]
+        assert round(gmsh.model.occ.getMass(2, 1), 5) == 0.32201
+        assert geom.geoms == [1]
 
+    """
     def test__gmshgeom2d_cutout(self):
+        gmsh.clear()
         geom = GMSHGeom2D()
         geom.add_polygon(sh.geometry.box(0, 0, 2, 2))
         geom.cutout(sh.geometry.box(0.5, 0.5, 1.5, 1.5))

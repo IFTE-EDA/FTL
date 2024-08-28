@@ -290,13 +290,9 @@ class GMSHGeom2D(AbstractGeom2D):
             gmsh.model.occ.add_line(pts[i], pts[i + 1])
             for i in range(len(pts) - 1)
         ]
-        print("Points: ", pts)
-        print("Lines: ", lines)
         # lines.append(gmsh.model.occ.add_line(pts[len(pts) - 1], pts[0]))
         curve_loop = gmsh.model.occ.add_wire(lines)
-        print(f"Curve loop: {curve_loop}")
         offset_curve = gmsh.model.occ.offset_curve(curve_loop, width / 2)
-        print(f"Offset curve: {offset_curve}")
         surface_loop = gmsh.model.occ.add_curve_loop(
             [c[1] for c in offset_curve]
         )
@@ -312,70 +308,18 @@ class GMSHGeom2D(AbstractGeom2D):
         end: tuple[float, float],
         width: float,
     ) -> GMSHGeom2D:
-        def _center(p1, p2, p3):
-            dx1 = p2[0] - p1[0]
-            dy1 = p2[1] - p1[1]
-            dx2 = p3[0] - p2[0]
-            dy2 = p3[1] - p2[1]
-
-            slope1 = dy1 / dx1
-            slope2 = dy2 / dx2
-            center = [0, 0]
-            center[0] = (
-                slope1 * slope2 * (p1[1] - p3[1])
-                + slope2 * (p1[0] + p2[0])
-                - slope1 * (p2[0] + p3[0])
-            ) / (2 * (slope2 - slope1))
-            center[1] = (
-                -(center[0] - (p1[0] + p2[0]) / 2) / slope1
-                + (p1[1] + p2[1]) / 2
-            )
-
-            return center
-
-        def _polar(angle):
-            return (
-                center[0] + radius * math.cos(math.radians(angle)),
-                center[1] + radius * math.sin(math.radians(angle)),
-            )
-
-        def _angle(p):
-            return math.degrees(math.atan2(p[1] - center[1], p[0] - center[0]))
-
-        center = _center(start, mid, end)
-        radius = math.sqrt(
-            (center[0] - start[0]) ** 2 + (center[1] - start[1]) ** 2
+        pts = [gmsh.model.occ.add_point(x, y, 0) for x, y in [start, mid, end]]
+        arc = gmsh.model.occ.add_circle_arc(
+            pts[0], pts[1], pts[2], center=False
         )
-        angle_start = _angle(start)
-        angle_end = _angle(end)
-
-        def _restrict_angle(angle):
-            if angle < -180:
-                angle += 360
-            if angle > 180:
-                angle -= 360
-            return angle
-
-        angle_start = _restrict_angle(angle_start)
-        angle_end = _restrict_angle(angle_end)
-
-        if _restrict_angle(angle_end - angle_start) < 0:
-            angle_start, angle_end = angle_end, angle_start
-
-        if angle_start > angle_end:
-            angle_start = angle_start - 360
-        else:
-            pass
-
-        arc = []
-        steps = round((angle_end - angle_start) / 90 * 20)
-        if not steps:
-            steps = 2
-        for a in np.linspace(angle_start, angle_end, steps, endpoint=True):
-            arc.append(_polar(a))
-        arc.append(_polar(angle_end))
-
-        self.add_polygon(sh.LineString(arc).buffer(width / 2))
+        arc_wire = gmsh.model.occ.add_wire([arc])
+        offset_curve = gmsh.model.occ.offset_curve(arc_wire, width / 2)
+        surface_loop = gmsh.model.occ.add_curve_loop(
+            [c[1] for c in offset_curve]
+        )
+        surface = gmsh.model.occ.add_plane_surface([surface_loop])
+        gmsh.model.occ.synchronize()
+        self.geoms.append(surface)
         return self
 
     def cutout(self, geom: (GMSHGeom2D, sh.Polygon)) -> GMSHGeom2D:
