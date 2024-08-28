@@ -238,11 +238,26 @@ class GMSHGeom2D(AbstractGeom2D):
         radii: tuple[float, float],
         angle: float = 0,
     ) -> GMSHGeom2D:
-        circle = sh.geometry.Point(center).buffer(1)
-        ellipse = sh.affinity.scale(circle, radii[0], radii[1])
-        if angle != 0:
-            ellipse = sh.affinity.rotate(ellipse, angle, center)
-        self.add_polygon(ellipse)
+        if radii[1] > radii[0]:
+            radii = (radii[1], radii[0])
+            angle += 90
+        ellipse = gmsh.model.occ.addEllipse(
+            center[0], center[1], 0, radii[0], radii[1]
+        )
+        if angle:
+            gmsh.model.occ.rotate(
+                [(1, ellipse)],
+                center[0],
+                center[1],
+                0.0,
+                0,
+                0,
+                1,
+                math.radians(angle),
+            )
+        ellipse_cl = gmsh.model.occ.addCurveLoop([ellipse])
+        surface = gmsh.model.occ.addPlaneSurface([ellipse_cl])
+        self.geoms.append(surface)
         return self
 
     def add_roundrect(
@@ -251,14 +266,11 @@ class GMSHGeom2D(AbstractGeom2D):
         end: tuple[float, float],
         radius: float,
     ) -> GMSHGeom2D:
-        self.add_polygon(
-            sh.geometry.box(
-                start[0] + radius,
-                start[1] + radius,
-                end[0] - radius,
-                end[1] - radius,
-            ).buffer(radius)
+        rect = gmsh.model.occ.add_rectangle(
+            start[0], start[1], 0, end[0], end[1], roundedRadius=radius
         )
+        gmsh.model.occ.synchronize()
+        self.geoms.append(rect)
         return self
 
     def add_line(

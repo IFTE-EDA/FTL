@@ -228,52 +228,119 @@ class Test_GMSHGeom2D:
         assert bounding_box_rounded == [0.0, 0.0, 0.0, 2.0, 2.0, 0.0]
         assert c2.geoms == [2]
 
-    """
     def test_gmshgeom2d_add_ellipse(self):
-        circle = sh.geometry.Point(0, 0).buffer(1)
+        gmsh.clear()
         geom1 = GMSHGeom2D()
         geom2 = GMSHGeom2D()
         geom1.add_ellipse((0, 0), (1, 2))
         geom2.add_ellipse((0, 0), (2, 1), 90)
-        geom1.cutout(geom2)
-        assert geom1.polygons.area <= 0.0001
-        assert not geom2.polygons.equals(circle)
+        assert (2, 1) in gmsh.model.occ.getEntities()
+        assert round(gmsh.model.occ.getMass(2, 1), 2) == 6.28
+        CoM_rounded = [
+            round(i, 2) for i in gmsh.model.occ.getCenterOfMass(2, 1)
+        ]
+        assert CoM_rounded == [0.0, 0.0, 0.0]
+        bounding_box_rounded = [
+            round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 1)
+        ]
+        print(bounding_box_rounded)
+        assert bounding_box_rounded == [-1.0, -2.0, 0.0, 1.0, 2.0, 0.0]
+        assert geom1.geoms == [1]
+        assert (2, 2) in gmsh.model.occ.getEntities()
+        assert round(gmsh.model.occ.getMass(2, 2), 2) == 6.28
+        CoM_rounded = [
+            round(i, 2) for i in gmsh.model.occ.getCenterOfMass(2, 2)
+        ]
+        assert CoM_rounded == [0.0, 0.0, 0.0]
+        bounding_box_rounded = [
+            round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 2)
+        ]
+        print(bounding_box_rounded)
+        assert bounding_box_rounded == [-1.0, -2.0, 0.0, 1.0, 2.0, 0.0]
+        assert geom2.geoms == [2]
+        # geom1.cutout(geom2)
+        # assert geom1.polygons.area <= 0.0001
+        # assert not geom2.polygons.equals(circle)
 
     def test_gmshgeom2d_get_ellipse(self):
-        circle = sh.geometry.Point(0, 0).buffer(1)
+        gmsh.clear()
         geom1 = GMSHGeom2D.get_ellipse((0, 0), (1, 2))
         geom2 = GMSHGeom2D.get_ellipse((0, 0), (2, 1), 90)
-        geom1.cutout(geom2)
-        assert geom1.polygons.area <= 0.0001
-        assert not geom2.polygons.equals(circle)
+        assert (2, 1) in gmsh.model.occ.getEntities()
+        assert round(gmsh.model.occ.getMass(2, 1), 2) == 6.28
+        CoM_rounded = [
+            round(i, 2) for i in gmsh.model.occ.getCenterOfMass(2, 1)
+        ]
+        assert CoM_rounded == [0.0, 0.0, 0.0]
+        bounding_box_rounded = [
+            round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 1)
+        ]
+        print(bounding_box_rounded)
+        assert bounding_box_rounded == [-1.0, -2.0, 0.0, 1.0, 2.0, 0.0]
+        assert geom1.geoms == [1]
+        assert (2, 2) in gmsh.model.occ.getEntities()
+        assert round(gmsh.model.occ.getMass(2, 2), 2) == 6.28
+        CoM_rounded = [
+            round(i, 2) for i in gmsh.model.occ.getCenterOfMass(2, 2)
+        ]
+        assert CoM_rounded == [0.0, 0.0, 0.0]
+        bounding_box_rounded = [
+            round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 2)
+        ]
+        print(bounding_box_rounded)
+        assert bounding_box_rounded == [-1.0, -2.0, 0.0, 1.0, 2.0, 0.0]
+        assert geom2.geoms == [2]
+        # geom1.cutout(geom2)
+        # assert geom1.polygons.area <= 0.0001
+        # assert not geom2.polygons.equals(circle)
 
     def test_gmshgeom2d_add_roundrect(self):
+        gmsh.clear()
         geom = GMSHGeom2D()
         geom.add_roundrect((0, 0), (1, 1), 0.1)
-        bxmin, bymin, bxmax, bymax = geom.polygons.bounds
-        bxmin = round(bxmin, 10)
-        bymin = round(bymin, 10)
-        bxmax = round(bxmax, 10)
-        bymax = round(bymax, 10)
-        assert (bxmin, bymin, bxmax, bymax) == (0, 0, 1, 1)
-        assert geom.polygons.area < 1
-        assert geom.polygons.area > 0.99
-        assert geom.polygons.equals(
-            sh.geometry.box(0.1, 0.1, 0.9, 0.9).buffer(0.1)
-        )
+        bbox_rounded = [
+            round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 1)
+        ]
+        assert (2, 1) in gmsh.model.occ.getEntities()
+        CoM_rounded = [
+            round(i, 2) for i in gmsh.model.occ.getCenterOfMass(2, 1)
+        ]
+        assert CoM_rounded == [0.5, 0.5, 0]
+        assert bbox_rounded == [0, 0, 0, 1, 1, 0]
+        assert gmsh.model.occ.getMass(2, 1) == 0.9914159265358979
+        assert geom.geoms == [1]
+
+    def test_gmshgeom2d_add_roundrect_circle(self):
+        gmsh.clear()
+        geom = GMSHGeom2D()
+        geom.add_roundrect((-1, -1), (2, 2), 0.999)
+        bbox_rounded = [
+            round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 1)
+        ]
+        assert (2, 1) in gmsh.model.occ.getEntities()
+        CoM_rounded = [
+            round(i, 2) for i in gmsh.model.occ.getCenterOfMass(2, 1)
+        ]
+        assert CoM_rounded == [0.0, 0.0, 0.0]
+        assert bbox_rounded == [-1, -1, 0, 1, 1, 0]
+        assert round(gmsh.model.occ.getMass(2, 1), 2) == 3.14
+        assert geom.geoms == [1]
 
     def test_gmshgeom2d_get_roundrect(self):
         geom = GMSHGeom2D.get_roundrect((0, 0), (1, 1), 0.1)
-        bxmin, bymin, bxmax, bymax = geom.polygons.bounds
-        bxmin = round(bxmin, 10)
-        bymin = round(bymin, 10)
-        bxmax = round(bxmax, 10)
-        bymax = round(bymax, 10)
-        assert (bxmin, bymin, bxmax, bymax) == (0, 0, 1, 1)
-        assert round(geom.polygons.area, 10) == 0.9913654849
-        assert geom.polygons.equals(
-            sh.geometry.box(0.1, 0.1, 0.9, 0.9).buffer(0.1)
-        )
+        bbox_rounded = [
+            round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 1)
+        ]
+        assert (2, 1) in gmsh.model.occ.getEntities()
+        CoM_rounded = [
+            round(i, 2) for i in gmsh.model.occ.getCenterOfMass(2, 1)
+        ]
+        assert CoM_rounded == [0.5, 0.5, 0]
+        assert bbox_rounded == [0, 0, 0, 1, 1, 0]
+        assert gmsh.model.occ.getMass(2, 1) == 0.9914159265358979
+        assert geom.geoms == [1]
+
+    """
 
     def test_gmshgeom2d_add_line(self):
         geom = GMSHGeom2D()
