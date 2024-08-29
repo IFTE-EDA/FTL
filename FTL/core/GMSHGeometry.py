@@ -392,27 +392,6 @@ class GMSHGeom2D(AbstractGeom2D):
         )
         return self
 
-    def _create_surface(self, polygon: sh.Polygon) -> v.Mesh:
-        poly = orient(polygon)
-        ext_coords = list(poly.exterior.coords)
-        int_coords = [list(int.coords) for int in poly.interiors]
-        line_ext = v.Line(ext_coords)
-        lines_int = [v.Line(int_coords) for int_coords in int_coords]
-        return v.merge(
-            line_ext.join_segments(),
-            *[line.join_segments() for line in lines_int],
-        ).triangulate()
-
-    def _extrude_surface(
-        self, surface: v.Mesh, thickness: float, zpos: float
-    ) -> v.Mesh:
-        translate_z = self.z if zpos is None else zpos
-
-        if translate_z == 0:
-            return surface.extrude(thickness)
-        else:
-            return surface.z(translate_z).extrude(thickness)
-
     def extrude(
         self, thickness: float, zpos: float = None, fuse: bool = True
     ) -> v.Mesh:

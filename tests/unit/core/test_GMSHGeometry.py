@@ -10,7 +10,7 @@ import gmsh
 
 import numpy as np
 import vedo as v
-from FTL.core.GMSHGeometry import GMSHGeom2D  # , GMSHGeom3D
+from FTL.core.GMSHGeometry import GMSHGeom2D, GMSHGeom3D
 
 
 class Test_GMSHGeom2D:
@@ -797,155 +797,91 @@ class Test_GMSHGeom2D:
         ]
         assert bbox_rounded == [0, 0, 0, 3, 3, 0]
 
-    """
     def test_gmshgeom2d_extrude_rectangles_disjunct(self):
+        gmsh.clear()
         geom = GMSHGeom2D()
-        box1 = sh.geometry.box(0, 0, 1, 1)
-        box2 = sh.geometry.box(2, 2, 3, 3)
-        geom.add_polygon(box1)
-        geom.add_polygon(box2)
+        geom.add_rectangle((0, 0), (1, 1))
+        geom.add_rectangle((2, 2), (3, 3))
         extrusion = geom.extrude(0.1)
-        assert isinstance(extrusion, v.Mesh)
-        comp = np.array(
-            [
-                [1.0, 0.0, 0.0],
-                [1.0, 1.0, 0.0],
-                [0.0, 1.0, 0.0],
-                [0.0, 0.0, 0.0],
-                [3.0, 2.0, 0.0],
-                [3.0, 3.0, 0.0],
-                [2.0, 3.0, 0.0],
-                [2.0, 2.0, 0.0],
-                [1.0, 0.0, 0.1],
-                [1.0, 1.0, 0.1],
-                [0.0, 1.0, 0.1],
-                [0.0, 0.0, 0.1],
-                [3.0, 2.0, 0.1],
-                [3.0, 3.0, 0.1],
-                [2.0, 3.0, 0.1],
-                [2.0, 2.0, 0.1],
-            ]
-        )
-        print(extrusion.vertices)
-        print(comp)
-        assert comp.__str__() == extrusion.vertices.__str__()
+        assert isinstance(extrusion, GMSHGeom3D)
+        assert extrusion.geoms == [1, 2]
+        assert round(gmsh.model.occ.getMass(3, 1), 5) == 0.1
+        assert round(gmsh.model.occ.getMass(3, 2), 5) == 0.1
+        assert (3, 1) in gmsh.model.occ.getEntities() and (
+            3,
+            2,
+        ) in gmsh.model.occ.getEntities()
+        bbox_rounded_1 = [
+            round(i, 2) for i in gmsh.model.occ.getBoundingBox(3, 1)
+        ]
+        bbox_rounded_2 = [
+            round(i, 2) for i in gmsh.model.occ.getBoundingBox(3, 2)
+        ]
+        assert bbox_rounded_1 == [0, 0, 0, 1, 1, 0.1]
+        assert bbox_rounded_2 == [2, 2, 0, 3, 3, 0.1]
 
-    def test_gmshgeom2d_extrude_rectangles_unfused(self):
+    def test_gmshgeom2d_extrude_rectangles_overlapping_unfused(self):
+        gmsh.clear()
         geom = GMSHGeom2D()
-        box1 = sh.geometry.box(0, 0, 1, 1)
-        box2 = sh.geometry.box(2, 2, 3, 3)
-        geom.add_polygon(box1)
-        geom.add_polygon(box2)
+        geom.add_rectangle((0, 0), (2, 2))
+        geom.add_rectangle((1, 1), (3, 3))
+        assert (2, 1) in gmsh.model.occ.getEntities() and (
+            2,
+            2,
+        ) in gmsh.model.occ.getEntities()
         extrusion = geom.extrude(0.1, fuse=False)
-        assert isinstance(extrusion, list)
-        assert isinstance(extrusion[0], v.Mesh)
-        assert len(extrusion) == 2
-        comp1 = np.array(
-            [
-                [1.0, 0.0, 0.0],
-                [1.0, 1.0, 0.0],
-                [0.0, 1.0, 0.0],
-                [0.0, 0.0, 0.0],
-                [1.0, 0.0, 0.1],
-                [1.0, 1.0, 0.1],
-                [0.0, 1.0, 0.1],
-                [0.0, 0.0, 0.1],
-            ]
-        )
-        comp2 = np.array(
-            [
-                [3.0, 2.0, 0.0],
-                [3.0, 3.0, 0.0],
-                [2.0, 3.0, 0.0],
-                [2.0, 2.0, 0.0],
-                [3.0, 2.0, 0.1],
-                [3.0, 3.0, 0.1],
-                [2.0, 3.0, 0.1],
-                [2.0, 2.0, 0.1],
-            ]
-        )
-        print(extrusion[0].vertices)
-        print(extrusion[1].vertices)
-        print(comp1)
-        print(comp2)
-        assert comp1.__str__() == extrusion[0].vertices.__str__()
-        assert comp2.__str__() == extrusion[1].vertices.__str__()
+        assert isinstance(extrusion, GMSHGeom3D)
+        assert (2, 1) in gmsh.model.occ.getEntities() and (
+            2,
+            2,
+        ) in gmsh.model.occ.getEntities()
+        assert (3, 1) in gmsh.model.occ.getEntities() and (
+            3,
+            2,
+        ) in gmsh.model.occ.getEntities()
+        assert extrusion.geoms == [1, 2]
+        assert round(gmsh.model.occ.getMass(3, 1), 5) == 0.4
+        assert round(gmsh.model.occ.getMass(3, 2), 5) == 0.4
+        bbox_rounded_1 = [
+            round(i, 2) for i in gmsh.model.occ.getBoundingBox(3, 1)
+        ]
+        bbox_rounded_2 = [
+            round(i, 2) for i in gmsh.model.occ.getBoundingBox(3, 2)
+        ]
+        assert bbox_rounded_1 == [0, 0, 0, 2, 2, 0.1]
+        assert bbox_rounded_2 == [1, 1, 0, 3, 3, 0.1]
 
-    def test_gmshgeom2d_extrude_rectangles_overlapping(self):
+    def test_gmshgeom2d_extrude_rectangles_overlapping_fused_by_default(self):
+        gmsh.clear()
         geom = GMSHGeom2D()
-        box1 = sh.geometry.box(0, 0, 2, 2)
-        box2 = sh.geometry.box(1, 1, 3, 3)
-        geom.add_polygon(box1)
-        geom.add_polygon(box2)
+        geom.add_rectangle((0, 0), (2, 2))
+        geom.add_rectangle((1, 1), (3, 3))
+        print("Entities before extruding: ", gmsh.model.occ.getEntities())
+        assert (2, 1) in gmsh.model.occ.getEntities() and (
+            2,
+            2,
+        ) in gmsh.model.occ.getEntities()
         extrusion = geom.extrude(0.1)
-        assert isinstance(extrusion, v.Mesh)
-        comp = np.array(
-            [
-                [2.0, 0.0, 0.0],
-                [2.0, 1.0, 0.0],
-                [3.0, 1.0, 0.0],
-                [3.0, 3.0, 0.0],
-                [1.0, 3.0, 0.0],
-                [1.0, 2.0, 0.0],
-                [0.0, 2.0, 0.0],
-                [0.0, 0.0, 0.0],
-                [2.0, 0.0, 0.1],
-                [2.0, 1.0, 0.1],
-                [3.0, 1.0, 0.1],
-                [3.0, 3.0, 0.1],
-                [1.0, 3.0, 0.1],
-                [1.0, 2.0, 0.1],
-                [0.0, 2.0, 0.1],
-                [0.0, 0.0, 0.1],
-            ]
-        )
-        print(extrusion.vertices)
-        print(comp)
-        assert comp.__str__() == extrusion.vertices.__str__()
-
-    def test_gmshgeom2d_to_3d(self):
-        geom = GMSHGeom2D()
-        box1 = sh.geometry.box(0, 0, 1, 1)
-        box2 = sh.geometry.box(2, 2, 3, 3)
-        geom.add_polygon(box1)
-        geom.add_polygon(box2)
-        geom3d = geom.to_3D(0.1)
-        assert isinstance(geom3d.objects, list)
-        assert isinstance(geom3d.objects[0], v.Mesh)
-        assert len(geom3d.objects) == 2
-        comp1 = np.array(
-            [
-                [1.0, 0.0, 0.0],
-                [1.0, 1.0, 0.0],
-                [0.0, 1.0, 0.0],
-                [0.0, 0.0, 0.0],
-                [1.0, 0.0, 0.1],
-                [1.0, 1.0, 0.1],
-                [0.0, 1.0, 0.1],
-                [0.0, 0.0, 0.1],
-            ]
-        )
-        comp2 = np.array(
-            [
-                [3.0, 2.0, 0.0],
-                [3.0, 3.0, 0.0],
-                [2.0, 3.0, 0.0],
-                [2.0, 2.0, 0.0],
-                [3.0, 2.0, 0.1],
-                [3.0, 3.0, 0.1],
-                [2.0, 3.0, 0.1],
-                [2.0, 2.0, 0.1],
-            ]
-        )
-        print(geom3d.objects[0].vertices)
-        print(geom3d.objects[1].vertices)
-        print(comp1)
-        print(comp2)
-        assert comp1.__str__() == geom3d.objects[0].vertices.__str__()
-        assert comp2.__str__() == geom3d.objects[1].vertices.__str__()
+        assert isinstance(extrusion, GMSHGeom3D)
+        print("Entities after extruding: ", gmsh.model.occ.getEntities())
+        assert (3, 1) in gmsh.model.occ.getEntities() and not (
+            3,
+            2,
+        ) in gmsh.model.occ.getEntities()
+        assert extrusion.geoms == [1]
+        assert round(gmsh.model.occ.getMass(3, 1), 5) == 0.7
+        bbox_rounded = [
+            round(i, 2) for i in gmsh.model.occ.getBoundingBox(3, 1)
+        ]
+        assert bbox_rounded == [0, 0, 0, 3, 3, 0.1]
+        CoM_rounded = [
+            round(i, 2) for i in gmsh.model.occ.getCenterOfMass(3, 1)
+        ]
+        assert CoM_rounded == [1.5, 1.5, 0.05]
 
 
-class Test_FTLGeom3D:
+"""
+class Test_GMSHGeom3D:
     def setup_class(self):
         pass
 
