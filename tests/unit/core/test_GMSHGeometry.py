@@ -10,7 +10,24 @@ import gmsh
 
 import numpy as np
 import vedo as v
-from FTL.core.GMSHGeometry import GMSHGeom2D, GMSHGeom3D
+from FTL.core.GMSHGeometry import GMSHGeom2D, GMSHGeom3D, dimtags, dimtags2int
+
+
+class Test_GMSHGeometry_Utilisites:
+    def setup_class(self):
+        pass
+
+    def test_gmshgeometry_utils_dimtags_default_2d(self):
+        tags = [1, 2, 3, 4, 5]
+        assert dimtags(tags) == [(2, 1), (2, 2), (2, 3), (2, 4), (2, 5)]
+
+    def test_gmshgeometry_utils_dimtags_3d(self):
+        tags = [1, 2, 3, 4, 5]
+        assert dimtags(tags, 3) == [(3, 1), (3, 2), (3, 3), (3, 4), (3, 5)]
+
+    def test_gmshgeometry_utils_dimtags2int(self):
+        dimtags = [(2, 1), (2, 2), (2, 3), (2, 4), (2, 5)]
+        assert dimtags2int(dimtags) == [1, 2, 3, 4, 5]
 
 
 class Test_GMSHGeom2D:
@@ -31,6 +48,14 @@ class Test_GMSHGeom2D:
         geom.add_rectangle((2, 2), (3, 3))
         assert len(geom.geoms) == 2
         assert not geom.is_empty()
+
+    def test_gmshgeom2d_add_objects_dimtags(self):
+        gmsh.clear()
+        geom = GMSHGeom2D()
+        geom.add_rectangle((0, 0), (1, 1))
+        assert geom.dimtags() == [(2, 1)]
+        geom.add_rectangle((2, 2), (3, 3))
+        assert geom.dimtags() == [(2, 1), (2, 2)]
 
     def test_gmshgeom2d_add_polygon_from_list(self):
         gmsh.clear()
@@ -715,7 +740,6 @@ class Test_GMSHGeom2D:
         assert bbox_rounded == [0, 0, 0, 1, 1, 0.1]
         assert round(gmsh.model.occ.getMass(3, 1), 5) == 0.1
         assert extrusion.geoms == [1]
-        assert extrusion.geom2d == geom
 
     # TODO: unextruded z shift test
 
@@ -730,7 +754,6 @@ class Test_GMSHGeom2D:
         assert bbox_rounded == [0, 0, 0.2, 1, 1, 0.3]
         assert round(gmsh.model.occ.getMass(3, 1), 5) == 0.1
         assert extrusion.geoms == [1]
-        assert extrusion.geom2d == geom
 
     def test_gmshgeom2d_make_compound_disjunct(self):
         gmsh.clear()
@@ -894,46 +917,86 @@ class Test_GMSHGeom3D:
         pass
 
     def test_gmshgeom3d_empty_by_default(self):
+        gmsh.clear()
         geom = GMSHGeom3D()
         assert geom.geoms == []
         assert geom.is_empty()
 
+    def test_gmshgeom3d_empty_geom2d_throws_exception(self):
+        gmsh.clear()
+        geom = GMSHGeom3D()
+        try:
+            print(geom.geom2d)
+        except AttributeError:
+            return
+        assert False
+
+    def test_gmshgeom3d_add_object_gmshgeom2d_single(self):
+        gmsh.clear()
+        geom1 = GMSHGeom2D.get_rectangle((0, 0), (1, 1))
+        extrusion1 = geom1.extrude(0.1)
+        assert extrusion1.geoms == [1]
+        geom2 = GMSHGeom2D.get_rectangle((2, 3), (4, 4))
+        extrusion2 = geom2.extrude(0.1)
+        extrusion1.add_object(extrusion2)
+        assert extrusion1.geoms == [1, 2]
+
+    def test_gmshgeom3d_add_object_gmshgeom2d_multi(self):
+        gmsh.clear()
+        geom1 = GMSHGeom2D.get_rectangle((0, 0), (1, 1))
+        extrusion1 = geom1.extrude(0.1)
+        assert extrusion1.geoms == [1]
+        geom2 = GMSHGeom2D.get_rectangle((2, 2), (3, 3))
+        geom2.add_rectangle((4, 4), (5, 5))
+        extrusion2 = geom2.extrude(0.1)
+        assert extrusion2.geoms == [2, 3]
+        extrusion1.add_object(extrusion2)
+        assert extrusion1.geoms == [1, 2, 3]
+
+    def test_gmshgeom3d_add_object_int(self):
+        gmsh.clear()
+        geom1 = GMSHGeom2D.get_rectangle((0, 0), (1, 1))
+        extrusion1 = geom1.extrude(0.1)
+        assert extrusion1.geoms == [1]
+        geom2 = GMSHGeom2D.get_rectangle((2, 3), (4, 4))
+        extrusion2 = geom2.extrude(0.1)
+        extrusion1.add_object(extrusion2.geoms[0])
+        assert extrusion1.geoms == [1, 2]
+
     def test_gmshgeom3d_add_objects_get_length(self):
+        gmsh.clear()
         geom1 = GMSHGeom2D.get_rectangle((0, 0), (1, 1))
         geom1.add_rectangle((2, 2), (3, 3))
         extrusion = geom1.extrude(0.1)
         assert len(extrusion) == 2
         geom2 = GMSHGeom2D.get_rectangle((2, 3), (4, 4))
-        extrusion.add_object(geom2)
+        extrusion.add_object(geom2.extrude(0.1))
         assert len(extrusion) == 3
+
+    def test_gmshgeom3d_dimtags(self):
+        gmsh.clear()
+        geom1 = GMSHGeom2D.get_rectangle((0, 0), (1, 1))
+        extrusion = geom1.extrude(0.1)
+        assert extrusion._dimtags() == [(3, 1)]
+        geom2 = GMSHGeom2D.get_rectangle((2, 3), (4, 4))
+        extrusion.add_object(geom2.extrude(0.1))
+        assert extrusion._dimtags() == [(3, 1), (3, 2)]
 
     # TODO: fuse_all() is not implemented in GMSHGeom3D
 
-    """
     def test_gmshgeom3d_geom2d_equal(self):
+        gmsh.clear()
         geom2d = GMSHGeom2D()
         geom2d.add_polygon(sh.geometry.box(0, 0, 1, 1))
-        geom2d.add_polygon(sh.geometry.box(2, 2, 3, 3))
-        geom3d = geom2d.to_3D(0.1)
-        assert geom3d.geom2d.polygons.equals(geom2d.polygons)
+        geom3d = geom2d.extrude(0.1)
+        assert geom3d.geom2d == geom2d
 
     def test_gmshgeom3d_geom2d_not_equal(self):
-        geom2d = GMSHGeom2D()
-        geom2d.add_polygon(sh.geometry.box(0, 0, 1, 1))
-        geom2d.add_polygon(sh.geometry.box(2, 2, 3, 3))
-        geom3d = geom2d.to_3D(0.1)
-        geom2d.add_polygon(sh.geometry.box(3, 3, 4, 4))
-        assert not geom3d.geom2d.polygons.equals(geom2d.polygons)
-
-    def test_gmshgeom3d_geom2d_none(self):
-        geom3d = GMSHGeom3D()
-        try:
-            geom3d.geom2d
-        except AttributeError:
-            assert True
-        else:
-            assert False
-"""
+        geom2d_1 = GMSHGeom2D.get_rectangle((0, 0), (1, 1))
+        geom2d_2 = GMSHGeom2D.get_rectangle((0, 0), (1, 1))
+        # geom2d.add_polygon(sh.geometry.box(2, 2, 3, 3))
+        geom3d = geom2d_1.to_3D(0.1)
+        assert geom3d.geom2d != geom2d_2
 
 
 """def test_gmshgeom2d_fix_list(self):
@@ -943,5 +1006,4 @@ class Test_GMSHGeom3D:
         assert geom._fix_list([1, 2, 3, 4, 1]) == [1, 2, 3, 4]
         assert geom._fix_list([(1, 2), (3, 4)]) == [(1, 2), (3, 4)]
         assert geom._fix_list([(1, 2), (3, 4), (1, 2)]) == [(1, 2), (3, 4)]
-        assert geom._fix_list([(1, 2), (3, 4), (1, 2)]) == [(1, 2), (3, 4), (1, 2)]
-"""
+        assert geom._fix_list([(1, 2), (3, 4), (1, 2)]) == [(1, 2), (3, 4), (1, 2)]"""

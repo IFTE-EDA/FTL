@@ -347,13 +347,14 @@ class GMSHGeom2D(AbstractGeom2D):
         self.geoms.append(surface)
         return self
 
-    def _dim_tags(self) -> list[tuple[int, int]]:
-        return [(2, tag) for tag in self.geoms]
+    def dimtags(self) -> list[tuple[int, int]]:
+        return dimtags(self.geoms)
 
+    # TODO: check before fusing if only 1 element contained?
     def _fuse_all(self) -> int:
         if len(self.geoms) == 1:
             return self.geoms[0]
-        tags = self._dim_tags()
+        tags = self.dimtags()
         fused = gmsh.model.occ.fuse([tags[0]], tags[1:])
         self.geoms = [f[1] for f in fused[0]]
         return fused[0]
@@ -371,20 +372,20 @@ class GMSHGeom2D(AbstractGeom2D):
             geoms = [geoms]
         self._fuse_all()
         gmsh.model.occ.cut(
-            self._dim_tags(),
+            self.dimtags(),
             [(2, g) for g in geoms],
         )
         return self
 
     def translate(self, x: float = 0, y: float = 0) -> GMSHGeom2D:
-        gmsh.model.occ.translate(self._dim_tags(), x, y, 0)
+        gmsh.model.occ.translate(self.dimtags(), x, y, 0)
         return self
 
     def rotate(
         self, angle: float = 0, center: tuple(float, float) = (0, 0)
     ) -> GMSHGeom2D:
         gmsh.model.occ.rotate(
-            self._dim_tags(),
+            self.dimtags(),
             x=center[0],
             y=center[1],
             z=0,
@@ -403,8 +404,8 @@ class GMSHGeom2D(AbstractGeom2D):
         if zpos is None:
             zpos = self.z
         if zpos != 0:
-            gmsh.model.occ.translate(self._dim_tags(), 0, 0, zpos)
-        extr = gmsh.model.occ.extrude(self._dim_tags(), 0, 0, thickness)
+            gmsh.model.occ.translate(self.dimtags(), 0, 0, zpos)
+        extr = gmsh.model.occ.extrude(self.dimtags(), 0, 0, thickness)
         extr = [e[1] for e in extr if e[0] == 3]
         print("Extruded: ", extr)
         return GMSHGeom3D(extr, self)
@@ -453,14 +454,25 @@ class GMSHGeom3D(AbstractGeom3D):
             self.geoms = []
         self._geom2d = geom2d
 
-    def is_empty(self) -> bool:
-        return not len(self.geoms)
-
     def __len__(self):
         return len(self.geoms)
 
+    def is_empty(self) -> bool:
+        return not len(self.geoms)
+
+    def _dimtags(self) -> list[tuple[int, int]]:
+        return dimtags(self.geoms, 3)
+
+    # TODO: Support adding list of integers?
     def add_object(self, obj: int) -> None:
-        self.geoms.append(obj)
+        if isinstance(obj, int):
+            self.geoms.append(obj)
+            return self
+        if not isinstance(obj, int):
+            if isinstance(obj, GMSHGeom3D):
+                self.geoms.extend(obj.geoms)
+                return self
+            raise TypeError("Object must be an integer or GMSHGeom3D.")
 
     @property
     def geom2d(self) -> GMSHGeom2D:
