@@ -23,6 +23,15 @@ class Test_GMSHGeom2D:
         assert geom.is_empty()
         assert geom.geoms == []
 
+    def test_gmshgeom2d_add_objects_not_empty_get_len(self):
+        geom = GMSHGeom2D()
+        geom.add_rectangle((0, 0), (1, 1))
+        assert len(geom.geoms) == 1
+        assert not geom.is_empty()
+        geom.add_rectangle((2, 2), (3, 3))
+        assert len(geom.geoms) == 2
+        assert not geom.is_empty()
+
     def test_gmshgeom2d_add_polygon_from_list(self):
         gmsh.clear()
         geom = GMSHGeom2D()
@@ -880,24 +889,27 @@ class Test_GMSHGeom2D:
         assert CoM_rounded == [1.5, 1.5, 0.05]
 
 
-"""
 class Test_GMSHGeom3D:
     def setup_class(self):
         pass
 
     def test_gmshgeom3d_empty_by_default(self):
-        geom = FTLGeom3D()
-        assert geom.objects == []
+        geom = GMSHGeom3D()
+        assert geom.geoms == []
         assert geom.is_empty()
 
-    def test_gmshgeom3d_add_objects(self):
-        geom = FTLGeom3D()
-        geom.objects = []
-        geom.add_object(v.Box())
-        assert len(geom.objects) == 1
-        geom.add_object(v.Box())
-        assert len(geom.objects) == 2
+    def test_gmshgeom3d_add_objects_get_length(self):
+        geom1 = GMSHGeom2D.get_rectangle((0, 0), (1, 1))
+        geom1.add_rectangle((2, 2), (3, 3))
+        extrusion = geom1.extrude(0.1)
+        assert len(extrusion) == 2
+        geom2 = GMSHGeom2D.get_rectangle((2, 3), (4, 4))
+        extrusion.add_object(geom2)
+        assert len(extrusion) == 3
 
+    # TODO: fuse_all() is not implemented in GMSHGeom3D
+
+    """
     def test_gmshgeom3d_geom2d_equal(self):
         geom2d = GMSHGeom2D()
         geom2d.add_polygon(sh.geometry.box(0, 0, 1, 1))
@@ -914,7 +926,7 @@ class Test_GMSHGeom3D:
         assert not geom3d.geom2d.polygons.equals(geom2d.polygons)
 
     def test_gmshgeom3d_geom2d_none(self):
-        geom3d = FTLGeom3D()
+        geom3d = GMSHGeom3D()
         try:
             geom3d.geom2d
         except AttributeError:

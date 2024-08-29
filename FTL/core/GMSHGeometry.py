@@ -146,6 +146,9 @@ class GMSHGeom2D(AbstractGeom2D):
         ret.add_arc(start, mid, end, width)
         return ret
 
+    def __len__(self):
+        return len(self.geoms)
+
     def is_empty(self) -> bool:
         if len(self.geoms) == 0:
             return True
@@ -446,10 +449,15 @@ class GMSHGeom3D(AbstractGeom3D):
     def __init__(self, geoms: list[int] = [], geom2d: GMSHGeom2D = None):
         if len(geoms):
             self.geoms = geoms
+        else:
+            self.geoms = []
         self._geom2d = geom2d
 
     def is_empty(self) -> bool:
         return not len(self.geoms)
+
+    def __len__(self):
+        return len(self.geoms)
 
     def add_object(self, obj: int) -> None:
         self.geoms.append(obj)
