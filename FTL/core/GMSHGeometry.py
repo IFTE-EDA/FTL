@@ -15,14 +15,27 @@ import gmsh
 from FTL.core.ABCGeometry import AbstractGeom2D, AbstractGeom3D
 
 
+def dimtags(geoms: list[int], dim: int = 2) -> list[tuple[int, int]]:
+    if not isinstance(geoms, list):
+        return [(dim, geoms)]
+    return [(dim, tag) for tag in geoms]
+
+
+def dimtags2int(geoms: list[tuple[int, int]]) -> list[int]:
+    return [e[1] for e in geoms]
+
+
 class GMSHGeom2D(AbstractGeom2D):
     polygons: list[int]
     geoms: list[int]
 
     z: float = 0
 
-    def __init__(self, z: float = 0, polygons: list[int] = None):
-        self.geoms = [polygons] if polygons is not None else []
+    def __init__(self, z: float = 0, geoms: list[int] = None):
+        if geoms is not None:
+            self.geoms = geoms if isinstance(geoms, list) else [geoms]
+        else:
+            self.geoms = []
         self.z = z
         if not gmsh.is_initialized():
             gmsh.initialize()
@@ -38,17 +51,26 @@ class GMSHGeom2D(AbstractGeom2D):
                 if isinstance(el, (list, tuple)):
                     yield from _flatten(el)
                 else:
-                    yield el
+                    if isinstance(el, GMSHGeom2D):
+                        yield from el.geoms
+                    else:
+                        yield el
 
         # it's a list of GMSHGeom2D (or list of lists)
-        # from functools import reduce
-        # import operator
         if isinstance(geoms, (list, tuple)):
             # geoms = reduce(operator.concat, geoms)
             geoms = list(_flatten(geoms))
-        z = geoms[0].z if len(geoms) > 0 else 0
-        polys = gmsh.model.occ.fuse([g.polygons for g in geoms])
-        return cls(z, polys)
+        # objects = [(2, geoms[0])]
+        objects = dimtags(geoms[0])
+        tools = dimtags(geoms[1:])
+        # tools = [(2, tag) for tag in geoms[1:]]
+        print("Objects: ", objects)
+        print("Tools: ", tools)
+        if not isinstance(tools, list):
+            tools = [tools]
+        geoms = dimtags2int(gmsh.model.occ.fuse(objects, tools)[0])
+        print("Fused: ", geoms)
+        return cls(0, geoms)
 
     @classmethod
     def get_polygon(

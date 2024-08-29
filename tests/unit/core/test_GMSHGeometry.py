@@ -503,7 +503,7 @@ class Test_GMSHGeom2D:
         )
         assert geom.geoms == [1, 2, 3]
 
-    def test_gmshgeom2d_fuse_all_touching_points(self):
+    def test_gmshgeom2d_fuse_all_touching_point(self):
         gmsh.clear()
         geom = GMSHGeom2D()
         geom.add_rectangle((0, 0), (1, 1))
@@ -723,19 +723,81 @@ class Test_GMSHGeom2D:
         assert extrusion.geoms == [1]
         assert extrusion.geom2d == geom
 
-    """
-    def test_gmshgeom2d_make_compound(self):
-        geom1 = GMSHGeom2D()
-        geom1.add_polygon(sh.geometry.box(0, 0, 1, 1))
-        geom2 = GMSHGeom2D()
-        geom2.add_polygon(sh.geometry.box(2, 2, 3, 3))
+    def test_gmshgeom2d_make_compound_disjunct(self):
+        gmsh.clear()
+        geom1 = GMSHGeom2D().get_rectangle((0, 0), (1, 1))
+        geom2 = GMSHGeom2D().get_rectangle((2, 2), (3, 3))
+        assert geom1.geoms == [1]
+        assert geom2.geoms == [2]
+        bbox_rounded_1 = [
+            round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 1)
+        ]
+        bbox_rounded_2 = [
+            round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 2)
+        ]
+        assert bbox_rounded_1 == [0, 0, 0, 1, 1, 0]
+        assert bbox_rounded_2 == [2, 2, 0, 3, 3, 0]
+        assert (2, 1) in gmsh.model.occ.getEntities() and (
+            2,
+            2,
+        ) in gmsh.model.occ.getEntities()
         compound = GMSHGeom2D.make_compound([geom1, geom2])
         assert isinstance(compound, GMSHGeom2D)
-        assert len(compound.polygons.geoms) == 2
-        assert compound.polygons.equals(
-            sh.MultiPolygon([geom1.polygons, geom2.polygons])
-        )
+        assert (2, 1) in gmsh.model.occ.getEntities() and (
+            2,
+            2,
+        ) in gmsh.model.occ.getEntities()
+        assert compound.geoms == [1, 2]
 
+    def test_gmshgeom2d_make_compound_touching_point(self):
+        gmsh.clear()
+        geom1 = GMSHGeom2D().get_rectangle((0, 0), (1, 1))
+        geom2 = GMSHGeom2D().get_rectangle((1, 1), (2, 2))
+        assert geom1.geoms == [1]
+        assert geom2.geoms == [2]
+        assert (2, 1) in gmsh.model.occ.getEntities() and (
+            2,
+            2,
+        ) in gmsh.model.occ.getEntities()
+        compound = GMSHGeom2D.make_compound([geom1, geom2])
+        assert isinstance(compound, GMSHGeom2D)
+        assert (2, 1) in gmsh.model.occ.getEntities() and (
+            2,
+            2,
+        ) in gmsh.model.occ.getEntities()
+        assert compound.geoms == [1, 2]
+        bbox_rounded_1 = [
+            round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 1)
+        ]
+        bbox_rounded_2 = [
+            round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 2)
+        ]
+        assert bbox_rounded_1 == [0, 0, 0, 1, 1, 0]
+        assert bbox_rounded_2 == [1, 1, 0, 2, 2, 0]
+
+    def test_gmshgeom2d_make_compound_overlapping(self):
+        gmsh.clear()
+        geom1 = GMSHGeom2D().get_rectangle((0, 0), (2, 2))
+        geom2 = GMSHGeom2D().get_rectangle((1, 1), (3, 3))
+        assert geom1.geoms == [1]
+        assert geom2.geoms == [2]
+        assert (2, 1) in gmsh.model.occ.getEntities() and (
+            2,
+            2,
+        ) in gmsh.model.occ.getEntities()
+        compound = GMSHGeom2D.make_compound([geom1, geom2])
+        assert isinstance(compound, GMSHGeom2D)
+        assert (2, 1) in gmsh.model.occ.getEntities() and not (
+            2,
+            2,
+        ) in gmsh.model.occ.getEntities()
+        assert compound.geoms == [1]
+        bbox_rounded = [
+            round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 1)
+        ]
+        assert bbox_rounded == [0, 0, 0, 3, 3, 0]
+
+    """
     def test_gmshgeom2d_extrude_rectangles_disjunct(self):
         geom = GMSHGeom2D()
         box1 = sh.geometry.box(0, 0, 1, 1)
