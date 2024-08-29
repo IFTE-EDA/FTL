@@ -154,9 +154,9 @@ class GMSHGeom2D(AbstractGeom2D):
             return True
         return False
 
-    def render(self):
+    def render(self, dim=3):
         gmsh.model.occ.synchronize()
-        gmsh.model.mesh.generate(3)
+        gmsh.model.mesh.generate(dim)
 
     def _add_list_polygon(
         self,
