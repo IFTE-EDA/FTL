@@ -43,9 +43,6 @@ class GMSHGeom2D(AbstractGeom2D):
 
     @classmethod
     def make_compound(cls, geoms: GMSHGeom2D) -> GMSHGeom2D:
-        # if isinstance(geoms, GMSHGeom2D):
-        #    return geoms
-
         def _flatten(lst):
             for el in lst:
                 if isinstance(el, (list, tuple)):
@@ -60,17 +57,21 @@ class GMSHGeom2D(AbstractGeom2D):
         if isinstance(geoms, (list, tuple)):
             # geoms = reduce(operator.concat, geoms)
             geoms = list(_flatten(geoms))
-        # objects = [(2, geoms[0])]
-        objects = dimtags(geoms[0])
-        tools = dimtags(geoms[1:])
-        # tools = [(2, tag) for tag in geoms[1:]]
-        print("Objects: ", objects)
-        print("Tools: ", tools)
-        if not isinstance(tools, list):
-            tools = [tools]
-        geoms = dimtags2int(gmsh.model.occ.fuse(objects, tools)[0])
-        print("Fused: ", geoms)
-        return cls(0, geoms)
+        if len(geoms) > 1:
+            # objects = [(2, geoms[0])]
+            objects = dimtags(geoms[0])
+            tools = dimtags(geoms[1:])
+            # tools = [(2, tag) for tag in geoms[1:]]
+            print("Objects: ", objects)
+            print("Tools: ", tools)
+            if not isinstance(tools, list):
+                tools = [tools]
+            geoms = dimtags2int(gmsh.model.occ.fuse(objects, tools)[0])
+            print("Fused: ", geoms)
+            return cls(0, geoms)
+        if len(geoms) == 1:
+            return cls(0, geoms)
+        return cls()
 
     @classmethod
     def get_polygon(
@@ -154,6 +155,11 @@ class GMSHGeom2D(AbstractGeom2D):
             return True
         return False
 
+    def copy(self):
+        copy = deepcopy(self)
+        copy.geoms = dimtags2int(gmsh.model.occ.copy(self.dimtags()))
+        return copy
+
     def render(self, dim=3):
         gmsh.model.occ.synchronize()
         gmsh.model.mesh.generate(dim)
@@ -223,6 +229,7 @@ class GMSHGeom2D(AbstractGeom2D):
     def add_polygon_orient(
         self, polygon: sh.Polygon, holes: list[sh.Polygon] = []
     ) -> GMSHGeom2D:
+        return self.add_polygon(orient(polygon), [orient(h) for h in holes])
         if isinstance(polygon, sh.Polygon):
             new_poly = orient(polygon)
         else:
@@ -232,7 +239,7 @@ class GMSHGeom2D(AbstractGeom2D):
                 print(f"Poly: {polygon}")
                 print(f"Holes: {holes}")
                 raise Exception("Error in orienting polygon")
-        self.polygons = self.polygons.union(new_poly)
+        self.add_polygon(new_poly)
         return self
 
     def add_rectangle(
@@ -303,6 +310,7 @@ class GMSHGeom2D(AbstractGeom2D):
         coords: list[tuple[float, float]],
         width: float,
     ) -> GMSHGeom2D:
+        coords = list(coords)
         if len(coords) < 3:
             coords.append(coords[1])
             coords[1] = (
@@ -352,6 +360,8 @@ class GMSHGeom2D(AbstractGeom2D):
 
     # TODO: check before fusing if only 1 element contained?
     def _fuse_all(self) -> int:
+        if not len(self.geoms):
+            return []
         if len(self.geoms) == 1:
             return self.geoms[0]
         tags = self.dimtags()
@@ -362,7 +372,11 @@ class GMSHGeom2D(AbstractGeom2D):
     def cutout(self, geoms: (GMSHGeom2D, sh.Polygon)) -> GMSHGeom2D:
         if isinstance(geoms, GMSHGeom2D):
             geoms = geoms.geoms
-        if isinstance(geoms, list) and isinstance(geoms[0], GMSHGeom2D):
+        if (
+            isinstance(geoms, list)
+            and len(geoms)
+            and isinstance(geoms[0], GMSHGeom2D)
+        ):
             ret = []
             for g in geoms:
                 ret.extend(g.geoms)
@@ -370,6 +384,8 @@ class GMSHGeom2D(AbstractGeom2D):
             geoms = ret
         if not isinstance(geoms, list):
             geoms = [geoms]
+        if geoms == []:
+            return self
         self._fuse_all()
         gmsh.model.occ.cut(
             self.dimtags(),
@@ -399,6 +415,8 @@ class GMSHGeom2D(AbstractGeom2D):
     def extrude(
         self, thickness: float, zpos: float = None, fuse: bool = True
     ) -> v.Mesh:
+        if not len(self.geoms):
+            return GMSHGeom3D()
         if fuse:
             self._fuse_all()
         if zpos is None:
@@ -416,34 +434,8 @@ class GMSHGeom2D(AbstractGeom2D):
         return ret
 
     def plot(self, title: str = None):
-        def _plot(geom):
-            if isinstance(geom, sh.Polygon):
-                path = Path.make_compound_path(
-                    Path(np.asarray(geom.exterior.coords)),
-                    *[
-                        Path(np.asarray(hole.coords))
-                        for hole in geom.interiors
-                    ],
-                )
-
-                patch = PathPatch(path)
-                collection = PatchCollection([patch])
-
-                axs.add_collection(collection, autolim=True)
-                axs.autoscale_view()
-            else:
-                for elem in geom.geoms:
-                    _plot(elem)
-
-        fig, axs = plt.subplots()
-        # axs.xaxis.set_major_locator(plt.NullLocator())
-        # axs.yaxis.set_major_locator(plt.NullLocator())
-        axs.patch.set_color("w")
-        axs.set_aspect("equal", "datalim")
-        _plot(self.polygons)
-        if title is not None:
-            plt.title(title)
-        plt.show()
+        gmsh.model.occ.synchronize()
+        gmsh.fltk.run()
 
 
 class GMSHGeom3D(AbstractGeom3D):

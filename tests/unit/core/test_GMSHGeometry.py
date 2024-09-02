@@ -49,6 +49,32 @@ class Test_GMSHGeom2D:
         assert len(geom.geoms) == 2
         assert not geom.is_empty()
 
+    def test_gmshgeom2d_copy(self):
+        gmsh.clear()
+        geom = GMSHGeom2D()
+        geom.add_rectangle((0, 0), (1, 1))
+        geom.add_rectangle((2, 2), (3, 3))
+        copy = geom.copy()
+        assert isinstance(copy, GMSHGeom2D)
+        assert geom.geoms == [1, 2]
+        assert copy.geoms == [3, 4]
+        assert round(gmsh.model.occ.getMass(2, 1), 5) == 1
+        assert round(gmsh.model.occ.getMass(2, 2), 5) == 1
+        assert all(
+            [
+                e in gmsh.model.occ.getEntities()
+                for e in [(2, 1), (2, 2), (2, 3), (2, 4)]
+            ]
+        )
+        bbox_rounded_1 = [
+            round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 3)
+        ]
+        bbox_rounded_2 = [
+            round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 4)
+        ]
+        assert bbox_rounded_1 == [0, 0, 0, 1, 1, 0]
+        assert bbox_rounded_2 == [2, 2, 0, 3, 3, 0]
+
     def test_gmshgeom2d_add_objects_dimtags(self):
         gmsh.clear()
         geom = GMSHGeom2D()
@@ -910,6 +936,8 @@ class Test_GMSHGeom2D:
             round(i, 2) for i in gmsh.model.occ.getCenterOfMass(3, 1)
         ]
         assert CoM_rounded == [1.5, 1.5, 0.05]
+
+    # TODO: test for empty objects/lists in make_compound
 
 
 class Test_GMSHGeom3D:
