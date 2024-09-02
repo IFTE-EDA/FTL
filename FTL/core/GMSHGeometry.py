@@ -299,7 +299,12 @@ class GMSHGeom2D(AbstractGeom2D):
         radius: float,
     ) -> GMSHGeom2D:
         rect = gmsh.model.occ.add_rectangle(
-            start[0], start[1], 0, end[0], end[1], roundedRadius=radius
+            start[0],
+            start[1],
+            0,
+            end[0] - start[0],
+            end[1] - start[1],
+            roundedRadius=radius,
         )
         gmsh.model.occ.synchronize()
         self.geoms.append(rect)

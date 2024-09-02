@@ -373,7 +373,7 @@ class Test_GMSHGeom2D:
     def test_gmshgeom2d_add_roundrect_circle(self):
         gmsh.clear()
         geom = GMSHGeom2D()
-        geom.add_roundrect((-1, -1), (2, 2), 0.999)
+        geom.add_roundrect((-1, -1), (1, 1), 0.999)
         bbox_rounded = [
             round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 1)
         ]
