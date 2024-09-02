@@ -435,6 +435,12 @@ class GMSHGeom2D(AbstractGeom2D):
 
     def plot(self, title: str = None):
         gmsh.model.occ.synchronize()
+        all_entities = gmsh.model.occ.getEntities(-1)
+        gmsh.model.setVisibility(all_entities, 0)
+        print("Entities: ", all_entities)
+        # gmsh.model.setVisibility(, 1)
+        gmsh.model.setVisibility(self.dimtags(), 1, True)
+        print("Own Entities: ", self.dimtags())
         gmsh.fltk.run()
 
 
