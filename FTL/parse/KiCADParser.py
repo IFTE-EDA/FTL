@@ -15,7 +15,7 @@ from FTL.parse.kicad_parser import KicadPCB, SexpList
 
 # from FTL.parse.kicad_parser import SexpList
 from FTL.Util.logging import Logger, Loggable
-from FTL.core.FTLGeometry import FTLGeom2D
+from FTL.core.GMSHGeometry import GMSHGeom2D
 
 
 class KiCADConfig:
@@ -129,11 +129,14 @@ class KiCADParser(Loggable):
                 self.log_info(f"->Rendering {footprint.name}")
                 footprint.render(self.stackup)
 
-    def render_layers(self):
+    def render_layers(self, layers=None):
+        if layers is None or len(layers) == 0:
+            layers = self.stackup.get_layer_names()
         self.log_info("Rendering PCB...")
         names = []
         renders = []
-        for name, layer in self.stackup.items():
+        for name in layers:
+            layer = self.stackup.get_layer(name)
             self.log_info(f"Rendering layer '{name}'...")
             names.append(name.strip('"'))
             renders.append(layer.render())
@@ -141,7 +144,7 @@ class KiCADParser(Loggable):
 
     def render(self):
         self.render_footprints()
-        # self.stackup.add_drill("*", FTLGeom2D.get_circle((0, 0), 6))
+        # self.stackup.add_drill("*", GMSHGeom2D.get_circle((0, 0), 6))
         renders = self.render_layers()
         renders_3d = []
         for name, layer in self.stackup.stackup.items():
@@ -180,7 +183,8 @@ class KiCADParser(Loggable):
         #    if self.stackup.layer_has_objects(layer):
         #        renders[layer].plot(layer)
         # renders["F.Cu"].plot("F.Cu")
-        v.show(renders_3d, metalization, axes=1, viewup="y", interactive=True)
+        metalization.plot("Metalization")
+        # v.show(renders_3d, metalization, axes=1, viewup="y", interactive=True)
         return renders["F.Cu"]
 
 
@@ -256,7 +260,7 @@ class KiCADStackupManager(Loggable):
                     self.log_debug(
                         f"-> Adding object {obj} to layer '{layer.name}'..."
                     )
-                    func(layer, obj)
+                    func(layer, obj.copy())
         elif dest in self.layers:
             func(self.layers[dest], obj)
         else:
@@ -299,7 +303,7 @@ class KiCADStackupManager(Loggable):
         self._dispatch_drill(dest, obj)
 
     def add_via_metalization(
-        self, dest: tuple(str, str), at: tuple(float, float), obj: FTLGeom2D
+        self, dest: tuple(str, str), at: tuple(float, float), obj: GMSHGeom2D
     ):
         if len(dest) != 2:
             raise Exception("Destination must be a tuple of two layer names.")
@@ -309,8 +313,8 @@ class KiCADStackupManager(Loggable):
             )
         if len(at) != 2:
             raise Exception("Via position must be a tuple of two floats.")
-        if not isinstance(obj, FTLGeom2D):
-            raise Exception("Via geometry must be an FTLGeom2D object.")
+        if not isinstance(obj, GMSHGeom2D):
+            raise Exception("Via geometry must be an GMSHGeom2D object.")
         self.metalizations.append((dest, at, obj))
 
     def get_layer(self, name):
@@ -405,11 +409,14 @@ class KiCADLayer(Loggable):
         self.thickness = 0
 
     def has_objects(self):
-        return (
-            len(self.geoms) > 0
-            or len(self.segments) > 0
-            or len(self.footprints) > 0
-        )
+        if (
+            not len(self.geoms)
+            and not len(self.segments)
+            and not len(self.footprints)
+        ):
+            return False
+        if all([geom.is_empty() for geom in self.footprints]):
+            return False
 
     def add_geometry(self, geom):
         if isinstance(geom, list):
@@ -454,10 +461,10 @@ class KiCADLayer(Loggable):
         segments = self.render_segments()
         arcs = self.render_arcs()
         zones = self.render_zones()
-        ret = FTLGeom2D.make_compound(
+        ret = GMSHGeom2D.make_compound(
             (self.footprints, shapes, segments, arcs, zones)
         )
-        drills_rendered = FTLGeom2D.make_compound(self.drills)
+        drills_rendered = GMSHGeom2D.make_compound(self.drills)
         ret.cutout(drills_rendered)
         return ret
 
@@ -471,14 +478,14 @@ class KiCADLayer(Loggable):
             else:
                 for geom in self.geoms:
                     renders.append(geom.render())
-        return FTLGeom2D.make_compound(renders)
+        return GMSHGeom2D.make_compound(renders)
 
     def render_vias(self):
         renders = []
         if len(self.geoms["via"]) > 0:
             self.log_info(f"Rendering {len(self.geoms['via'])} vias...")
             renders = [via.render() for via in self.geoms["via"]]
-        return FTLGeom2D.make_compound(renders)
+        return GMSHGeom2D.make_compound(renders)
 
     def render_segments(self):
         renders = []
@@ -486,11 +493,11 @@ class KiCADLayer(Loggable):
             self.log_info(f"Rendering {len(self.segments)} segments...")
             for segment in self.segments:
                 renders.append(
-                    FTLGeom2D.get_line(
+                    GMSHGeom2D.get_line(
                         (segment["start"], segment["end"]), segment["width"]
                     )
                 )
-        return FTLGeom2D.make_compound(renders)
+        return GMSHGeom2D.make_compound(renders)
 
     def render_arcs(self):
         renders = []
@@ -498,14 +505,14 @@ class KiCADLayer(Loggable):
             self.log_info(f"Rendering {len(self.arcs)} arcs...")
             for arc in self.arcs:
                 renders.append(
-                    FTLGeom2D.get_arc(
+                    GMSHGeom2D.get_arc(
                         arc["start"],
                         arc["mid"],
                         arc["end"],
                         arc["width"],
                     )
                 )
-        return FTLGeom2D.make_compound(renders)
+        return GMSHGeom2D.make_compound(renders)
 
     def render_zones(self):
         renders = []
@@ -513,7 +520,7 @@ class KiCADLayer(Loggable):
             self.log_info(f"Rendering {len(self.zones)} zones...")
             for zone in self.zones:
                 renders.append(zone.render())
-        return FTLGeom2D.make_compound(renders)
+        return GMSHGeom2D.make_compound(renders)
 
 
 class KiCADObject(ABC, Loggable):
@@ -590,7 +597,7 @@ class KiCADZone(KiCADObject):
 
     def render(self):
         geom = [poly.render() for poly in self.filled_polygon]
-        return FTLGeom2D.make_compound(geom)
+        return GMSHGeom2D.make_compound(geom)
 
 
 class KiCADPolygon(KiCADObject):
@@ -606,7 +613,7 @@ class KiCADPolygon(KiCADObject):
         )
 
     def render(self, force_fill=False):
-        geom = FTLGeom2D()
+        geom = GMSHGeom2D()
         if force_fill:
             geom.add_polygon(sh.Polygon(self.points))
         elif self.fill == "none" and self.stroke_width:
@@ -671,7 +678,7 @@ class KiCADFilledPolygon(KiCADObject):
         # self.log_debug(f"Holes:    {self.holes}")
 
     def render(self, force_fill=False):
-        geom = FTLGeom2D()
+        geom = GMSHGeom2D()
         # print(f"Rendering polygon with {self.exterior} and {self.holes}")
         print(f"Num holes: {len(self.holes)}")
         print(self.holes)
@@ -680,7 +687,7 @@ class KiCADFilledPolygon(KiCADObject):
         print(f"Int: {list(geom.polygons.interiors)}")
         # geom.extrude(1).wireframe().show().close()
         # vis = [sh.geometry.polygon.orient(sh.Polygon(p)) for p in self.exterior]
-        # FTLGeom2D.make_compound(vis).plot()
+        # GMSHGeom2D.make_compound(vis).plot()
         return geom
 
 
@@ -722,15 +729,15 @@ class KiCADPart(KiCADEntity):
         for key in self.geoms.keys():
             self.geoms[key] = params[key] if key in params else []
 
-    def render(self, layers=None) -> FTLGeom2D:
+    def render(self, layers=None) -> GMSHGeom2D:
         self.log_info(f"Rendering part {self.name} at {self.at}...")
         self.log_info("->Rendering pads...")
         pads = self.render_pads(layers)
         self.log_info("->Rendering shapes...")
         shapes = self.render_shapes(layers)
-        return FTLGeom2D.make_compound((pads, shapes))
+        return GMSHGeom2D.make_compound((pads, shapes))
 
-    def render_pads(self, layers=None) -> FTLGeom2D:
+    def render_pads(self, layers=None) -> GMSHGeom2D:
         rendered_pads = []
         for pad_obj in self.pads:
             pad = KiCADPad(self, pad_obj)
@@ -746,16 +753,18 @@ class KiCADPart(KiCADEntity):
                     self.log_debug(
                         f"Adding pad {pad.name} to layer '{layer}'..."
                     )
-                    layers.add_footprint(layer, render)
-        return FTLGeom2D.make_compound(rendered_pads)
+                    cp = render.copy()
+                    layers.add_footprint(layer, cp)
+                    print(f"Render: {render.geoms}, Copy: {cp.geoms}")
+        return GMSHGeom2D.make_compound(rendered_pads)
 
-    def render_shapes(self, layers=None) -> FTLGeom2D:
+    def render_shapes(self, layers=None) -> GMSHGeom2D:
         geom = []
         if len(self.geoms["fp_line"]) > 0:
             self.log_info(f"Rendering {len(self.geoms['fp_line'])} lines...")
             for line in self.geoms["fp_line"]:
                 if line["stroke"]["type"] == "solid":
-                    render = FTLGeom2D.get_line(
+                    render = GMSHGeom2D.get_line(
                         (line["start"], line["end"]),
                         line["stroke"]["width"],
                     )
@@ -785,7 +794,7 @@ class KiCADPart(KiCADEntity):
                 self.log_debug(
                     f"Rendering circle at {self.geoms['fp_circle'][0]['center']}->{self.geoms['fp_circle'][0]['end']} with radius {radius}"
                 )
-                render = FTLGeom2D.get_circle(circle["center"], radius)
+                render = GMSHGeom2D.get_circle(circle["center"], radius)
                 render.rotate(self.angle, self.at[0:2])
                 if layers is None:
                     geom.append(render)
@@ -809,7 +818,7 @@ class KiCADPart(KiCADEntity):
                 stroke_type = arc["stroke"]["type"]
                 stroke_width = arc["stroke"]["width"]
                 if stroke_type == "solid":
-                    render = FTLGeom2D.get_arc(start, mid, end, stroke_width)
+                    render = GMSHGeom2D.get_arc(start, mid, end, stroke_width)
                 else:
                     raise Exception(
                         f"Unsupported arc stroke type: <{stroke_type}>"
@@ -841,7 +850,7 @@ class KiCADPart(KiCADEntity):
         if len(self.geoms["fp_curve"]) > 0:
             self.log_info(f"Rendering {len(self.geoms['fp_curve'])} curves...")
             raise Exception("Curves not supported yet.")
-        ret = FTLGeom2D.make_compound(geom)
+        ret = GMSHGeom2D.make_compound(geom)
         ret.translate(self.at[0], self.at[1])
         return ret
 
@@ -864,7 +873,7 @@ class KiCADPad(KiCADEntity):
         self.pintype = params["pintype"] if "path" in params else None
 
     def render(self, layers: KiCADStackupManager = None):
-        geom = FTLGeom2D()
+        geom = GMSHGeom2D()
         self.log_debug(
             f"Making Pad at {self.at} with size {self.size} and shape {self.shape}..."
         )
@@ -921,11 +930,10 @@ class KiCADPad(KiCADEntity):
             #    print("Multiple Arguments...")
             #    if not self.drill[1] in ("oval", "circle"):
             #        raise Exception(f"Unsupported drill shape: <{self.drill[1]}>")
-            # geom.cutout(FTLGeom2D.get_circle(self.at, self.drill))
-            drill = FTLGeom2D.get_circle(self.at, self.drill[0] / 2)
+            # geom.cutout(GMSHGeom2D.get_circle(self.at, self.drill))
             for layer in self.layers:
-                layers.add_drill(layer, drill)
-                layers.add_drill("Edge.Cuts", drill)
+                layers.add_drill(layer, self.get_drill())
+            layers.add_drill("Edge.Cuts", self.get_drill())
             matched_layers = layers.get_layer_names_from_pattern(self.layers)
             self.log_debug(f"Adding pad to layers {matched_layers}...")
             lowest_layer = layers.get_lowest_layer(matched_layers).name
@@ -941,7 +949,7 @@ class KiCADPad(KiCADEntity):
 
     def get_drill(self):
         if self.drill is not None:
-            return FTLGeom2D.get_circle(self.at, self.drill[0] / 2)
+            return GMSHGeom2D.get_circle(self.at, self.drill[0] / 2)
         else:
             raise Exception("No drill size specified.")
 
@@ -956,7 +964,7 @@ class KiCADPad(KiCADEntity):
     def get_metalization(self):
         ret = self.get_drill()
         ret.cutout(
-            FTLGeom2D.get_circle(
+            GMSHGeom2D.get_circle(
                 self.at, self.drill[0] / 2 - KiCADConfig.via_metalization
             )
         )
@@ -970,15 +978,15 @@ class KiCADVia(KiCADEntity):
         self.drill = params["drill"]
 
     def render(self, layers: KiCADLayer = None):
-        geom = FTLGeom2D.get_circle(self.at, self.size / 2)
-        # drill = FTLGeom2D.get_circle(self.at, self.drill / 2)
+        geom = GMSHGeom2D.get_circle(self.at, self.size / 2)
+        # drill = GMSHGeom2D.get_circle(self.at, self.drill / 2)
         return geom
 
     def get_layer_names(self):
         return [layer.strip('"') for layer in self.layers]
 
     def get_drill(self):
-        return FTLGeom2D.get_circle(self.at, self.drill / 2)
+        return GMSHGeom2D.get_circle(self.at, self.drill / 2)
 
     def make_drills(self, layers: KiCADLayer):
         self.log_debug(f"Making drills for via at {self.at}...")
@@ -991,7 +999,7 @@ class KiCADVia(KiCADEntity):
     def get_metalization(self):
         ret = self.get_drill()
         ret.cutout(
-            FTLGeom2D.get_circle(
+            GMSHGeom2D.get_circle(
                 self.at, self.drill / 2 - KiCADConfig.via_metalization
             )
         )

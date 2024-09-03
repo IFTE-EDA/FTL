@@ -6,10 +6,11 @@ filename_meander_hatch = "MeanderTest_hatch.kicad_pcb"
 
 parser = KiCADParser(filename_easy)
 # parser = KiCADParser(filename_meander_hatch)
-parser.render_footprints()
-parsed_layers = parser.render_layers(["F.Cu"])
-for name, layer in parsed_layers.items():
-    layer.plot()
-# parser.render()
+# parser.render_footprints()
+# parsed_layers = parser.render_layers(["F.Cu", "B.Cu"])
+# parsed_layers = parser.render_layers(["Edge.Cuts"])
+# for name, layer in parsed_layers.items():
+#    layer.plot("Plottest")
+parser.render()
 # layers = parser.render_layers()
 # layers["F.Cu"].plot()
