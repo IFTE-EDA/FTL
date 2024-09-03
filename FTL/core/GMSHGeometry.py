@@ -442,8 +442,6 @@ class GMSHGeom2D(AbstractGeom2D):
         gmsh.model.occ.synchronize()
         all_entities = gmsh.model.occ.getEntities(-1)
         gmsh.model.setVisibility(all_entities, 0)
-        print("Entities: ", all_entities)
-        # gmsh.model.setVisibility(, 1)
         gmsh.model.setVisibility(self.dimtags(), 1, True)
         gmsh.fltk.setStatusMessage(title)
         gmsh.fltk.run()
@@ -459,6 +457,38 @@ class GMSHGeom3D(AbstractGeom3D):
 
     def __len__(self):
         return len(self.geoms)
+
+    @classmethod
+    def make_compound(cls, geoms: GMSHGeom3D) -> GMSHGeom3D:
+        def _flatten(lst):
+            for el in lst:
+                if isinstance(el, (list, tuple)):
+                    yield from _flatten(el)
+                else:
+                    if isinstance(el, GMSHGeom3D):
+                        yield from el.geoms
+                    else:
+                        yield el
+
+        # it's a list of GMSHGeom2D (or list of lists)
+        if isinstance(geoms, (list, tuple)):
+            # geoms = reduce(operator.concat, geoms)
+            geoms = list(_flatten(geoms))
+        if len(geoms) > 1:
+            # objects = [(2, geoms[0])]
+            objects = dimtags(geoms[0], 3)
+            tools = dimtags(geoms[1:], 3)
+            # tools = [(2, tag) for tag in geoms[1:]]
+            print("Objects: ", objects)
+            print("Tools: ", tools)
+            if not isinstance(tools, list):
+                tools = [tools]
+            geoms = dimtags2int(gmsh.model.occ.fuse(objects, tools)[0])
+            print("Fused: ", geoms)
+            return cls(geoms)
+        if len(geoms) == 1:
+            return cls(geoms)
+        return cls()
 
     def is_empty(self) -> bool:
         return not len(self.geoms)

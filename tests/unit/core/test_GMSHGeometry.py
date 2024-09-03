@@ -1026,6 +1026,47 @@ class Test_GMSHGeom3D:
         geom3d = geom2d_1.to_3D(0.1)
         assert geom3d.geom2d != geom2d_2
 
+    def test_gmshgeom3d_make_compound_touching(self):
+        gmsh.clear()
+        geom1 = GMSHGeom2D.get_rectangle((0, 0), (1, 1)).extrude(0.1)
+        geom2 = GMSHGeom2D.get_rectangle((0, 1), (1, 2)).extrude(0.1)
+        compound = GMSHGeom3D.make_compound([geom1, geom2])
+        gmsh.model.occ.synchronize()
+        print(gmsh.model.occ.getEntities())
+        assert compound.geoms == [1]
+        assert (3, 1) in gmsh.model.occ.getEntities() and not (
+            3,
+            2,
+        ) in gmsh.model.occ.getEntities()
+        assert round(gmsh.model.occ.getMass(3, 1), 5) == 0.2
+        bbox_rounded = [
+            round(i, 2) for i in gmsh.model.occ.getBoundingBox(3, 1)
+        ]
+        assert bbox_rounded == [0, 0, 0, 1, 2, 0.1]
+
+    def test_gmshgeom3d_make_compound_disjunct(self):
+        gmsh.clear()
+        geom1 = GMSHGeom2D.get_rectangle((0, 0), (1, 1)).extrude(0.1)
+        geom2 = GMSHGeom2D.get_rectangle((2, 2), (3, 3)).extrude(0.1)
+        compound = GMSHGeom3D.make_compound([geom1, geom2])
+        gmsh.model.occ.synchronize()
+        print(gmsh.model.occ.getEntities())
+        assert compound.geoms == [1, 2]
+        assert (3, 1) in gmsh.model.occ.getEntities() and (
+            3,
+            2,
+        ) in gmsh.model.occ.getEntities()
+        assert round(gmsh.model.occ.getMass(3, 1), 5) == 0.1
+        assert round(gmsh.model.occ.getMass(3, 2), 5) == 0.1
+        bbox_rounded = [
+            round(i, 2) for i in gmsh.model.occ.getBoundingBox(3, 1)
+        ]
+        assert bbox_rounded == [0, 0, 0, 1, 1, 0.1]
+        bbox_rounded = [
+            round(i, 2) for i in gmsh.model.occ.getBoundingBox(3, 2)
+        ]
+        assert bbox_rounded == [2, 2, 0, 3, 3, 0.1]
+
 
 """def test_gmshgeom2d_fix_list(self):
         geom = GMSHGeom2D()
