@@ -445,7 +445,7 @@ class GMSHGeom2D(AbstractGeom2D):
         print("Entities: ", all_entities)
         # gmsh.model.setVisibility(, 1)
         gmsh.model.setVisibility(self.dimtags(), 1, True)
-        print("Own Entities: ", self.dimtags())
+        gmsh.fltk.setStatusMessage(title)
         gmsh.fltk.run()
 
 
