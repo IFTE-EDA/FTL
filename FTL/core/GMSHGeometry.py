@@ -429,8 +429,10 @@ class GMSHGeom2D(AbstractGeom2D):
         if zpos != 0:
             gmsh.model.occ.translate(self.dimtags(), 0, 0, zpos)
         extr = gmsh.model.occ.extrude(self.dimtags(), 0, 0, thickness)
+        print(f"Geoms L3: {gmsh.model.occ.getEntities(3)}")
+        print("Extruded1: ", extr)
         extr = [e[1] for e in extr if e[0] == 3]
-        print("Extruded: ", extr)
+        print("Extruded2: ", extr)
         return GMSHGeom3D(extr, self)
 
     def to_3D(self, thickness: float, zpos: float = None) -> GMSHGeom3D:
@@ -438,7 +440,10 @@ class GMSHGeom2D(AbstractGeom2D):
         ret.geom2d = deepcopy(self)
         return ret
 
-    def plot(self, title: str = None):
+    def set_visible(self, visible: bool = True):
+        gmsh.model.setVisibility(self.dimtags(), visible)
+
+    def plot(self, title: str = ""):
         gmsh.model.occ.synchronize()
         all_entities = gmsh.model.occ.getEntities(-1)
         gmsh.model.setVisibility(all_entities, 0)
@@ -457,6 +462,9 @@ class GMSHGeom3D(AbstractGeom3D):
 
     def __len__(self):
         return len(self.geoms)
+
+    def dimtags(self) -> list[tuple[int, int]]:
+        return dimtags(self.geoms, 3)
 
     @classmethod
     def make_compound(cls, geoms: GMSHGeom3D) -> GMSHGeom3D:
@@ -493,6 +501,9 @@ class GMSHGeom3D(AbstractGeom3D):
     def is_empty(self) -> bool:
         return not len(self.geoms)
 
+    def set_visible(self, visible: bool = True):
+        gmsh.model.setVisibility(self.dimtags(), visible)
+
     def _dimtags(self) -> list[tuple[int, int]]:
         return dimtags(self.geoms, 3)
 
@@ -519,3 +530,11 @@ class GMSHGeom3D(AbstractGeom3D):
     @geom2d.setter
     def geom2d(self, geom2d: GMSHGeom2D):
         self._geom2d = geom2d
+
+    def plot(self, title: str = ""):
+        gmsh.model.occ.synchronize()
+        all_entities = gmsh.model.occ.getEntities(-1)
+        gmsh.model.setVisibility(all_entities, 0)
+        gmsh.model.setVisibility(self.dimtags(), 1, True)
+        gmsh.fltk.setStatusMessage(title)
+        gmsh.fltk.run()

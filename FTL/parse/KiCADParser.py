@@ -417,6 +417,7 @@ class KiCADLayer(Loggable):
             return False
         if all([geom.is_empty() for geom in self.footprints]):
             return False
+        return True
 
     def add_geometry(self, geom):
         if isinstance(geom, list):
