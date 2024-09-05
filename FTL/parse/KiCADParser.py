@@ -1,6 +1,8 @@
 from __future__ import annotations
 import sys
 
+import gmsh
+
 import vedo as v
 
 sys.path.append(r".")
@@ -15,7 +17,7 @@ from FTL.parse.kicad_parser import KicadPCB, SexpList
 
 # from FTL.parse.kicad_parser import SexpList
 from FTL.Util.logging import Logger, Loggable
-from FTL.core.GMSHGeometry import GMSHGeom2D
+from FTL.core.GMSHGeometry import GMSHGeom2D, GMSHGeom3D, dimtags
 
 
 class KiCADConfig:
@@ -136,6 +138,8 @@ class KiCADParser(Loggable):
         names = []
         renders = []
         for name in layers:
+            # if name not in ["F.Cu"]:
+            #    continue
             layer = self.stackup.get_layer(name)
             self.log_info(f"Rendering layer '{name}'...")
             names.append(name.strip('"'))
@@ -147,8 +151,13 @@ class KiCADParser(Loggable):
         # self.stackup.add_drill("*", GMSHGeom2D.get_circle((0, 0), 6))
         renders = self.render_layers()
         renders_3d = []
+        gmsh.model.occ.synchronize()
         for name, layer in self.stackup.stackup.items():
+            if name not in renders:
+                continue
+            self.log_info(f"Preparing extrusion of layer '{name}'...")
             if not layer.has_objects():
+                self.log_info("    -> no geometries found.")
                 continue
             if layer.name.endswith("Cu"):
                 color = "orange"
@@ -163,16 +172,36 @@ class KiCADParser(Loggable):
             else:
                 color = "pink"
             self.log_info(f"Rendering layer '{name}' in {color}...")
-            renders[name].plot(name)
-            render = (
-                renders[name]
-                .extrude(layer.thickness, zpos=layer.zmin)
-                .c(color)
+            # renders[name].plot(name)
+            thick = layer.thickness if layer.thickness != 0 else 0.01
+            render = renders[name].extrude(thick, zpos=layer.zmin)
+            print(
+                f"Extruding layer {name} from {layer.zmin} to {layer.zmin+layer.thickness}={layer.zmax}..."
             )
+            print(f"Render: {render.geoms}")
+            # render.plot(name)
             renders_3d.append(render)
-        metalization = self.stackup.fill_vias()
+        print("Renders: ", renders_3d)
+        for i in range(len(renders_3d)):
+            # if i > 0:
+            #    gmsh.model.occ.fragment(renders_3d[i-1].geoms, renders_3d[i].geoms, removeObject=True)
+            if i < len(renders_3d) - 1:
+                print(f"Fragmenting {i} and {i+1}...")
+                gmsh.model.occ.fragment(
+                    renders_3d[i].dimtags(),
+                    renders_3d[i + 1].dimtags(),
+                    removeObject=True,
+                )
+        gmsh.model.occ.synchronize()
+        gmsh.fltk.run()
+
+        # TODO: undo this
+        # metalization = self.stackup.fill_vias()
+        metalization = None
         if metalization is not None:
-            metalization.c("orange")
+            metalization.set_visible(1)
+            self.log_info("Metalizations found.")
+            # metalization.c("orange")
         else:
             self.log_warning("No metalizations found.")
         # sub = renders["Edge.Cuts"].extrude(1.4).c("green")
@@ -183,9 +212,26 @@ class KiCADParser(Loggable):
         #    if self.stackup.layer_has_objects(layer):
         #        renders[layer].plot(layer)
         # renders["F.Cu"].plot("F.Cu")
-        metalization.plot("Metalization")
+        # metalization.plot("Metalization")
         # v.show(renders_3d, metalization, axes=1, viewup="y", interactive=True)
-        return renders["F.Cu"]
+        gmsh.model.setVisibility(gmsh.model.occ.getEntities(), 0)
+        for render in renders_3d:
+            render.set_visible(1)
+            gmsh.model.set_color(dimtags(render.geoms, 3), 0, 255, 255)
+            render.plot()
+        gmsh.model.mesh.generate(3)
+        gmsh.model.mesh.refine()
+        gmsh.model.occ.synchronize()
+        gmsh.fltk.run()
+        nodes = np.reshape(gmsh.model.mesh.getNodes()[1], (-1, 3))
+        print(nodes[0:15])
+        print("\n\n", len(nodes))
+        tettype = gmsh.model.mesh.getElementType("tetrahedron", 1)
+        print(f"Tet type: {tettype}")
+        tets = gmsh.model.mesh.getElementsByType(tettype)
+        print(tets)
+        print("\n\n", len(tets))
+        return renders_3d
 
 
 class KiCADStackupManager(Loggable):
@@ -249,10 +295,14 @@ class KiCADStackupManager(Loggable):
             zmin = min(layer1.zmin, layer2.zmin)
             zmax = max(layer1.zmax, layer2.zmax)
             renders.append(shape.extrude(zmax - zmin, zpos=zmin))
-        return v.merge(renders)
+        return GMSHGeom3D.make_compound(renders)
 
     def _dispatch(self, dest: str, obj: KiCADObject, func):
         dest = dest.strip('"')
+        # TODO: Remove this
+        if dest not in ["F.Cu", "B.Cu", "Edge.Cuts"]:
+            return
+
         if dest.startswith("*"):
             self.log_info(f"Adding object {obj} to multiple layers...: {dest}")
             for layer in self.layers.values():
@@ -260,7 +310,7 @@ class KiCADStackupManager(Loggable):
                     self.log_debug(
                         f"-> Adding object {obj} to layer '{layer.name}'..."
                     )
-                    func(layer, obj.copy())
+                    func(layer, obj.get())
         elif dest in self.layers:
             func(self.layers[dest], obj)
         else:
@@ -410,12 +460,15 @@ class KiCADLayer(Loggable):
 
     def has_objects(self):
         if (
-            not len(self.geoms)
-            and not len(self.segments)
-            and not len(self.footprints)
+            len(self.geoms) == 0
+            and len(self.segments) == 0
+            and len(self.arcs) == 0
+            and len(self.zones) == 0
+            and (
+                len(self.footprints) == 0
+                or all([geom.is_empty() for geom in self.footprints])
+            )
         ):
-            return False
-        if all([geom.is_empty() for geom in self.footprints]):
             return False
         return True
 
@@ -476,6 +529,7 @@ class KiCADLayer(Loggable):
             if self.name == "Edge.Cuts":
                 for geom in self.geoms:
                     renders.append(geom.render(force_fill=True))
+                    print("RENDERING EDGE.CUTS")
             else:
                 for geom in self.geoms:
                     renders.append(geom.render())
@@ -616,11 +670,11 @@ class KiCADPolygon(KiCADObject):
     def render(self, force_fill=False):
         geom = GMSHGeom2D()
         if force_fill:
-            geom.add_polygon(sh.Polygon(self.points))
+            geom.add_polygon(self.points)
         elif self.fill == "none" and self.stroke_width:
             geom.add_line(self.points, self.stroke_width)
         elif self.fill != "none" and not self.stroke_width:
-            geom.add_polygon(sh.Polygon(self.points))
+            geom.add_polygon(self.points)
             self.log_warning("Filling of polygons is currently not tested.")
         else:
             raise Exception(
@@ -754,9 +808,8 @@ class KiCADPart(KiCADEntity):
                     self.log_debug(
                         f"Adding pad {pad.name} to layer '{layer}'..."
                     )
-                    cp = render.copy()
-                    layers.add_footprint(layer, cp)
-                    print(f"Render: {render.geoms}, Copy: {cp.geoms}")
+                    layers.add_footprint(layer, render.get())
+                    print(f"Render: {render.geoms}")
         return GMSHGeom2D.make_compound(rendered_pads)
 
     def render_shapes(self, layers=None) -> GMSHGeom2D:

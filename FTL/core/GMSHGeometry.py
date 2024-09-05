@@ -26,12 +26,8 @@ def dimtags2int(geoms: list[tuple[int, int]]) -> list[int]:
 
 
 class GMSHGeom2D(AbstractGeom2D):
-    polygons: list[int]
-    geoms: list[int]
-
-    z: float = 0
-
     def __init__(self, z: float = 0, geoms: list[int] = None):
+        self._used = False
         if geoms is not None:
             self.geoms = geoms if isinstance(geoms, list) else [geoms]
         else:
@@ -39,6 +35,8 @@ class GMSHGeom2D(AbstractGeom2D):
         self.z = z
         if not gmsh.is_initialized():
             gmsh.initialize()
+            gmsh.option.setNumber("General.Verbosity", 3)
+            gmsh.option.setNumber("Mesh.MshFileVersion", 2.2)
             print("GMSH was started.")
 
     @classmethod
@@ -154,6 +152,14 @@ class GMSHGeom2D(AbstractGeom2D):
         if len(self.geoms) == 0:
             return True
         return False
+
+    def get(self):
+        if self._used:
+            # TODO: Remove this
+            return self  # .copy()
+        else:
+            self._used = True
+            return self
 
     def copy(self):
         copy = deepcopy(self)
@@ -429,10 +435,7 @@ class GMSHGeom2D(AbstractGeom2D):
         if zpos != 0:
             gmsh.model.occ.translate(self.dimtags(), 0, 0, zpos)
         extr = gmsh.model.occ.extrude(self.dimtags(), 0, 0, thickness)
-        print(f"Geoms L3: {gmsh.model.occ.getEntities(3)}")
-        print("Extruded1: ", extr)
         extr = [e[1] for e in extr if e[0] == 3]
-        print("Extruded2: ", extr)
         return GMSHGeom3D(extr, self)
 
     def to_3D(self, thickness: float, zpos: float = None) -> GMSHGeom3D:
