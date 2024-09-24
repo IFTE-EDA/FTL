@@ -175,6 +175,8 @@ class KiCADParser(Loggable):
             # renders[name].plot(name)
             thick = layer.thickness if layer.thickness != 0 else 0.01
             render = renders[name].extrude(thick, zpos=layer.zmin)
+            render.name = name
+            gmsh.model.occ.synchronize()
             print(
                 f"Extruding layer {name} from {layer.zmin} to {layer.zmin+layer.thickness}={layer.zmax}..."
             )
@@ -187,11 +189,12 @@ class KiCADParser(Loggable):
             #    gmsh.model.occ.fragment(renders_3d[i-1].geoms, renders_3d[i].geoms, removeObject=True)
             if i < len(renders_3d) - 1:
                 print(f"Fragmenting {i} and {i+1}...")
-                gmsh.model.occ.fragment(
+                frag = gmsh.model.occ.fragment(
                     renders_3d[i].dimtags(),
                     renders_3d[i + 1].dimtags(),
                     removeObject=True,
                 )
+                print(f"Fragmented: {frag}")
         gmsh.model.occ.synchronize()
         gmsh.fltk.run()
 
@@ -217,6 +220,7 @@ class KiCADParser(Loggable):
         gmsh.model.setVisibility(gmsh.model.occ.getEntities(), 0)
         for render in renders_3d:
             render.set_visible(1)
+            gmsh.model.add_physical_group(3, render.geoms, name=render.name)
             gmsh.model.set_color(dimtags(render.geoms, 3), 0, 255, 255)
             render.plot()
         gmsh.model.mesh.generate(3)
@@ -228,7 +232,7 @@ class KiCADParser(Loggable):
         print("\n\n", len(nodes))
         tettype = gmsh.model.mesh.getElementType("tetrahedron", 1)
         print(f"Tet type: {tettype}")
-        tets = gmsh.model.mesh.getElementsByType(tettype)
+        tets = gmsh.model.mesh.getElementsByType(tettype)[0]
         print(tets)
         print("\n\n", len(tets))
         return renders_3d

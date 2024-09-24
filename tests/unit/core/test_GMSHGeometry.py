@@ -40,6 +40,12 @@ class Test_GMSHGeom2D:
         assert geom.is_empty()
         assert geom.geoms == []
 
+    def test_gmshgeom2d_unnamed_by_default(self):
+        geom = GMSHGeom2D()
+        assert len(geom.geoms) == 0
+        assert geom.is_empty()
+        assert geom.name == "Unnamed"
+
     def test_gmshgeom2d_add_objects_not_empty_get_len(self):
         geom = GMSHGeom2D()
         geom.add_rectangle((0, 0), (1, 1))

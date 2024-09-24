@@ -26,8 +26,11 @@ def dimtags2int(geoms: list[tuple[int, int]]) -> list[int]:
 
 
 class GMSHGeom2D(AbstractGeom2D):
-    def __init__(self, z: float = 0, geoms: list[int] = None):
+    def __init__(
+        self, z: float = 0, geoms: list[int] = None, name: str = "Unnamed"
+    ):
         self._used = False
+        self.name = name
         if geoms is not None:
             self.geoms = geoms if isinstance(geoms, list) else [geoms]
         else:
@@ -456,12 +459,18 @@ class GMSHGeom2D(AbstractGeom2D):
 
 
 class GMSHGeom3D(AbstractGeom3D):
-    def __init__(self, geoms: list[int] = [], geom2d: GMSHGeom2D = None):
+    def __init__(
+        self,
+        geoms: list[int] = [],
+        geom2d: GMSHGeom2D = None,
+        name: str = "Unnamed",
+    ):
         if len(geoms):
             self.geoms = geoms
         else:
             self.geoms = []
         self._geom2d = geom2d
+        self.name = name
 
     def __len__(self):
         return len(self.geoms)
