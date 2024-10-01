@@ -1,6 +1,6 @@
 from KiCADParser import KiCADParser
 
-filename_easy = "test.kicad_pcb"
+filename_easy = "FTL_Demo.kicad_pcb"
 filename_meander = "MeanderTest.kicad_pcb"
 filename_meander_hatch = "MeanderTest_hatch.kicad_pcb"
 
