@@ -177,6 +177,7 @@ class GMSHGeom2D(AbstractGeom2D):
         self,
         coords_outline: list[(float, float)],
         coords_holes: list[list[(float, float)]],
+        orient: bool = False,
     ) -> int:
         # TODO: Make it faster - maybe just return index of last element?
         def _fix_list(lst):
@@ -185,9 +186,12 @@ class GMSHGeom2D(AbstractGeom2D):
             return lst[0:-1] if lst[0] == lst[-1] else lst
 
         holes = []
+        in_outline = coords_outline
+        if orient:
+            in_outline.reverse()
+            print("Re-oriented.")
         pts_outline = [
-            gmsh.model.occ.add_point(x, y, 0)
-            for x, y in _fix_list(coords_outline)
+            gmsh.model.occ.add_point(x, y, 0) for x, y in _fix_list(in_outline)
         ]
         lines = [
             gmsh.model.occ.add_line(pts_outline[i], pts_outline[i + 1])
@@ -222,9 +226,11 @@ class GMSHGeom2D(AbstractGeom2D):
             [list(hole.coords) for hole in polygon.interiors],
         )
 
-    def add_polygon(self, polygon, holes: list = []) -> GMSHGeom2D:
+    def add_polygon(
+        self, polygon, holes: list = [], orient=False
+    ) -> GMSHGeom2D:
         if isinstance(polygon, list):
-            self._add_list_polygon(polygon, holes)
+            self._add_list_polygon(polygon, holes, orient)
             return self
         if isinstance(polygon, sh.Polygon):
             self._add_shapely_polygon(polygon, holes)
@@ -331,7 +337,6 @@ class GMSHGeom2D(AbstractGeom2D):
                 (coords[0][0] + coords[2][0]) / 2,
                 (coords[0][1] + coords[2][1]) / 2,
             )
-        print("Coords: ", coords)
         pts = [gmsh.model.occ.add_point(x, y, 0) for x, y in coords]
         lines = [
             gmsh.model.occ.add_line(pts[i], pts[i + 1])
@@ -394,7 +399,6 @@ class GMSHGeom2D(AbstractGeom2D):
             ret = []
             for g in geoms:
                 ret.extend(g.geoms)
-            print("Ret:", ret)
             geoms = ret
         if not isinstance(geoms, list):
             geoms = [geoms]
@@ -428,7 +432,7 @@ class GMSHGeom2D(AbstractGeom2D):
 
     def extrude(
         self, thickness: float, zpos: float = None, fuse: bool = True
-    ) -> v.Mesh:
+    ) -> GMSHGeom3D:
         if not len(self.geoms):
             return GMSHGeom3D()
         if fuse:

@@ -64,6 +64,7 @@ class KiCADParser(Loggable):
             pass
             # raise Exception("Lines not supported yet.")
         if "gr_rect" in self.pcb:
+            # TODO: better check for list/tuple here!
             if not isinstance(self.pcb["gr_rect"], SexpList):
                 print(type(self.pcb["gr_rect"]))
                 self.stackup.add_geometry(
@@ -97,9 +98,9 @@ class KiCADParser(Loggable):
         if "segment" in self.pcb:
             for segment in self.pcb["segment"]:
                 self.stackup.add_segment(segment["layer"], segment)
-        """if "zone" in self.pcb:
+        if "zone" in self.pcb:
             for zone in self.pcb["zone"]:
-                if "layer" in zone:
+                """if "layer" in zone:
                     self.stackup.add_zone(zone["layer"], KiCADZone(self, zone))
                 else:
                     print(zone["layers"])
@@ -108,7 +109,12 @@ class KiCADParser(Loggable):
                     )
                     for layer in layers:
                         self.stackup.add_zone(layer, KiCADZone(self, zone))
-        """
+                """
+                for poly in zone["filled_polygon"]:
+                    self.stackup.add_zone(
+                        poly["layer"], KiCADFilledPolygon(self, poly)
+                    )
+
         if "arc" in self.pcb:
             for arc in self.pcb["arc"]:
                 self.stackup.add_arc(arc["layer"], arc)
@@ -132,6 +138,7 @@ class KiCADParser(Loggable):
                 footprint.render(self.stackup)
 
     def render_layers(self, layers=None):
+        # TODO: unneccessary?
         if layers is None or len(layers) == 0:
             layers = self.stackup.get_layer_names()
         self.log_info("Rendering PCB...")
@@ -152,8 +159,10 @@ class KiCADParser(Loggable):
         renders = self.render_layers()
         renders_3d = []
         gmsh.model.occ.synchronize()
+        gmsh.fltk.run()
         for name, layer in self.stackup.stackup.items():
             if name not in renders:
+                self.log_debug(f"Layer '{name}' has no rendered elements...")
                 continue
             self.log_info(f"Preparing extrusion of layer '{name}'...")
             if not layer.has_objects():
@@ -174,6 +183,7 @@ class KiCADParser(Loggable):
             self.log_info(f"Rendering layer '{name}' in {color}...")
             # renders[name].plot(name)
             thick = layer.thickness if layer.thickness != 0 else 0.01
+
             render = renders[name].extrude(thick, zpos=layer.zmin)
             render.name = name
             gmsh.model.occ.synchronize()
@@ -220,21 +230,15 @@ class KiCADParser(Loggable):
         gmsh.model.setVisibility(gmsh.model.occ.getEntities(), 0)
         for render in renders_3d:
             render.set_visible(1)
-            gmsh.model.add_physical_group(3, render.geoms, name=render.name)
+            gmsh.model.add_physical_group(
+                3, render.geoms, name="Layers." + render.name
+            )
             gmsh.model.set_color(dimtags(render.geoms, 3), 0, 255, 255)
-            render.plot()
+            # render.plot()
         gmsh.model.mesh.generate(3)
         gmsh.model.mesh.refine()
         gmsh.model.occ.synchronize()
         gmsh.fltk.run()
-        nodes = np.reshape(gmsh.model.mesh.getNodes()[1], (-1, 3))
-        print(nodes[0:15])
-        print("\n\n", len(nodes))
-        tettype = gmsh.model.mesh.getElementType("tetrahedron", 1)
-        print(f"Tet type: {tettype}")
-        tets = gmsh.model.mesh.getElementsByType(tettype)[0]
-        print(tets)
-        print("\n\n", len(tets))
         return renders_3d
 
 
@@ -378,11 +382,11 @@ class KiCADStackupManager(Loggable):
         layers = []
         if isinstance(patterns, str):
             patterns = [patterns]
-        print(f"Looking for layers from pattern {patterns}...")
+        # print(f"Looking for layers from pattern {patterns}...")
         for pattern in patterns:
-            print(f"before strip < {pattern} > ")
+            # print(f"before strip < {pattern} > ")
             pattern = pattern.strip('"')
-            print(f"After strip <{pattern}>")
+            # print(f"After strip <{pattern}>")
             if "&" in pattern:
                 split = pattern.split("&")
                 first_part = split[0]
@@ -392,8 +396,6 @@ class KiCADStackupManager(Loggable):
                 patterns.append(first_part + "." + suffix)
                 patterns.append(second_part + "." + suffix)
                 continue
-            else:
-                print("No '&' in pattern...")
 
             self.log_debug(f"Selecting layers by pattern '{pattern}'...")
             if pattern.startswith("*"):
@@ -522,7 +524,9 @@ class KiCADLayer(Loggable):
         ret = GMSHGeom2D.make_compound(
             (self.footprints, shapes, segments, arcs, zones)
         )
+        ret.plot()
         drills_rendered = GMSHGeom2D.make_compound(self.drills)
+        print(f"Plotting rendered layer {self.name}...")
         ret.cutout(drills_rendered)
         return ret
 
@@ -533,7 +537,6 @@ class KiCADLayer(Loggable):
             if self.name == "Edge.Cuts":
                 for geom in self.geoms:
                     renders.append(geom.render(force_fill=True))
-                    print("RENDERING EDGE.CUTS")
             else:
                 for geom in self.geoms:
                     renders.append(geom.render())
@@ -578,7 +581,11 @@ class KiCADLayer(Loggable):
         if len(self.zones) > 0:
             self.log_info(f"Rendering {len(self.zones)} zones...")
             for zone in self.zones:
-                renders.append(zone.render())
+                # TODO: Reverse Poly?
+                render = zone.render()
+                self.log_critical(f"Zone layer: {zone.layer}")
+                # render.plot()
+                renders.append(render)
         return GMSHGeom2D.make_compound(renders)
 
 
@@ -654,8 +661,8 @@ class KiCADZone(KiCADObject):
                 KiCADFilledPolygon(self, filled_polygon)
             )
 
-    def render(self):
-        geom = [poly.render() for poly in self.filled_polygon]
+    def render(self, layers: KiCADStackupManager = None):
+        geom = [poly.render(layers) for poly in self.filled_polygon]
         return GMSHGeom2D.make_compound(geom)
 
 
@@ -663,7 +670,8 @@ class KiCADPolygon(KiCADObject):
     def __init__(self, parent: Loggable, params: dict):
         super().__init__(parent, params)
         self.points = list(params["pts"]["xy"])
-        self.points.append(self.points[0])
+        # TODO: make dependent on if?
+        # self.points.append(self.points[0])
         self.stroke_type = params["stroke"]["type"]
         self.stroke_width = params["stroke"]["width"]
         self.fill = params["fill"]
@@ -681,7 +689,10 @@ class KiCADPolygon(KiCADObject):
             geom.add_polygon(self.points)
             self.log_warning("Filling of polygons is currently not tested.")
         else:
-            raise Exception(
+            for p in self.points:
+                print(p)
+            geom.add_line(self.points, self.stroke_width)
+            self.log_error(
                 "Unsupported combination of stroke and fill: stroke_type = <{self.stroke_type}>, stroke_width = {self.stroke_width}, fill = <{self.fill}>"
             )
         return geom
@@ -736,14 +747,44 @@ class KiCADFilledPolygon(KiCADObject):
         # self.log_debug(f"Exterior: {self.exterior}")
         # self.log_debug(f"Holes:    {self.holes}")
 
-    def render(self, force_fill=False):
+    def is_clockwise(self):
+        area = 0
+        for i in range(len(self.exterior) - 1):
+            x1, y1 = self.exterior[i]
+            x2, y2 = self.exterior[i + 1]
+            area += (x2 - x1) * (y2 + y1)
+        x1, y1 = self.exterior[-1]
+        x2, y2 = self.exterior[0]
+        area += (x2 - x1) * (y2 + y1)
+        return area > 0
+
+    def curve_is_clockwise(self, curve):
+        area = 0
+        for i in range(len(curve) - 1):
+            x1, y1 = curve[i]
+            x2, y2 = curve[i + 1]
+            area += (x2 - x1) * (y2 + y1)
+        x1, y1 = curve[-1]
+        x2, y2 = curve[0]
+        area += (x2 - x1) * (y2 + y1)
+        return area > 0
+
+    def render(self, layers: KiCADStackupManager = None):
         geom = GMSHGeom2D()
-        # print(f"Rendering polygon with {self.exterior} and {self.holes}")
-        print(f"Num holes: {len(self.holes)}")
-        print(self.holes)
-        geom.add_polygon_orient(self.exterior, self.holes)
-        print(f"Ext: {geom.polygons.exterior}")
-        print(f"Int: {list(geom.polygons.interiors)}")
+        self.log_critical(f"Rendering filled polygon on layer {self.layer}...")
+        for hole in self.holes:
+            if self.curve_is_clockwise(hole):
+                self.log_critical("->Hole is clockwise...")
+                hole.reverse()
+            else:
+                self.log_critical("->Hole is counter-clockwise...")
+                # hole.reverse()
+        if self.is_clockwise():
+            self.log_critical("->Exterior is clockwise...")
+            geom.add_polygon(self.exterior, self.holes, orient=True)
+        else:
+            self.log_critical("->Exterior is counter-clockwise...")
+            geom.add_polygon(self.exterior, self.holes, orient=False)
         # geom.extrude(1).wireframe().show().close()
         # vis = [sh.geometry.polygon.orient(sh.Polygon(p)) for p in self.exterior]
         # GMSHGeom2D.make_compound(vis).plot()
@@ -771,6 +812,7 @@ class KiCADRect(KiCADPolygon):
 class KiCADPart(KiCADEntity):
     def __init__(self, parent: Loggable, params: dict):
         KiCADEntity.__init__(self, parent, params)
+        self.ref = self._parse_ref(params)
         self.descr = dict["descr"]
         self.tags = dict["tags"]
         self.layer = params["layer"]
@@ -788,35 +830,61 @@ class KiCADPart(KiCADEntity):
         for key in self.geoms.keys():
             self.geoms[key] = params[key] if key in params else []
 
-    def render(self, layers=None) -> GMSHGeom2D:
+    def _parse_ref(self, params):
+        for property in params["property"]:
+            if property[0] == '"Reference"':
+                return property[1].strip('"')
+        raise Exception(f"No reference found for part {self.name}")
+
+    def render(self, layers: KiCADStackupManager = None) -> GMSHGeom2D:
         self.log_info(f"Rendering part {self.name} at {self.at}...")
         self.log_info("->Rendering pads...")
         pads = self.render_pads(layers)
         self.log_info("->Rendering shapes...")
-        shapes = self.render_shapes(layers)
+        # TODO: undo
+        shapes = []  # self.render_shapes(layers)
         return GMSHGeom2D.make_compound((pads, shapes))
 
-    def render_pads(self, layers=None) -> GMSHGeom2D:
+    def render_pads(self, layers: KiCADStackupManager = None) -> GMSHGeom2D:
         rendered_pads = []
         for pad_obj in self.pads:
             pad = KiCADPad(self, pad_obj)
             pad.move_relative(self.at[0], self.at[1])
             # pad.angle += self.angle
             render = pad.render(layers)
+            if pad.has_drill():
+                drill = pad.get_drill()
+                drill.rotate(self.angle, self.at[0:2])
+                for layer in pad.layers:
+                    if layer != self.layer:
+                        for layer in layers.get_layer_names_from_pattern(
+                            layer
+                        ):
+                            layers.add_drill(layer, drill)
+                            self.log_critical(
+                                f"Drill for pad {pad.name} added to layer {layer}"
+                            )
+                    else:
+                        self.log_critical(f"layer {layer} skipped...")
+                layers.add_drill("Edge.Cuts", drill)
             render.rotate(self.angle, self.at[0:2])
+            grp = gmsh.model.add_physical_group(2, render.geoms, name=pad.name)
+            self.log_critical(
+                f"Pad {pad.name} has {len(render.geoms)} elements ({render.geoms}) and group #{grp}"
+            )
             if layers is None:
                 rendered_pads.append(render)
             else:
                 for layer in pad.layers:
-                    layer = layer.strip('"')
-                    self.log_debug(
-                        f"Adding pad {pad.name} to layer '{layer}'..."
-                    )
-                    layers.add_footprint(layer, render.get())
-                    print(f"Render: {render.geoms}")
+                    for layer in layers.get_layer_names_from_pattern(layer):
+                        self.log_debug(
+                            f"Adding pad {pad.name} to layer '{layer}'..."
+                        )
+                        layers.add_footprint(layer, render.get())
+                    # print(f"Render: {render.geoms}")
         return GMSHGeom2D.make_compound(rendered_pads)
 
-    def render_shapes(self, layers=None) -> GMSHGeom2D:
+    def render_shapes(self, layers: KiCADStackupManager = None) -> GMSHGeom2D:
         geom = []
         if len(self.geoms["fp_line"]) > 0:
             self.log_info(f"Rendering {len(self.geoms['fp_line'])} lines...")
@@ -892,6 +960,10 @@ class KiCADPart(KiCADEntity):
             self.log_info(
                 f"Rendering {len(self.geoms['fp_poly'])} polygons..."
             )
+
+            # if we only have 1 polygon, format it to a list
+            if "pts" in self.geoms["fp_poly"]:
+                self.geoms["fp_poly"] = [self.geoms["fp_poly"]]
             for poly in self.geoms["fp_poly"]:
                 self.log_debug(
                     f"Rendering polygon with {len(poly['pts']['xy'])} points..."
@@ -920,8 +992,11 @@ class KiCADPad(KiCADEntity):
     def __init__(self, parent: Loggable, params: dict):
         super().__init__(parent, params)
         self.log_debug(f"Making pad with {params}")
-        self.log_debug(f"{params[0]} - {params[1]} - {params[2]}")
-        self.name = params[0]
+        self.name = (
+            "Pads." + params[0].strip('"')
+            if parent is None
+            else parent.ref + ".Pads." + params[0].strip('"')
+        )
         self.type = params[1]
         self.shape = params[2].strip()
         self.size = params["size"]
@@ -989,9 +1064,9 @@ class KiCADPad(KiCADEntity):
             #    if not self.drill[1] in ("oval", "circle"):
             #        raise Exception(f"Unsupported drill shape: <{self.drill[1]}>")
             # geom.cutout(GMSHGeom2D.get_circle(self.at, self.drill))
-            for layer in self.layers:
-                layers.add_drill(layer, self.get_drill())
-            layers.add_drill("Edge.Cuts", self.get_drill())
+            # for layer in self.layers:
+            #    layers.add_drill(layer, self.get_drill())
+            # layers.add_drill("Edge.Cuts", self.get_drill())
             matched_layers = layers.get_layer_names_from_pattern(self.layers)
             self.log_debug(f"Adding pad to layers {matched_layers}...")
             lowest_layer = layers.get_lowest_layer(matched_layers).name
@@ -1004,6 +1079,9 @@ class KiCADPad(KiCADEntity):
             geom.rotate(self.angle, self.at)
 
         return geom
+
+    def has_drill(self):
+        return self.drill is not None
 
     def get_drill(self):
         if self.drill is not None:
