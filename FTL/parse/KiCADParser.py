@@ -60,8 +60,17 @@ class KiCADParser(Loggable):
             pass
             # raise Exception("Text Boxes not supported yet.")
         if "gr_line" in self.pcb:
-            # self.geoms["gr_line"] = self.pcb["gr_line"]
-            pass
+            if not isinstance(self.pcb["gr_line"], SexpList):
+                print(type(self.pcb["gr_line"]))
+                self.stackup.add_geometry(
+                    self.pcb["gr_line"]["layer"],
+                    KiCADLine(self, self.pcb["gr_line"]),
+                )
+            else:
+                for line in self.pcb["gr_line"]:
+                    self.stackup.add_geometry(
+                        line["layer"], KiCADLine(self, line)
+                    )
             # raise Exception("Lines not supported yet.")
         if "gr_rect" in self.pcb:
             # TODO: better check for list/tuple here!
@@ -82,9 +91,17 @@ class KiCADParser(Loggable):
             pass
             # raise Exception("Circles not supported yet.")
         if "gr_arc" in self.pcb:
-            # self.geoms["gr_arc"] = self.pcb["gr_arc"]
-            pass
-            # raise Exception("Arcs not supported yet.")
+            if not isinstance(self.pcb["gr_arc"], SexpList):
+                print(type(self.pcb["gr_arc"]))
+                self.stackup.add_geometry(
+                    self.pcb["gr_arc"]["layer"],
+                    KiCADLine(self, self.pcb["gr_arc"]),
+                )
+            else:
+                for arc in self.pcb["gr_arc"]:
+                    self.stackup.add_geometry(
+                        arc["layer"], KiCADArc(self, arc)
+                    )
         if "gr_poly" in self.pcb:
             # self.geoms["gr_poly"] = self.pcb["gr_poly"]
             for poly in self.pcb["gr_poly"]:
@@ -524,7 +541,38 @@ class KiCADLayer(Loggable):
         ret = GMSHGeom2D.make_compound(
             (self.footprints, shapes, segments, arcs, zones)
         )
-        ret.plot()
+        if self.name == "Edge.Cuts":
+            print(ret.dimtags())
+            print(
+                "Boundary: ",
+                gmsh.model.getBoundary(ret.dimtags(), recursive=True),
+            )
+            curveloops = gmsh.model.occ.getCurveLoops(ret.dimtags()[0][1])
+            print("Curveloops: ", curveloops)
+            print(curveloops[1][1])
+            dimtags_outline = [(1, int(tag)) for tag in curveloops[1][1]]
+            tags_outline = [int(tag) for tag in curveloops[1][1]]
+            dimtags_rem = [
+                (1, int(tag)) for tag in curveloops[1][0]
+            ]  # dimtags(curveloops[1][0], 2)
+            print("Dimtags Rem: ", dimtags_rem)
+            print("Dimtags Outline", dimtags_outline)
+            print("Tags Outline: ", tags_outline)
+            # remove old surface
+            gmsh.model.occ.remove(ret.dimtags(), False)
+            # remove inner wire
+            # TODO: inner wires don't get removed completely; they stay there unlinked from any geometry.
+            # TODO: what if we have multiple holes?
+            gmsh.model.remove_entities(dimtags_rem)
+            # make curveloop
+            outline = gmsh.model.occ.add_curve_loop(tags_outline)
+            surface = gmsh.model.occ.add_plane_surface([outline])
+            print("Surface: ", surface)
+            ret.geoms = [surface]
+            print("After fill: ", ret.dimtags())
+            gmsh.model.occ.synchronize()
+            gmsh.fltk.run()
+        # ret.plot()
         drills_rendered = GMSHGeom2D.make_compound(self.drills)
         print(f"Plotting rendered layer {self.name}...")
         ret.cutout(drills_rendered)
@@ -809,6 +857,31 @@ class KiCADRect(KiCADPolygon):
         return super().render(force_fill)
 
 
+class KiCADLine(KiCADObject):
+    def __init__(self, parent: Loggable, params: dict):
+        Loggable.__init__(self, parent)
+        self.start = params["start"]
+        self.end = params["end"]
+        self.width = params["stroke"]["width"]
+        self.log_debug(f"Making line with {params}...")
+
+    def render(self, force_fill=False):
+        return GMSHGeom2D.get_line((self.start, self.end), self.width)
+
+
+class KiCADArc(KiCADObject):
+    def __init__(self, parent: Loggable, params: dict):
+        Loggable.__init__(self, parent)
+        self.start = params["start"]
+        self.mid = params["mid"]
+        self.end = params["end"]
+        self.width = params["stroke"]["width"]
+        self.log_debug(f"Making line with {params}...")
+
+    def render(self, force_fill=False):
+        return GMSHGeom2D.get_arc(self.start, self.mid, self.end, self.width)
+
+
 class KiCADPart(KiCADEntity):
     def __init__(self, parent: Loggable, params: dict):
         KiCADEntity.__init__(self, parent, params)
@@ -839,7 +912,8 @@ class KiCADPart(KiCADEntity):
     def render(self, layers: KiCADStackupManager = None) -> GMSHGeom2D:
         self.log_info(f"Rendering part {self.name} at {self.at}...")
         self.log_info("->Rendering pads...")
-        pads = self.render_pads(layers)
+        # TODO undo
+        pads = []  # self.render_pads(layers)
         self.log_info("->Rendering shapes...")
         # TODO: undo
         shapes = []  # self.render_shapes(layers)
