@@ -1,10 +1,11 @@
 from KiCADParser import KiCADParser
 
 filename_easy = "FTL_Demo.kicad_pcb"
+filename_rounded = "FTL_Demo_rounded.kicad_pcb"
 filename_meander = "MeanderTest.kicad_pcb"
 filename_meander_hatch = "MeanderTest_hatch.kicad_pcb"
 
-parser = KiCADParser(filename_easy)
+parser = KiCADParser(filename_rounded)
 # parser = KiCADParser(filename_meander_hatch)
 # parser.render_footprints()
 # parsed_layers = parser.render_layers(["F.Cu", "B.Cu"])
