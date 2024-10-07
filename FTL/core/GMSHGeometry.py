@@ -172,6 +172,7 @@ class GMSHGeom2D(AbstractGeom2D):
     def render(self, dim=3):
         gmsh.model.occ.synchronize()
         gmsh.model.mesh.generate(dim)
+        return self
 
     def _add_list_polygon(
         self,
@@ -220,6 +221,85 @@ class GMSHGeom2D(AbstractGeom2D):
         self.geoms.append(surface)
         return surface
 
+    def _add_list_polygon_bulge(
+        self,
+        coords_outline: list[(float, float, float)],
+        coords_holes: list[list[(float, float, float)]] = [],
+        orient: bool = False,
+    ) -> int:
+        # TODO: Make it faster - maybe just return index of last element?
+        def _fix_list(lst):
+            if len(lst) == 0:
+                return lst
+            return lst[0:-1] if lst[0] == lst[-1] else lst
+
+        def _add_line(pt1, pt2):
+            print(f"Adding line from {pt1} to {pt2} with bulge {pt1[2]}")
+            p1 = gmsh.model.occ.add_point(pt1[0], pt1[1], 0)
+            p2 = gmsh.model.occ.add_point(pt2[0], pt2[1], 0)
+            if pt1[2] == 0:
+                return gmsh.model.occ.add_line(p1, p2)
+
+            delta_x = pt2[0] - pt1[0]
+            delta_y = pt2[1] - pt1[1]
+            alpha = math.atan2(delta_y, delta_x)
+            print("Angle: ", math.degrees(alpha))
+            length = math.sqrt(delta_x**2 + delta_y**2)
+            print(f"Length: {length}")
+
+            pt_m = ((pt1[0] + pt2[0]) / 2, (pt1[1] + pt2[1]) / 2)
+            print(f"Midpoint: {pt_m}")
+            c_u = pt1[2] * length / 2
+            if pt1[2] > 0:
+                c_u = -c_u
+            """pt_u = (
+                pt_m[0] + c_u * (pt2[1] - pt1[1]) / length,
+                pt_m[1] + c_u * (pt1[0] - pt2[0]) / length,
+            )"""
+            if pt1[2] > 0:
+                pt_u = (
+                    pt_m[0] + c_u * np.cos(alpha + np.pi / 2),
+                    pt_m[1] + c_u * np.sin(alpha + np.pi / 2),
+                )
+            else:
+                pt_u = (
+                    pt_m[0] - c_u * np.cos(alpha + np.pi / 2),
+                    pt_m[1] - c_u * np.sin(alpha + np.pi / 2),
+                )
+
+            # pt_u = (
+            #    pt_m[0] - c_u * np.sin(alpha),
+            #    pt_m[1] - c_u * np.cos(alpha),
+            # )
+            print(f"U-point: {pt_u}")
+
+            pu = gmsh.model.occ.add_point(pt_u[0], pt_u[1], 0)
+            return gmsh.model.occ.add_circle_arc(p1, pu, p2, center=False)
+
+        holes = []
+        in_outline = _fix_list(coords_outline)
+        if orient:
+            in_outline.reverse()
+            print("Re-oriented.")
+        lines = [
+            _add_line(in_outline[i], in_outline[i + 1])
+            for i in range(len(in_outline) - 1)
+        ]
+        lines.append(_add_line(in_outline[len(in_outline) - 1], in_outline[0]))
+        outline = gmsh.model.occ.add_curve_loop(lines)
+        for pts_hole in coords_holes:
+            lines = [
+                _add_line(pts_hole[i], pts_hole[i + 1])
+                for i in range(len(pts_hole) - 1)
+            ]
+            lines.append(_add_line(pts_hole[len(pts_hole) - 1], pts_hole[0]))
+            hole = gmsh.model.occ.add_curve_loop(lines)
+            holes.append(hole)
+        surface = gmsh.model.occ.add_plane_surface([outline, *holes])
+        gmsh.model.occ.synchronize()
+        self.geoms.append(surface)
+        return surface
+
     def _add_shapely_polygon(self, polygon, holes):
         return self._add_list_polygon(
             list(polygon.exterior.coords),
@@ -227,10 +307,17 @@ class GMSHGeom2D(AbstractGeom2D):
         )
 
     def add_polygon(
-        self, polygon, holes: list = [], orient=False
+        self,
+        polygon,
+        holes: list = [],
+        orient: bool = False,
+        bulge: bool = False,
     ) -> GMSHGeom2D:
         if isinstance(polygon, list):
-            self._add_list_polygon(polygon, holes, orient)
+            if bulge:
+                self._add_list_polygon_bulge(polygon, holes, orient)
+            else:
+                self._add_list_polygon(polygon, holes, orient)
             return self
         if isinstance(polygon, sh.Polygon):
             self._add_shapely_polygon(polygon, holes)
@@ -239,7 +326,7 @@ class GMSHGeom2D(AbstractGeom2D):
             for poly in polygon.geoms:
                 self.add_polygon(poly)
             return self
-        raise Exception("Invalid polygon type")
+        raise Exception("Invalid polygon type: ", type(polygon))
 
     def add_polygon_orient(
         self, polygon: sh.Polygon, holes: list[sh.Polygon] = []
@@ -325,12 +412,85 @@ class GMSHGeom2D(AbstractGeom2D):
         self.geoms.append(rect)
         return self
 
+    def _add_line_bulge(
+        self, coords: list[tuple[float, float, float]], width: float
+    ) -> GMSHGeom2D:
+        def _add_line(pt1, pt2):
+            print(f"Adding line from {pt1} to {pt2} with bulge {pt1[2]}")
+            p1 = gmsh.model.occ.add_point(pt1[0], pt1[1], 0)
+            p2 = gmsh.model.occ.add_point(pt2[0], pt2[1], 0)
+            if pt1[2] == 0:
+                return gmsh.model.occ.add_line(p1, p2)
+
+            delta_x = pt2[0] - pt1[0]
+            delta_y = pt2[1] - pt1[1]
+            alpha = math.atan2(delta_y, delta_x)
+            print("Angle: ", math.degrees(alpha))
+            length = math.sqrt(delta_x**2 + delta_y**2)
+            print(f"Length: {length}")
+
+            pt_m = ((pt1[0] + pt2[0]) / 2, (pt1[1] + pt2[1]) / 2)
+            print(f"Midpoint: {pt_m}")
+            c_u = pt1[2] * length / 2
+            if pt1[2] > 0:
+                c_u = -c_u
+            """pt_u = (
+                pt_m[0] + c_u * (pt2[1] - pt1[1]) / length,
+                pt_m[1] + c_u * (pt1[0] - pt2[0]) / length,
+            )"""
+            if pt1[2] > 0:
+                pt_u = (
+                    pt_m[0] + c_u * np.cos(alpha + np.pi / 2),
+                    pt_m[1] + c_u * np.sin(alpha + np.pi / 2),
+                )
+            else:
+                pt_u = (
+                    pt_m[0] - c_u * np.cos(alpha + np.pi / 2),
+                    pt_m[1] - c_u * np.sin(alpha + np.pi / 2),
+                )
+
+            # pt_u = (
+            #    pt_m[0] - c_u * np.sin(alpha),
+            #    pt_m[1] - c_u * np.cos(alpha),
+            # )
+            print(f"U-point: {pt_u}")
+
+            pu = gmsh.model.occ.add_point(pt_u[0], pt_u[1], 0)
+            return gmsh.model.occ.add_circle_arc(p1, pu, p2, center=False)
+
+        in_outline = coords
+        if orient:
+            in_outline.reverse()
+            print("Re-oriented.")
+        lines = [
+            _add_line(in_outline[i], in_outline[i + 1])
+            for i in range(len(in_outline) - 1)
+        ]
+        # lines.append(
+        #    _add_line(in_outline[len(in_outline) - 1], in_outline[0])
+        # )
+        # outline = gmsh.model.occ.add_curve_loop(lines)
+
+        curve_loop = gmsh.model.occ.add_wire(lines)
+        offset_curve = gmsh.model.occ.offset_curve(curve_loop, width / 2)
+        surface_loop = gmsh.model.occ.add_curve_loop(
+            [c[1] for c in offset_curve]
+        )
+        surface = gmsh.model.occ.add_plane_surface([surface_loop])
+        gmsh.model.occ.synchronize()
+        self.geoms.append(surface)
+        return self
+
     def add_line(
         self,
         coords: list[tuple[float, float]],
         width: float,
+        bulge: bool = False,
     ) -> GMSHGeom2D:
         coords = list(coords)
+        if bulge:
+            # TODO: make more compact
+            return self._add_line_bulge(coords, width)
         if len(coords) < 3:
             coords.append(coords[1])
             coords[1] = (
