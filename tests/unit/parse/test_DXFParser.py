@@ -1,0 +1,184 @@
+from __future__ import annotations
+
+import sys
+import os
+import math
+
+import gmsh
+import numpy as np
+
+from FTL.parse.DXFParser import DXFParser
+
+PRECISION_DIGITS = 2
+
+
+def get_bbox_rounded(dim, tag):
+    return [
+        round(i, PRECISION_DIGITS)
+        for i in gmsh.model.occ.getBoundingBox(dim, tag)
+    ]
+
+
+def round_array(arr):
+    def round_list(lst):
+        if isinstance(lst[0], (list, tuple, np.ndarray)):
+            return [round_list(e) for e in lst]
+        else:
+            return [round(i, PRECISION_DIGITS) for i in lst]
+
+    return round_list(arr)
+    # return [round(i, PRECISION_DIGITS) for i in arr]
+
+
+class Test_DXFParser:
+    def setup_class(self):
+        pass
+
+    def test_dxfparser_open_non_existent_file(self):
+        try:
+            DXFParser("data/non_existent_file.dxf")
+        except Exception as e:
+            print("Exception type: ", type(e))
+            print("Assertion: ", isinstance(e, FileNotFoundError))
+            if isinstance(e, FileNotFoundError):
+                return
+        assert False
+
+    def test_dxfparser_layers(self):
+        parser = DXFParser("data/layers.dxf")
+        print("Layers: ", parser.get_layer_names())
+        assert parser.get_layer_names() == [
+            "0",
+            "Defpoints",
+            "TestLayer1",
+            "TestLayer2",
+            "TestLayer3",
+        ]
+
+    def test_dxfparser_get_layer(self):
+        parser = DXFParser("data/layers.dxf")
+        print(parser.get_layer("TestLayer1").name)
+        assert parser.get_layer("TestLayer1").name == "TestLayer1"
+        assert parser.get_layer("TestLayer2").name == "TestLayer2"
+        assert parser.get_layer("TestLayer3").name == "TestLayer3"
+
+    def test_dxfparser_lines(self):
+        parser = DXFParser("data/lines.dxf")
+        print("Layers: ", parser.get_layer_names())
+        layer = parser.get_layer("0")
+        assert len(layer.get_entities()) == 4
+        for e in layer.get_entities():
+            print("Entity: ", e)
+            assert e.dxftype() == "LINE"
+            print("Start: ", e.dxf.start)
+            print("End: ", e.dxf.end)
+            assert e.dxf.start in [(0, 0), (10, 0), (10, 10), (0, 10)]
+            assert e.dxf.end in [(0, 0), (10, 0), (10, 10), (0, 10)]
+
+    def test_dxfparser_render_lines_unfused(self):
+        gmsh.clear()
+        parser = DXFParser("data/lines.dxf")
+        layer = parser.get_layer("0")
+        render = layer.render(fuse=False)
+        assert len(render) == 4
+        assert render.dimtags() == [(2, 1), (2, 2), (2, 3), (2, 4)]
+        assert get_bbox_rounded(2, 1) == [-0.5, -0.5, 0.0, 10.5, 0.5, 0]
+        assert get_bbox_rounded(2, 2) == [9.5, -0.5, 0.0, 10.5, 10.5, 0]
+        assert get_bbox_rounded(2, 3) == [-0.5, 9.5, 0.0, 10.5, 10.5, 0]
+        assert get_bbox_rounded(2, 4) == [-0.5, -0.5, 0.0, 0.5, 10.5, 0]
+
+    """
+    def test_dxfparser_render_lines_fused(self):
+        parser = DXFParser("data/lines.dxf")
+        layer = parser.get_layer("0")
+        render = layer.render(fuse = True)
+        assert len(render) == 1
+        assert render.dimtags() == [(2, 1)]
+        assert get_bbox_rounded(2, 1) == [-0.5, -0.5, 0.0, 10.5, 10.5, 0]
+    """
+
+    def test_dxfparser_circle(self):
+        parser = DXFParser("data/circle.dxf")
+        layer = parser.get_layer("0")
+        assert len(layer.get_entities()) == 1
+        for e in layer.get_entities():
+            print("Entity: ", e)
+            assert e.dxftype() == "CIRCLE"
+            assert e.dxf.center == (0, 0)
+            assert e.dxf.radius == 5
+
+    def test_dxfparser_render_circle(self):
+        gmsh.clear()
+        parser = DXFParser("data/circle.dxf")
+        layer = parser.get_layer("0")
+        render = layer.render(fuse=False)
+        assert len(render) == 1
+        assert render.dimtags() == [(2, 1)]
+        assert get_bbox_rounded(2, 1) == [-5.0, -5.0, 0.0, 5.0, 5.0, 0.0]
+        assert np.round(gmsh.model.occ.getMass(2, 1), 2) == 78.54
+
+    def test_dxfparser_poly(self):
+        gmsh.clear()
+        parser = DXFParser("data/poly.dxf")
+        layer = parser.get_layer("0")
+        assert len(layer.get_entities()) == 1
+        for e in layer.get_entities():
+            print("Entity: ", e)
+            assert e.dxftype() == "LWPOLYLINE"
+            assert e.is_closed
+            print("Points: ", e.get_points())
+            print("Checking points...")
+            points_rounded = [(p[0], p[1]) for p in e.get_points()]
+            assert points_rounded == [(0, 0), (10, 0), (10, 10), (0, 10)]
+            print("Checking bulges...")
+            bulges = [p[4] for p in e.get_points()]
+            assert bulges == [0.0, 0.0, 0.0, 0.0]
+            widths = [(p[2], p[3]) for p in e.get_points()]
+            assert widths == [(0.0, 0.0), (0.0, 0.0), (0.0, 0.0), (0.0, 0.0)]
+
+    def test_dxfparser_poly_bulge(self):
+        parser = DXFParser("data/poly_bulge.dxf")
+        layer = parser.get_layer("0")
+        assert len(layer.get_entities()) == 1
+        for e in layer.get_entities():
+            print("Entity: ", e)
+            assert e.dxftype() == "LWPOLYLINE"
+            print("Points: ", e.get_points())
+            print("Checking points...")
+            points_rounded = [(p[0], p[1]) for p in e.get_points()]
+            assert points_rounded == [(0, 0), (10, 0), (10, 10), (0, 10)]
+            print("Checking bulges...")
+            bulges = [p[4] for p in e.get_points()]
+            assert bulges == [0.5, 0.5, 0.5, 0.5]
+            widths = [(p[2], p[3]) for p in e.get_points()]
+            assert widths == [(0.0, 0.0), (0.0, 0.0), (0.0, 0.0), (0.0, 0.0)]
+
+    def test_dxfparser_render_poly(self):
+        gmsh.clear()
+        parser = DXFParser("data/poly.dxf")
+        layer = parser.get_layer("0")
+        render = layer.render(fuse=False)
+        assert len(render) == 1
+        assert render.dimtags() == [(2, 1)]
+        assert get_bbox_rounded(2, 1) == [0.0, 0.0, 0.0, 10.0, 10.0, 0.0]
+        assert np.round(gmsh.model.occ.getMass(2, 1), 2) == 100.0
+
+    def test_dxfparser_render_poly_bulge(self):
+        gmsh.clear()
+        parser = DXFParser("data/poly_bulge.dxf")
+        layer = parser.get_layer("0")
+        render = layer.render(fuse=False)
+        print(parser.get_layer_names())
+        assert len(render) == 1
+        assert render.dimtags() == [(2, 1)]
+        assert get_bbox_rounded(2, 1) == [-2.5, -2.5, 0.0, 12.5, 12.5, 0.0]
+        assert np.round(gmsh.model.occ.getMass(2, 1), 2) == 169.89
+        layer = parser.get_layer("1")
+        assert len(layer.get_entities()) == 1
+        render = layer.render(fuse=False)
+        assert len(render) == 1
+        assert render.dimtags() == [(2, 2)]
+        assert get_bbox_rounded(2, 2) == [0.0, 0.0, 0.0, 10.0, 10.0, 0.0]
+        assert np.round(gmsh.model.occ.getMass(2, 2), 2) == 73.12
+
+    # def test_dxfparser_render_poly_bulge_fuse(self):
