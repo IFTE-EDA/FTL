@@ -2,6 +2,9 @@ from KiCADParser import KiCADParser
 
 filename_easy = "FTL_Demo.kicad_pcb"
 filename_rounded = "FTL_Demo_rounded.kicad_pcb"
+filename_GNDgrid = "FTL_Demo_rounded_ch.kicad_pcb"
+
+
 filename_meander = "MeanderTest.kicad_pcb"
 filename_meander_hatch = "MeanderTest_hatch.kicad_pcb"
 
