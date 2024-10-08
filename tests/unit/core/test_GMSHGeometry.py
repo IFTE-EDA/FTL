@@ -13,7 +13,7 @@ import vedo as v
 from FTL.core.GMSHGeometry import GMSHGeom2D, GMSHGeom3D, dimtags, dimtags2int
 
 
-class Test_GMSHGeometry_Utilisites:
+class Test_GMSHGeometry_Utilities:
     def setup_class(self):
         pass
 
