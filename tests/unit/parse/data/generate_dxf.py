@@ -7,9 +7,10 @@ data_dir = Path(__file__).parent
 def main():
     make_dxf_layers()
     make_dxf_lines()
+    make_dxf_arc()
+    make_dxf_circle()
     make_dxf_poly_nobulge()
     make_dxf_poly_bulge()
-    make_dxf_circle()
 
 
 def make_dxf_layers():
@@ -35,6 +36,38 @@ def make_dxf_circle():
     msp = doc.modelspace()
     msp.add_circle(center=(0, 0), radius=5)
     doc.saveas(data_dir / "circle.dxf")
+
+
+def make_dxf_arc():
+    doc = ezdxf.new("R2010")
+    doc.layers.add(name="180")
+    doc.layers.add(name="270")
+    doc.layers.add(name="different_angles")
+    msp = doc.modelspace()
+    msp.add_arc(center=(0, 0), radius=5, start_angle=0, end_angle=90)
+    msp.add_arc(
+        center=(0, 0),
+        radius=5,
+        start_angle=0,
+        end_angle=180,
+        dxfattribs={"layer": "180"},
+    )
+    msp.add_arc(
+        center=(0, 0),
+        radius=5,
+        start_angle=0,
+        end_angle=270,
+        dxfattribs={"layer": "270"},
+    )
+    msp.add_arc(
+        center=(0, 0),
+        radius=5,
+        start_angle=180,
+        end_angle=90,
+        dxfattribs={"layer": "different_angles"},
+    )
+    # msp.add_arc_dim_3p((0, 0), (5, 0), (5, 5), 0, 90)
+    doc.saveas(data_dir / "arc.dxf")
 
 
 def make_dxf_poly_nobulge():

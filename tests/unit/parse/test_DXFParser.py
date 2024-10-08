@@ -55,6 +55,17 @@ class Test_DXFParser:
             "TestLayer3",
         ]
 
+    def test_dxfparser_get_layer_not_existant(self):
+        parser = DXFParser("data/layers.dxf")
+        try:
+            parser.get_layer("NonExistantLayer")
+        except Exception as e:
+            print("Exception type: ", type(e))
+            print("Assertion: ", isinstance(e, KeyError))
+            if isinstance(e, KeyError):
+                return
+        assert False
+
     def test_dxfparser_get_layer(self):
         parser = DXFParser("data/layers.dxf")
         print(parser.get_layer("TestLayer1").name)
@@ -96,6 +107,45 @@ class Test_DXFParser:
         assert render.dimtags() == [(2, 1)]
         assert get_bbox_rounded(2, 1) == [-0.5, -0.5, 0.0, 10.5, 10.5, 0]
     """
+
+    def test_dxfparser_arc(self):
+        parser = DXFParser("data/arc.dxf")
+        layer = parser.get_layer("0")
+        assert len(layer.get_entities()) == 1
+        for e in layer.get_entities():
+            print("Entity: ", e)
+            assert e.dxftype() == "ARC"
+            assert e.dxf.center == (0, 0)
+            assert e.dxf.radius == 5
+
+    def test_dxfparser_render_arc(self):
+        gmsh.clear()
+        parser = DXFParser("data/arc.dxf")
+        layer_0 = parser.get_layer("0")
+        render_0 = layer_0.render(fuse=False)
+        assert len(render_0) == 1
+        assert render_0.dimtags() == [(2, 1)]
+        assert get_bbox_rounded(2, 1) == [-0.5, -0.5, 0.0, 5.5, 5.5, 0.0]
+        assert np.round(gmsh.model.occ.getMass(2, 1), 2) == 8.64
+        layer_180 = parser.get_layer("180")
+        render_180 = layer_180.render(fuse=False)
+        assert len(render_180) == 1
+        assert render_180.dimtags() == [(2, 2)]
+        assert get_bbox_rounded(2, 2) == [-5.5, -0.5, 0.0, 5.5, 5.5, 0.0]
+        assert np.round(gmsh.model.occ.getMass(2, 2), 2) == 16.49
+        layer_270 = parser.get_layer("270")
+        render_270 = layer_270.render(fuse=False)
+        assert len(render_270) == 1
+        assert render_270.dimtags() == [(2, 3)]
+        assert get_bbox_rounded(2, 3) == [-5.5, -5.5, 0.0, 5.5, 5.5, 0.0]
+        assert np.round(gmsh.model.occ.getMass(2, 3), 2) == 24.35
+        layer_360 = parser.get_layer("different_angles")
+        render_360 = layer_360.render(fuse=False)
+        render_360.plot()
+        assert len(render_360) == 1
+        assert render_360.dimtags() == [(2, 4)]
+        assert get_bbox_rounded(2, 4) == [-5.5, -5.5, 0.0, 5.5, 5.5, 0.0]
+        assert np.round(gmsh.model.occ.getMass(2, 4), 2) == 24.35
 
     def test_dxfparser_circle(self):
         parser = DXFParser("data/circle.dxf")
