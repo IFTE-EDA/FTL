@@ -9,6 +9,7 @@ def main():
     make_dxf_lines()
     make_dxf_poly_nobulge()
     make_dxf_poly_bulge()
+    make_dxf_circle()
 
 
 def make_dxf_layers():
@@ -27,6 +28,13 @@ def make_dxf_lines():
     msp.add_line((10, 10), (0, 10))
     msp.add_line((0, 10), (0, 0))
     doc.saveas(data_dir / "lines.dxf")
+
+
+def make_dxf_circle():
+    doc = ezdxf.new("R2010")
+    msp = doc.modelspace()
+    msp.add_circle(center=(0, 0), radius=5)
+    doc.saveas(data_dir / "circle.dxf")
 
 
 def make_dxf_poly_nobulge():
