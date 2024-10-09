@@ -9,6 +9,7 @@ def main():
     make_dxf_lines()
     make_dxf_arc()
     make_dxf_circle()
+    make_dxf_polyline()
     make_dxf_poly_nobulge()
     make_dxf_poly_bulge()
 
@@ -23,11 +24,16 @@ def make_dxf_layers():
 
 def make_dxf_lines():
     doc = ezdxf.new("R2010")
+    doc.layers.add(name="width_2")
     msp = doc.modelspace()
-    msp.add_line((0, 0), (10, 0))
-    msp.add_line((10, 0), (10, 10))
-    msp.add_line((10, 10), (0, 10))
-    msp.add_line((0, 10), (0, 0))
+    msp.add_line((0, 0), (10, 0)).dxf.thickness = 1
+    msp.add_line((10, 0), (10, 10)).dxf.thickness = 1
+    msp.add_line((10, 10), (0, 10)).dxf.thickness = 1
+    msp.add_line((0, 10), (0, 0)).dxf.thickness = 1
+
+    msp.add_line(
+        (0, 0), (10, 10), dxfattribs={"layer": "width_2", "thickness": 2}
+    )
     doc.saveas(data_dir / "lines.dxf")
 
 
@@ -43,6 +49,7 @@ def make_dxf_arc():
     doc.layers.add(name="180")
     doc.layers.add(name="270")
     doc.layers.add(name="different_angles")
+    doc.layers.add(name="different_center")
     msp = doc.modelspace()
     msp.add_arc(center=(0, 0), radius=5, start_angle=0, end_angle=90)
     msp.add_arc(
@@ -66,8 +73,33 @@ def make_dxf_arc():
         end_angle=90,
         dxfattribs={"layer": "different_angles"},
     )
+    msp.add_arc(
+        center=(5, 5),
+        radius=5,
+        start_angle=180,
+        end_angle=90,
+        dxfattribs={"layer": "different_center"},
+    )
     # msp.add_arc_dim_3p((0, 0), (5, 0), (5, 5), 0, 90)
     doc.saveas(data_dir / "arc.dxf")
+
+
+def make_dxf_polyline():
+    doc = ezdxf.new("R2010")
+    doc.layers.add(name="straight_cw3")
+    doc.layers.add(name="straight_w2")
+    msp = doc.modelspace()
+    points = [(0, 0), (10, 0)]
+    polyline = msp.add_lwpolyline(points, dxfattribs={"layer": "straight_cw3"})
+    polyline.dxf.const_width = 3
+    polyline.close(False)
+    points = [(0, 0, 2), (10, 0, 2)]
+    polyline = msp.add_lwpolyline(
+        points, format="xys", dxfattribs={"layer": "straight_w2"}
+    )
+    polyline.dxf.const_width = 0
+    polyline.close(False)
+    doc.saveas(data_dir / "polyline.dxf")
 
 
 def make_dxf_poly_nobulge():
