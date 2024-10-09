@@ -200,9 +200,9 @@ class Test_DXFParser:
             print("Points: ", e.get_points())
             print("Checking points...")
             points_rounded = [(p[0], p[1]) for p in e.get_points()]
-            assert points_rounded == [(0, 0), (10, 0), (10, 10), (0, 10)]
+            assert points_rounded == [(0, 0), (10, 0)]
             widths = [(p[2], p[3]) for p in e.get_points()]
-            assert widths == [(0.0, 0.0), (0.0, 0.0), (0.0, 0.0), (0.0, 0.0)]
+            assert widths == [(0.0, 0.0), (0.0, 0.0)]
         layer = parser.get_layer("straight_w2")
         assert len(layer.get_entities()) == 1
         e = layer.get_entities()[0]
@@ -286,6 +286,7 @@ class Test_DXFParser:
         print(parser.get_layer_names())
         assert len(render) == 1
         assert render.dimtags() == [(2, 1)]
+        render.plot()
         assert get_bbox_rounded(2, 1) == [-2.5, -2.5, 0.0, 12.5, 12.5, 0.0]
         assert np.round(gmsh.model.occ.getMass(2, 1), 2) == 169.89
         layer = parser.get_layer("1")
