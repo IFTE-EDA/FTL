@@ -1,8 +1,8 @@
 from __future__ import annotations
-
 import sys
 import os
 import math
+from pathlib import Path
 
 import gmsh
 import numpy as np
@@ -10,6 +10,10 @@ import numpy as np
 from FTL.parse.DXFParser import DXFParser
 
 PRECISION_DIGITS = 2
+
+
+def get_file(file_name: str):
+    return Path(__file__).parent / "data" / file_name
 
 
 def get_bbox_rounded(dim, tag):
@@ -36,7 +40,7 @@ class Test_DXFParser:
 
     def test_dxfparser_open_non_existent_file(self):
         try:
-            DXFParser("data/non_existent_file.dxf")
+            DXFParser(get_file("non_existent_file.dxf"))
         except Exception as e:
             print("Exception type: ", type(e))
             print("Assertion: ", isinstance(e, FileNotFoundError))
@@ -45,7 +49,7 @@ class Test_DXFParser:
         assert False
 
     def test_dxfparser_layers(self):
-        parser = DXFParser("data/layers.dxf")
+        parser = DXFParser(get_file("layers.dxf"))
         print("Layers: ", parser.get_layer_names())
         assert parser.get_layer_names() == [
             "0",
@@ -56,7 +60,7 @@ class Test_DXFParser:
         ]
 
     def test_dxfparser_get_layer_not_existant(self):
-        parser = DXFParser("data/layers.dxf")
+        parser = DXFParser(get_file("layers.dxf"))
         try:
             parser.get_layer("NonExistantLayer")
         except Exception as e:
@@ -67,14 +71,14 @@ class Test_DXFParser:
         assert False
 
     def test_dxfparser_get_layer(self):
-        parser = DXFParser("data/layers.dxf")
+        parser = DXFParser(get_file("layers.dxf"))
         print(parser.get_layer("TestLayer1").name)
         assert parser.get_layer("TestLayer1").name == "TestLayer1"
         assert parser.get_layer("TestLayer2").name == "TestLayer2"
         assert parser.get_layer("TestLayer3").name == "TestLayer3"
 
     def test_dxfparser_lines(self):
-        parser = DXFParser("data/lines.dxf")
+        parser = DXFParser(get_file("lines.dxf"))
         print("Layers: ", parser.get_layer_names())
         layer = parser.get_layer("0")
         assert len(layer.get_entities()) == 4
@@ -99,7 +103,7 @@ class Test_DXFParser:
 
     def test_dxfparser_render_lines_unfused(self):
         gmsh.clear()
-        parser = DXFParser("data/lines.dxf")
+        parser = DXFParser(get_file("lines.dxf"))
         layer = parser.get_layer("0")
         render = layer.render(fuse=False)
         assert len(render) == 4
@@ -125,7 +129,7 @@ class Test_DXFParser:
     """
 
     def test_dxfparser_arc(self):
-        parser = DXFParser("data/arc.dxf")
+        parser = DXFParser(get_file("arc.dxf"))
         layer = parser.get_layer("0")
         assert len(layer.get_entities()) == 1
         for e in layer.get_entities():
@@ -136,7 +140,7 @@ class Test_DXFParser:
 
     def test_dxfparser_render_arc(self):
         gmsh.clear()
-        parser = DXFParser("data/arc.dxf")
+        parser = DXFParser(get_file("arc.dxf"))
         layer_0 = parser.get_layer("0")
         render_0 = layer_0.render(fuse=False)
         assert len(render_0) == 1
@@ -169,7 +173,7 @@ class Test_DXFParser:
         assert np.round(gmsh.model.occ.getMass(2, 5), 2) == 24.35
 
     def test_dxfparser_circle(self):
-        parser = DXFParser("data/circle.dxf")
+        parser = DXFParser(get_file("circle.dxf"))
         layer = parser.get_layer("0")
         assert len(layer.get_entities()) == 1
         for e in layer.get_entities():
@@ -180,7 +184,7 @@ class Test_DXFParser:
 
     def test_dxfparser_render_circle(self):
         gmsh.clear()
-        parser = DXFParser("data/circle.dxf")
+        parser = DXFParser(get_file("circle.dxf"))
         layer = parser.get_layer("0")
         render = layer.render(fuse=False)
         assert len(render) == 1
@@ -189,7 +193,7 @@ class Test_DXFParser:
         assert np.round(gmsh.model.occ.getMass(2, 1), 2) == 78.54
 
     def test_dxfparser_polyline(self):
-        parser = DXFParser("data/polyline.dxf")
+        parser = DXFParser(get_file("polyline.dxf"))
         layer = parser.get_layer("straight_cw3")
         assert len(layer.get_entities()) == 1
         for e in layer.get_entities():
@@ -219,7 +223,7 @@ class Test_DXFParser:
 
     def test_dxfparser_render_polyline(self):
         gmsh.clear()
-        parser = DXFParser("data/polyline.dxf")
+        parser = DXFParser(get_file("polyline.dxf"))
         layer = parser.get_layer("straight_cw3")
         render = layer.render(fuse=False)
         assert len(render) == 1
@@ -229,7 +233,7 @@ class Test_DXFParser:
 
     def test_dxfparser_poly(self):
         gmsh.clear()
-        parser = DXFParser("data/poly.dxf")
+        parser = DXFParser(get_file("poly.dxf"))
         layer = parser.get_layer("0")
         assert len(layer.get_entities()) == 1
         for e in layer.get_entities():
@@ -247,7 +251,7 @@ class Test_DXFParser:
             assert widths == [(0.0, 0.0), (0.0, 0.0), (0.0, 0.0), (0.0, 0.0)]
 
     def test_dxfparser_poly_bulge(self):
-        parser = DXFParser("data/poly_bulge.dxf")
+        parser = DXFParser(get_file("poly_bulge.dxf"))
         layer = parser.get_layer("0")
         assert len(layer.get_entities()) == 1
         for e in layer.get_entities():
@@ -265,7 +269,7 @@ class Test_DXFParser:
 
     def test_dxfparser_render_poly(self):
         gmsh.clear()
-        parser = DXFParser("data/poly.dxf")
+        parser = DXFParser(get_file("poly.dxf"))
         layer = parser.get_layer("0")
         render = layer.render(fuse=False)
         assert len(render) == 1
@@ -275,7 +279,7 @@ class Test_DXFParser:
 
     def test_dxfparser_render_poly_bulge(self):
         gmsh.clear()
-        parser = DXFParser("data/poly_bulge.dxf")
+        parser = DXFParser(get_file("poly_bulge.dxf"))
         layer = parser.get_layer("0")
         render = layer.render(fuse=False)
         print(parser.get_layer_names())
