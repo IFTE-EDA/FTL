@@ -14,8 +14,13 @@ classifiers = [
 ]
 
 [build-system]
-requires = ["cython", "setuptools", "wheel", "oldest-supported-numpy"]
+requires = ["cython", "setuptools", "wheel", "gmsh", "oldest-supported-numpy"]
 build-backend = "setuptools.build_meta"
+
+[tool.pytest.ini_options]
+pythonpath = [
+  "."
+]
 
 [tool.black]
 target-version = ["py310"]

@@ -1,10 +1,11 @@
 #image: carlonluca/qt-dev:6.0.4
 image: 
-  name: arnoldnico/ifte-ci:py3.10.4-tox-vedo-bookworm
+  name: arnoldnico/ifte-ci:py3.10.4-gmsh-bookworm
 #  name: arnoldnico/ifte-ci:py3.10.4-vedo-bullseye
   entrypoint: [ '/bin/bash', '-s' ]
  
-
+variables:
+  GIT_SUBMODULE_STRATEGY: recursive
  
 stages:          # List of stages for jobs, and their order of execution
   - info
@@ -19,6 +20,7 @@ before_script:
   #- strip --remove-section=.note.ABI-tag /usr/lib/x86_64-linux-gnu/libQt6Core.so.6
   #- python3 -m pip install -i https://gmsh.info/python-packages-dev --force-reinstall --no-cache-dir gmsh
   - python3 -m pip install --progress-bar off --ignore-installed -r requirements.txt
+  - python3 -m pip install .
   - echo -e "\e[0Ksection_end:`date +%s`:sct_beforescript\r\e[0K"
 
 information:
