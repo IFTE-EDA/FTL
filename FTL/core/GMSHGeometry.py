@@ -26,12 +26,11 @@ def dimtags2int(geoms: list[tuple[int, int]]) -> list[int]:
 
 
 class GMSHGeom2D(AbstractGeom2D):
-    polygons: list[int]
-    geoms: list[int]
-
-    z: float = 0
-
-    def __init__(self, z: float = 0, geoms: list[int] = None):
+    def __init__(
+        self, z: float = 0, geoms: list[int] = None, name: str = "Unnamed"
+    ):
+        self._used = False
+        self.name = name
         if geoms is not None:
             self.geoms = geoms if isinstance(geoms, list) else [geoms]
         else:
@@ -39,13 +38,12 @@ class GMSHGeom2D(AbstractGeom2D):
         self.z = z
         if not gmsh.is_initialized():
             gmsh.initialize()
+            gmsh.option.setNumber("General.Verbosity", 3)
+            gmsh.option.setNumber("Mesh.MshFileVersion", 2.2)
             print("GMSH was started.")
 
     @classmethod
     def make_compound(cls, geoms: GMSHGeom2D) -> GMSHGeom2D:
-        # if isinstance(geoms, GMSHGeom2D):
-        #    return geoms
-
         def _flatten(lst):
             for el in lst:
                 if isinstance(el, (list, tuple)):
@@ -60,17 +58,21 @@ class GMSHGeom2D(AbstractGeom2D):
         if isinstance(geoms, (list, tuple)):
             # geoms = reduce(operator.concat, geoms)
             geoms = list(_flatten(geoms))
-        # objects = [(2, geoms[0])]
-        objects = dimtags(geoms[0])
-        tools = dimtags(geoms[1:])
-        # tools = [(2, tag) for tag in geoms[1:]]
-        print("Objects: ", objects)
-        print("Tools: ", tools)
-        if not isinstance(tools, list):
-            tools = [tools]
-        geoms = dimtags2int(gmsh.model.occ.fuse(objects, tools)[0])
-        print("Fused: ", geoms)
-        return cls(0, geoms)
+        if len(geoms) > 1:
+            # objects = [(2, geoms[0])]
+            objects = dimtags(geoms[0])
+            tools = dimtags(geoms[1:])
+            # tools = [(2, tag) for tag in geoms[1:]]
+            print("Objects: ", objects)
+            print("Tools: ", tools)
+            if not isinstance(tools, list):
+                tools = [tools]
+            geoms = dimtags2int(gmsh.model.occ.fuse(objects, tools)[0])
+            print("Fused: ", geoms)
+            return cls(0, geoms)
+        if len(geoms) == 1:
+            return cls(0, geoms)
+        return cls()
 
     @classmethod
     def get_polygon(
@@ -154,14 +156,29 @@ class GMSHGeom2D(AbstractGeom2D):
             return True
         return False
 
+    def get(self):
+        if self._used:
+            # TODO: Remove this
+            return self  # .copy()
+        else:
+            self._used = True
+            return self
+
+    def copy(self):
+        copy = deepcopy(self)
+        copy.geoms = dimtags2int(gmsh.model.occ.copy(self.dimtags()))
+        return copy
+
     def render(self, dim=3):
         gmsh.model.occ.synchronize()
         gmsh.model.mesh.generate(dim)
+        return self
 
     def _add_list_polygon(
         self,
         coords_outline: list[(float, float)],
         coords_holes: list[list[(float, float)]],
+        orient: bool = False,
     ) -> int:
         # TODO: Make it faster - maybe just return index of last element?
         def _fix_list(lst):
@@ -170,9 +187,12 @@ class GMSHGeom2D(AbstractGeom2D):
             return lst[0:-1] if lst[0] == lst[-1] else lst
 
         holes = []
+        in_outline = coords_outline
+        if orient:
+            in_outline.reverse()
+            print("Re-oriented.")
         pts_outline = [
-            gmsh.model.occ.add_point(x, y, 0)
-            for x, y in _fix_list(coords_outline)
+            gmsh.model.occ.add_point(x, y, 0) for x, y in _fix_list(in_outline)
         ]
         lines = [
             gmsh.model.occ.add_line(pts_outline[i], pts_outline[i + 1])
@@ -201,15 +221,103 @@ class GMSHGeom2D(AbstractGeom2D):
         self.geoms.append(surface)
         return surface
 
+    def _add_list_polygon_bulge(
+        self,
+        coords_outline: list[(float, float, float)],
+        coords_holes: list[list[(float, float, float)]] = [],
+        orient: bool = False,
+    ) -> int:
+        # TODO: Make it faster - maybe just return index of last element?
+        def _fix_list(lst):
+            if len(lst) == 0:
+                return lst
+            return lst[0:-1] if lst[0] == lst[-1] else lst
+
+        def _add_line(pt1, pt2):
+            print(f"Adding line from {pt1} to {pt2} with bulge {pt1[2]}")
+            p1 = gmsh.model.occ.add_point(pt1[0], pt1[1], 0)
+            p2 = gmsh.model.occ.add_point(pt2[0], pt2[1], 0)
+            if pt1[2] == 0:
+                return gmsh.model.occ.add_line(p1, p2)
+
+            delta_x = pt2[0] - pt1[0]
+            delta_y = pt2[1] - pt1[1]
+            alpha = math.atan2(delta_y, delta_x)
+            print("Angle: ", math.degrees(alpha))
+            length = math.sqrt(delta_x**2 + delta_y**2)
+            print(f"Length: {length}")
+
+            pt_m = ((pt1[0] + pt2[0]) / 2, (pt1[1] + pt2[1]) / 2)
+            print(f"Midpoint: {pt_m}")
+            c_u = pt1[2] * length / 2
+            if pt1[2] > 0:
+                c_u = -c_u
+            """pt_u = (
+                pt_m[0] + c_u * (pt2[1] - pt1[1]) / length,
+                pt_m[1] + c_u * (pt1[0] - pt2[0]) / length,
+            )"""
+            if pt1[2] > 0:
+                pt_u = (
+                    pt_m[0] + c_u * np.cos(alpha + np.pi / 2),
+                    pt_m[1] + c_u * np.sin(alpha + np.pi / 2),
+                )
+            else:
+                pt_u = (
+                    pt_m[0] - c_u * np.cos(alpha + np.pi / 2),
+                    pt_m[1] - c_u * np.sin(alpha + np.pi / 2),
+                )
+
+            # pt_u = (
+            #    pt_m[0] - c_u * np.sin(alpha),
+            #    pt_m[1] - c_u * np.cos(alpha),
+            # )
+            print(f"U-point: {pt_u}")
+
+            pu = gmsh.model.occ.add_point(pt_u[0], pt_u[1], 0)
+            return gmsh.model.occ.add_circle_arc(p1, pu, p2, center=False)
+
+        holes = []
+        in_outline = _fix_list(coords_outline)
+        if orient:
+            in_outline.reverse()
+            print("Re-oriented.")
+        lines = [
+            _add_line(in_outline[i], in_outline[i + 1])
+            for i in range(len(in_outline) - 1)
+        ]
+        lines.append(_add_line(in_outline[len(in_outline) - 1], in_outline[0]))
+        outline = gmsh.model.occ.add_curve_loop(lines)
+        for pts_hole in coords_holes:
+            lines = [
+                _add_line(pts_hole[i], pts_hole[i + 1])
+                for i in range(len(pts_hole) - 1)
+            ]
+            lines.append(_add_line(pts_hole[len(pts_hole) - 1], pts_hole[0]))
+            hole = gmsh.model.occ.add_curve_loop(lines)
+            holes.append(hole)
+        surface = gmsh.model.occ.add_plane_surface([outline, *holes])
+        gmsh.model.occ.synchronize()
+        self.geoms.append(surface)
+        return surface
+
     def _add_shapely_polygon(self, polygon, holes):
         return self._add_list_polygon(
             list(polygon.exterior.coords),
             [list(hole.coords) for hole in polygon.interiors],
         )
 
-    def add_polygon(self, polygon, holes: list = []) -> GMSHGeom2D:
+    def add_polygon(
+        self,
+        polygon,
+        holes: list = [],
+        orient: bool = False,
+        bulge: bool = False,
+    ) -> GMSHGeom2D:
         if isinstance(polygon, list):
-            self._add_list_polygon(polygon, holes)
+            if bulge:
+                self._add_list_polygon_bulge(polygon, holes, orient)
+            else:
+                self._add_list_polygon(polygon, holes, orient)
             return self
         if isinstance(polygon, sh.Polygon):
             self._add_shapely_polygon(polygon, holes)
@@ -218,11 +326,12 @@ class GMSHGeom2D(AbstractGeom2D):
             for poly in polygon.geoms:
                 self.add_polygon(poly)
             return self
-        raise Exception("Invalid polygon type")
+        raise Exception("Invalid polygon type: ", type(polygon))
 
     def add_polygon_orient(
         self, polygon: sh.Polygon, holes: list[sh.Polygon] = []
     ) -> GMSHGeom2D:
+        return self.add_polygon(orient(polygon), [orient(h) for h in holes])
         if isinstance(polygon, sh.Polygon):
             new_poly = orient(polygon)
         else:
@@ -232,7 +341,7 @@ class GMSHGeom2D(AbstractGeom2D):
                 print(f"Poly: {polygon}")
                 print(f"Holes: {holes}")
                 raise Exception("Error in orienting polygon")
-        self.polygons = self.polygons.union(new_poly)
+        self.add_polygon(new_poly)
         return self
 
     def add_rectangle(
@@ -292,24 +401,126 @@ class GMSHGeom2D(AbstractGeom2D):
         radius: float,
     ) -> GMSHGeom2D:
         rect = gmsh.model.occ.add_rectangle(
-            start[0], start[1], 0, end[0], end[1], roundedRadius=radius
+            start[0],
+            start[1],
+            0,
+            end[0] - start[0],
+            end[1] - start[1],
+            roundedRadius=radius,
         )
         gmsh.model.occ.synchronize()
         self.geoms.append(rect)
         return self
 
-    def add_line(
+    def _add_line_bulge(
         self,
-        coords: list[tuple[float, float]],
+        coords: list[tuple[float, float, float, float, float]],
         width: float,
     ) -> GMSHGeom2D:
+        def _add_line(pt1, pt2):
+            print(f"Adding line from {pt1} to {pt2} with bulge {pt1[4]}")
+            p1 = gmsh.model.occ.add_point(pt1[0], pt1[1], 0)
+            p2 = gmsh.model.occ.add_point(pt2[0], pt2[1], 0)
+            if pt1[4] == 0:
+                # render straight line
+                return gmsh.model.occ.add_line(p1, p2)
+            else:
+                # render bulged line
+                delta_x = pt2[0] - pt1[0]
+                delta_y = pt2[1] - pt1[1]
+                alpha = math.atan2(delta_y, delta_x)
+                print("Angle: ", math.degrees(alpha))
+                length = math.sqrt(delta_x**2 + delta_y**2)
+                print(f"Length: {length}")
+
+                pt_m = ((pt1[0] + pt2[0]) / 2, (pt1[1] + pt2[1]) / 2)
+                print(f"Midpoint: {pt_m}")
+                c_u = pt1[4] * length / 2
+                if pt1[4] > 0:
+                    c_u = -c_u
+                """pt_u = (
+                    pt_m[0] + c_u * (pt2[1] - pt1[1]) / length,
+                    pt_m[1] + c_u * (pt1[0] - pt2[0]) / length,
+                )"""
+                if pt1[4] > 0:
+                    pt_u = (
+                        pt_m[0] + c_u * np.cos(alpha + np.pi / 2),
+                        pt_m[1] + c_u * np.sin(alpha + np.pi / 2),
+                    )
+                else:
+                    pt_u = (
+                        pt_m[0] - c_u * np.cos(alpha + np.pi / 2),
+                        pt_m[1] - c_u * np.sin(alpha + np.pi / 2),
+                    )
+
+                # pt_u = (
+                #    pt_m[0] - c_u * np.sin(alpha),
+                #    pt_m[1] - c_u * np.cos(alpha),
+                # )
+                print(f"U-point: {pt_u}")
+
+                pu = gmsh.model.occ.add_point(pt_u[0], pt_u[1], 0)
+                segment = gmsh.model.occ.add_circle_arc(
+                    p1, pu, p2, center=False
+                )
+
+                return segment
+
+        in_outline = coords
+        if orient:
+            in_outline.reverse()
+            print("Re-oriented.")
+        if len(in_outline) == 2:
+            # TODO: test if it really works
+            pt12 = tuple(
+                (
+                    (in_outline[0][i] + in_outline[1][i]) / 2
+                    for i in range(0, 5)
+                )
+            )
+            print(pt12)
+            in_outline = [in_outline[0], pt12, in_outline[1]]
+        print("Coords: ", "\n".join([str(e) for e in in_outline]))
+        lines = [
+            _add_line(in_outline[i], in_outline[i + 1])
+            for i in range(len(in_outline) - 1)
+        ]
+        # lines.append(
+        #    _add_line(in_outline[len(in_outline) - 1], in_outline[0])
+        # )
+        # outline = gmsh.model.occ.add_curve_loop(lines)
+
+        curve_loop = gmsh.model.occ.add_wire(lines)
+        offset_curve = gmsh.model.occ.offset_curve(curve_loop, width / 2)
+        surface_loop = gmsh.model.occ.add_curve_loop(
+            [c[1] for c in offset_curve]
+        )
+        surface = gmsh.model.occ.add_plane_surface([surface_loop])
+        gmsh.model.occ.synchronize()
+        self.geoms.append(surface)
+        return self
+
+    def add_line(
+        self,
+        coords: list[
+            (tuple[float, float], tuple[float, float, float, float, float])
+        ],
+        width: float,
+        bulge: bool = False,
+    ) -> GMSHGeom2D:
+        coords = list(coords)
+        if bulge:
+            print("Bulged...")
+            # TODO: make more compact
+            return self._add_line_bulge(coords, width)
+        else:
+            print("Not bulged...")
         if len(coords) < 3:
             coords.append(coords[1])
             coords[1] = (
                 (coords[0][0] + coords[2][0]) / 2,
                 (coords[0][1] + coords[2][1]) / 2,
             )
-        print("Coords: ", coords)
         pts = [gmsh.model.occ.add_point(x, y, 0) for x, y in coords]
         lines = [
             gmsh.model.occ.add_line(pts[i], pts[i + 1])
@@ -352,6 +563,8 @@ class GMSHGeom2D(AbstractGeom2D):
 
     # TODO: check before fusing if only 1 element contained?
     def _fuse_all(self) -> int:
+        if not len(self.geoms):
+            return []
         if len(self.geoms) == 1:
             return self.geoms[0]
         tags = self.dimtags()
@@ -362,14 +575,19 @@ class GMSHGeom2D(AbstractGeom2D):
     def cutout(self, geoms: (GMSHGeom2D, sh.Polygon)) -> GMSHGeom2D:
         if isinstance(geoms, GMSHGeom2D):
             geoms = geoms.geoms
-        if isinstance(geoms, list) and isinstance(geoms[0], GMSHGeom2D):
+        if (
+            isinstance(geoms, list)
+            and len(geoms)
+            and isinstance(geoms[0], GMSHGeom2D)
+        ):
             ret = []
             for g in geoms:
                 ret.extend(g.geoms)
-            print("Ret:", ret)
             geoms = ret
         if not isinstance(geoms, list):
             geoms = [geoms]
+        if geoms == []:
+            return self
         self._fuse_all()
         gmsh.model.occ.cut(
             self.dimtags(),
@@ -398,7 +616,9 @@ class GMSHGeom2D(AbstractGeom2D):
 
     def extrude(
         self, thickness: float, zpos: float = None, fuse: bool = True
-    ) -> v.Mesh:
+    ) -> GMSHGeom3D:
+        if not len(self.geoms):
+            return GMSHGeom3D()
         if fuse:
             self._fuse_all()
         if zpos is None:
@@ -407,7 +627,6 @@ class GMSHGeom2D(AbstractGeom2D):
             gmsh.model.occ.translate(self.dimtags(), 0, 0, zpos)
         extr = gmsh.model.occ.extrude(self.dimtags(), 0, 0, thickness)
         extr = [e[1] for e in extr if e[0] == 3]
-        print("Extruded: ", extr)
         return GMSHGeom3D(extr, self)
 
     def to_3D(self, thickness: float, zpos: float = None) -> GMSHGeom3D:
@@ -415,50 +634,75 @@ class GMSHGeom2D(AbstractGeom2D):
         ret.geom2d = deepcopy(self)
         return ret
 
-    def plot(self, title: str = None):
-        def _plot(geom):
-            if isinstance(geom, sh.Polygon):
-                path = Path.make_compound_path(
-                    Path(np.asarray(geom.exterior.coords)),
-                    *[
-                        Path(np.asarray(hole.coords))
-                        for hole in geom.interiors
-                    ],
-                )
+    def set_visible(self, visible: bool = True):
+        gmsh.model.setVisibility(self.dimtags(), visible)
 
-                patch = PathPatch(path)
-                collection = PatchCollection([patch])
-
-                axs.add_collection(collection, autolim=True)
-                axs.autoscale_view()
-            else:
-                for elem in geom.geoms:
-                    _plot(elem)
-
-        fig, axs = plt.subplots()
-        # axs.xaxis.set_major_locator(plt.NullLocator())
-        # axs.yaxis.set_major_locator(plt.NullLocator())
-        axs.patch.set_color("w")
-        axs.set_aspect("equal", "datalim")
-        _plot(self.polygons)
-        if title is not None:
-            plt.title(title)
-        plt.show()
+    def plot(self, title: str = ""):
+        gmsh.model.occ.synchronize()
+        all_entities = gmsh.model.occ.getEntities(-1)
+        gmsh.model.setVisibility(all_entities, 0)
+        gmsh.model.setVisibility(self.dimtags(), 1, True)
+        gmsh.fltk.setStatusMessage(title)
+        gmsh.fltk.run()
 
 
 class GMSHGeom3D(AbstractGeom3D):
-    def __init__(self, geoms: list[int] = [], geom2d: GMSHGeom2D = None):
+    def __init__(
+        self,
+        geoms: list[int] = [],
+        geom2d: GMSHGeom2D = None,
+        name: str = "Unnamed",
+    ):
         if len(geoms):
             self.geoms = geoms
         else:
             self.geoms = []
         self._geom2d = geom2d
+        self.name = name
 
     def __len__(self):
         return len(self.geoms)
 
+    def dimtags(self) -> list[tuple[int, int]]:
+        return dimtags(self.geoms, 3)
+
+    @classmethod
+    def make_compound(cls, geoms: GMSHGeom3D) -> GMSHGeom3D:
+        def _flatten(lst):
+            for el in lst:
+                if isinstance(el, (list, tuple)):
+                    yield from _flatten(el)
+                else:
+                    if isinstance(el, GMSHGeom3D):
+                        yield from el.geoms
+                    else:
+                        yield el
+
+        # it's a list of GMSHGeom2D (or list of lists)
+        if isinstance(geoms, (list, tuple)):
+            # geoms = reduce(operator.concat, geoms)
+            geoms = list(_flatten(geoms))
+        if len(geoms) > 1:
+            # objects = [(2, geoms[0])]
+            objects = dimtags(geoms[0], 3)
+            tools = dimtags(geoms[1:], 3)
+            # tools = [(2, tag) for tag in geoms[1:]]
+            print("Objects: ", objects)
+            print("Tools: ", tools)
+            if not isinstance(tools, list):
+                tools = [tools]
+            geoms = dimtags2int(gmsh.model.occ.fuse(objects, tools)[0])
+            print("Fused: ", geoms)
+            return cls(geoms)
+        if len(geoms) == 1:
+            return cls(geoms)
+        return cls()
+
     def is_empty(self) -> bool:
         return not len(self.geoms)
+
+    def set_visible(self, visible: bool = True):
+        gmsh.model.setVisibility(self.dimtags(), visible)
 
     def _dimtags(self) -> list[tuple[int, int]]:
         return dimtags(self.geoms, 3)
@@ -486,3 +730,11 @@ class GMSHGeom3D(AbstractGeom3D):
     @geom2d.setter
     def geom2d(self, geom2d: GMSHGeom2D):
         self._geom2d = geom2d
+
+    def plot(self, title: str = ""):
+        gmsh.model.occ.synchronize()
+        all_entities = gmsh.model.occ.getEntities(-1)
+        gmsh.model.setVisibility(all_entities, 0)
+        gmsh.model.setVisibility(self.dimtags(), 1, True)
+        gmsh.fltk.setStatusMessage(title)
+        gmsh.fltk.run()

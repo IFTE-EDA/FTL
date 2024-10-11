@@ -13,7 +13,7 @@ import vedo as v
 from FTL.core.GMSHGeometry import GMSHGeom2D, GMSHGeom3D, dimtags, dimtags2int
 
 
-class Test_GMSHGeometry_Utilisites:
+class Test_GMSHGeometry_Utilities:
     def setup_class(self):
         pass
 
@@ -40,6 +40,12 @@ class Test_GMSHGeom2D:
         assert geom.is_empty()
         assert geom.geoms == []
 
+    def test_gmshgeom2d_unnamed_by_default(self):
+        geom = GMSHGeom2D()
+        assert len(geom.geoms) == 0
+        assert geom.is_empty()
+        assert geom.name == "Unnamed"
+
     def test_gmshgeom2d_add_objects_not_empty_get_len(self):
         geom = GMSHGeom2D()
         geom.add_rectangle((0, 0), (1, 1))
@@ -48,6 +54,32 @@ class Test_GMSHGeom2D:
         geom.add_rectangle((2, 2), (3, 3))
         assert len(geom.geoms) == 2
         assert not geom.is_empty()
+
+    def test_gmshgeom2d_copy(self):
+        gmsh.clear()
+        geom = GMSHGeom2D()
+        geom.add_rectangle((0, 0), (1, 1))
+        geom.add_rectangle((2, 2), (3, 3))
+        copy = geom.copy()
+        assert isinstance(copy, GMSHGeom2D)
+        assert geom.geoms == [1, 2]
+        assert copy.geoms == [3, 4]
+        assert round(gmsh.model.occ.getMass(2, 1), 5) == 1
+        assert round(gmsh.model.occ.getMass(2, 2), 5) == 1
+        assert all(
+            [
+                e in gmsh.model.occ.getEntities()
+                for e in [(2, 1), (2, 2), (2, 3), (2, 4)]
+            ]
+        )
+        bbox_rounded_1 = [
+            round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 3)
+        ]
+        bbox_rounded_2 = [
+            round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 4)
+        ]
+        assert bbox_rounded_1 == [0, 0, 0, 1, 1, 0]
+        assert bbox_rounded_2 == [2, 2, 0, 3, 3, 0]
 
     def test_gmshgeom2d_add_objects_dimtags(self):
         gmsh.clear()
@@ -347,7 +379,7 @@ class Test_GMSHGeom2D:
     def test_gmshgeom2d_add_roundrect_circle(self):
         gmsh.clear()
         geom = GMSHGeom2D()
-        geom.add_roundrect((-1, -1), (2, 2), 0.999)
+        geom.add_roundrect((-1, -1), (1, 1), 0.999)
         bbox_rounded = [
             round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 1)
         ]
@@ -911,6 +943,8 @@ class Test_GMSHGeom2D:
         ]
         assert CoM_rounded == [1.5, 1.5, 0.05]
 
+    # TODO: test for empty objects/lists in make_compound
+
 
 class Test_GMSHGeom3D:
     def setup_class(self):
@@ -997,6 +1031,47 @@ class Test_GMSHGeom3D:
         # geom2d.add_polygon(sh.geometry.box(2, 2, 3, 3))
         geom3d = geom2d_1.to_3D(0.1)
         assert geom3d.geom2d != geom2d_2
+
+    def test_gmshgeom3d_make_compound_touching(self):
+        gmsh.clear()
+        geom1 = GMSHGeom2D.get_rectangle((0, 0), (1, 1)).extrude(0.1)
+        geom2 = GMSHGeom2D.get_rectangle((0, 1), (1, 2)).extrude(0.1)
+        compound = GMSHGeom3D.make_compound([geom1, geom2])
+        gmsh.model.occ.synchronize()
+        print(gmsh.model.occ.getEntities())
+        assert compound.geoms == [1]
+        assert (3, 1) in gmsh.model.occ.getEntities() and not (
+            3,
+            2,
+        ) in gmsh.model.occ.getEntities()
+        assert round(gmsh.model.occ.getMass(3, 1), 5) == 0.2
+        bbox_rounded = [
+            round(i, 2) for i in gmsh.model.occ.getBoundingBox(3, 1)
+        ]
+        assert bbox_rounded == [0, 0, 0, 1, 2, 0.1]
+
+    def test_gmshgeom3d_make_compound_disjunct(self):
+        gmsh.clear()
+        geom1 = GMSHGeom2D.get_rectangle((0, 0), (1, 1)).extrude(0.1)
+        geom2 = GMSHGeom2D.get_rectangle((2, 2), (3, 3)).extrude(0.1)
+        compound = GMSHGeom3D.make_compound([geom1, geom2])
+        gmsh.model.occ.synchronize()
+        print(gmsh.model.occ.getEntities())
+        assert compound.geoms == [1, 2]
+        assert (3, 1) in gmsh.model.occ.getEntities() and (
+            3,
+            2,
+        ) in gmsh.model.occ.getEntities()
+        assert round(gmsh.model.occ.getMass(3, 1), 5) == 0.1
+        assert round(gmsh.model.occ.getMass(3, 2), 5) == 0.1
+        bbox_rounded = [
+            round(i, 2) for i in gmsh.model.occ.getBoundingBox(3, 1)
+        ]
+        assert bbox_rounded == [0, 0, 0, 1, 1, 0.1]
+        bbox_rounded = [
+            round(i, 2) for i in gmsh.model.occ.getBoundingBox(3, 2)
+        ]
+        assert bbox_rounded == [2, 2, 0, 3, 3, 0.1]
 
 
 """def test_gmshgeom2d_fix_list(self):
