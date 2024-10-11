@@ -1,10 +1,12 @@
 import json
+import logging
+import os
+
 import vedo as v
 from PyQt6 import QtCore
+import shapely as sh
 
-# from shapely import geometry
-from shapely.geometry import Point, Polygon, LineString, GeometryCollection
-from .MatrixTransformer import MatrixTransformer, debug
+from .MatrixTransformer import MatrixTransformer
 from .MeshLayer import MeshLayer
 
 from .Transformations import (
@@ -20,27 +22,26 @@ from .Transformations import (
 
 
 class FileParser(QtCore.QObject):
-    def __init__(self, filename, rcFP=None, rcRender=None, showProgress=False):
+    def __init__(self, filename):
         super().__init__()
-        self.transformations = None
-        self.meshes = None
+        self.transformations = []
+        self.layers = []
+        self.meshes = []
         self.transformer = None
         self.filename = filename
-        debug("Reading data from file '{}'".format(filename))
-        f = open(filename)
-        self.j_data = json.load(f)
-        f.close()
+        logging.debug("Reading data from file '{}'".format(filename))
+        with open(filename) as f:
+            self.j_data = json.load(f)
 
+        self.j_data["filename"] = filename
         self.mel = self.j_data["mel"]
         self.mel_trans = self.j_data["mel_trans"]
         self.mel_residual = self.j_data["mel_residual"]
         self.j_layers = self.j_data["layers"]
         self.j_transformations = self.j_data["transformations"]
-        self.layers = []
 
-        self.rcFP = rcFP
-        self.rcRender = rcRender
-        self.showProgress = showProgress
+        self.rcFP = None
+        self.rcRender = None
 
     progress = QtCore.pyqtSignal(int)
     status = QtCore.pyqtSignal(str)
@@ -50,7 +51,7 @@ class FileParser(QtCore.QObject):
     def parse(self):
         self.progress.emit(0)
 
-        debug(
+        logging.debug(
             "Found {} layers and {} transformations. Global MEL: [{}/{}/{}]".format(
                 len(self.j_layers),
                 len(self.j_transformations),
@@ -59,21 +60,21 @@ class FileParser(QtCore.QObject):
                 self.mel_residual,
             )
         )
-        self.transformer = MatrixTransformer(self.rcFP, self.rcRender)
+        self.transformer = MatrixTransformer()
         self.transformer.status.connect(self.status)
         self.transformer.progress.connect(self.progress)
-        self.meshes = []
-        self.transformations = []
 
         for i, layer in enumerate(self.j_layers):
-            layerObj = MeshLayer.get_from_JSON(
-                layer, self, i, input_file=self.filename
+            layerObj = MeshLayer.get_from_JSON(layer, self, i)
+            mesh_file = os.path.join(
+                os.path.dirname(self.filename), layer["file"]
             )
+            layerObj.load_mesh(mesh_file)
             # mesh = v.load(layer["file"])
             # layerObj = MeshLayer(mesh, layer, self, i)
             self.layers.append(layerObj)
             self.transformer.add_layer(layerObj)
-            debug(
+            logging.debug(
                 "  Found layer #{} '{}' with MEL [{}/{}/{}] and color '{}', reading data from file '{}'".format(
                     i,
                     layer["name"],
@@ -86,23 +87,23 @@ class FileParser(QtCore.QObject):
             )
 
         meshNumStr = "/".join(
-            [str(layer.mesh.npoints) for layer in self.transformer.layers]
+            [str(layer.mesh.npoints) for layer in self.layers]
         )
 
-        debug(
+        logging.debug(
             "Transformer created. Imported {} layers with {} points.".format(
                 self.transformer.nlayers, meshNumStr
             )
         )
 
-        debug("\nAll layers imported. Reading transformations...")
+        logging.debug("\nAll layers imported. Reading transformations...")
 
         for i, tr in enumerate(self.j_transformations):
             if "color" in tr:
                 color = tr["color"]
             else:
                 color = None
-            debug(
+            logging.debug(
                 "  Found transformation #{} '{}' of type {} with priority {} and color '{}'".format(
                     len(self.transformer.transformations),
                     tr["name"],
@@ -113,7 +114,7 @@ class FileParser(QtCore.QObject):
             )
             if tr["type"] == "ZBend":
                 if tr["dir"] == "POSX":
-                    print("Found POSX")
+                    logging.debug("Found POSX")
                     dir = DIR.POSX
                 elif tr["dir"] == "NEGX":
                     dir = DIR.NEGX
@@ -136,7 +137,7 @@ class FileParser(QtCore.QObject):
                     dir,
                     name=tr["name"],
                 )
-                debug(
+                logging.debug(
                     "  -> dir={};  angle={};  x = {}...{};  y = {}...{};".format(
                         tr["dir"],
                         tr["angle"],
@@ -161,11 +162,11 @@ class FileParser(QtCore.QObject):
             else:
                 raise TypeError("Unknown transformation type.")
             trans.color = color
-            debug("  - Adding Transformation {}".format(trans))
+            logging.debug("  - Adding Transformation {}".format(trans))
             # self.transformations.append(trans)
             self.transformer.add_transformation(trans)
 
-        debug("\nDone parsing.\n\n")
+        logging.debug("\nDone parsing.\n\n")
         self.progress.emit(100)
 
     def __str__(self):
@@ -182,7 +183,7 @@ class FileParser(QtCore.QObject):
         self.transformer.visualize()
 
     def render(self):
-        debug("\nRendering...")
+        logging.debug("\nRendering...")
         self.transformer.start_transformation()
         ret = self.transformer.get_result_mesh()
         return ret

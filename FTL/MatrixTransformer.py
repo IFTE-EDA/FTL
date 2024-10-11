@@ -58,7 +58,7 @@ class MatrixTransformer(QtCore.QObject):
         self.transformations.append(tr)
         tr.parent = self
         if tr.addResidual:
-            res = tr.getResidualTransformation()
+            res = tr.get_residual_transformation()
             debug("    - adding Residual {}".format(res))
             self.add_transformation(res)
 
@@ -98,9 +98,9 @@ class MatrixTransformer(QtCore.QObject):
                 )
                 self.update_progress(trId + 1, len(self.transformations))
                 debug("{} meshes found".format(len(tr.meshes)))
-                area = tr.getArea().extrude(3).z(-1.5).c("green").alpha(0.2)
+                area = tr.get_area().extrude(3).z(-1.5).c("green").alpha(0.2)
                 self.rcFP.add_transformation(
-                    tr.name + "_outline", tr.getOutline().c("yellow7")
+                    tr.name + "_outline", tr.get_outline_points().c("yellow7")
                 )
                 self.rcFP.add_transformation(
                     tr.name + "_area", area.clone(), False
@@ -158,7 +158,7 @@ class MatrixTransformer(QtCore.QObject):
                         len(self.transformations),
                     )
 
-                    outline = tr.getOutline()
+                    outline = tr.get_outline_points()
                     mesh_transformed, part = cut_with_line(
                         part, outline, closed=True
                     )
@@ -166,7 +166,7 @@ class MatrixTransformer(QtCore.QObject):
                     v.write(mesh_transformed, "_mesh_transformed.stl")
                     v.write(part, "_part.stl")
 
-                    # ol_gop = tr.getOutlinePts()
+                    # ol_gop = tr.get_outline_pts()
                     scope_transformed = get_contour_scope(mesh_transformed)
                     tr.scope = scope_transformed
                     tr.meshes.append(mesh_transformed.clone())
@@ -180,10 +180,10 @@ class MatrixTransformer(QtCore.QObject):
                     fixedMeshes = []
                     residualMeshes = []
                     split = part.split()
-                    p0, p1 = tr.getBorderlinePts()
+                    p0, p1 = tr.get_borderline_pts()
                     self.rcFP.add_debug(
                         tr.name + "_borderline",
-                        v.Line(tr.getBorderlinePts()).lw(2).c("red"),
+                        v.Line(tr.get_borderline_pts()).lw(2).c("red"),
                         False,
                     )
                     for prt in split:
@@ -248,7 +248,7 @@ class MatrixTransformer(QtCore.QObject):
                 tr.meshes.append(mesh_transformed.clone())
                 tr.mel.append(layer.mel_trans)
                 self.debugOutput.append(
-                    v.Line(tr.getBorderlinePts()).lw(2).c("red")
+                    v.Line(tr.get_borderline_pts()).lw(2).c("red")
                 )
 
                 if (
@@ -297,13 +297,13 @@ class MatrixTransformer(QtCore.QObject):
                 if (
                     tr.transformWholeMesh
                 ):  # Transformation implemented a method to  the whole transformation on its own
-                    mesh = tr.transformMesh(mesh)
+                    mesh = tr.transform_mesh(mesh)
                 else:
                     points = mesh.points()
                     for pid, pt in enumerate(points):
                         self.update_progress(pid, len(points))
                         vec = np.array([pt[0], pt[1], pt[2], 1])
-                        vec = np.dot(tr.getMatrixAt(pt), vec)
+                        vec = np.dot(tr.get_matrix_at(pt), vec)
                         points[pid][0] = vec[0]
                         points[pid][1] = vec[1]
                         points[pid][2] = vec[2]
@@ -419,7 +419,9 @@ def cut_with_line(mesh, points, invert=False, closed=True, residual=True):
 
 
 def split_with_transformation(self, mesh, tr):
-    mesh_transformed, part = cut_with_line(mesh.clone(), tr.getOutline())
+    mesh_transformed, part = cut_with_line(
+        mesh.clone(), tr.get_outline_points()
+    )
     # mesh_transformed = mesh_transformed.clean()
     fixedMeshes = []
     residualMeshes = []

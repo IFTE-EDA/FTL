@@ -1,13 +1,20 @@
+import logging
+from enum import Enum
 import numpy as np
 from numpy import sin, cos
-import shapely.geometry
-import shapely.geometry.polygon
-from shapely.geometry import Point
+
 import vedo as v
-from enum import Enum
-import copy
+import shapely as sh
+
 from .Transformation import Transformation
 from .LinearTransformation import LinearTransformation
+
+# import shapely.geometry
+# import shapely.geometry.polygon
+# from shapely.geometry import Point
+
+
+# import copy
 
 
 DIR = Enum("DIR", "NEGY POSY NEGX POSX")
@@ -27,13 +34,13 @@ class ZBend(Transformation):
         addResidual=True,
         name=None,
     ):
-        self.boundaries = shapely.geometry.Polygon(
+        self.boundaries = sh.Polygon(
             [[xmin, ymin], [xmax, ymin], [xmax, ymax], [xmin, ymax]]
         )
         super().__init__(self.boundaries, prio, addResidual, name)
         self.angle = np.deg2rad(angle)
         self.dir = dir
-        # self.boundaries = shapely.geometry.box(xmin, ymin, xmax, ymax)
+        # self.boundaries = sh.box(xmin, ymin, xmax, ymax)
         self.xmin = xmin
         self.xmax = xmax
         self.ymin = ymin
@@ -69,8 +76,8 @@ class ZBend(Transformation):
             self.ymax,
         )
 
-    def isInScope(self, point):
-        pt = Point(point[0], point[1])
+    def is_in_scope(self, point):
+        pt = sh.Point(point[0], point[1])
         if not pt.disjoint(self.boundaries):
             return True
         # else:
@@ -134,7 +141,7 @@ class ZBend(Transformation):
             ]
 
     def getOutlinePts(self):
-        poly = shapely.geometry.polygon.orient(self.boundaries)
+        poly = sh.polygon.orient(self.boundaries)
         x = poly.exterior.coords.xy[0][:-1]
         y = poly.exterior.coords.xy[1][:-1]
         z = [0] * len(x)
@@ -142,7 +149,7 @@ class ZBend(Transformation):
 
         return pts
 
-    def getOutline(self):
+    def get_outline_points(self):
         return v.Line(self.getOutlinePts(), closed=True)
 
     def getBorderlinePts(self):
@@ -157,11 +164,11 @@ class ZBend(Transformation):
             pts = [(self.xmin, self.ymin, 0), (self.xmin, self.ymax, 0)]
         return pts
 
-    def getBorderline(self):
+    def get_borderline(self):
         return v.Line(self.getBorderlinePts())
 
-    def getResidualTransformation(self):
-        print("Getting resiual; my dir is {}".format(self.dir))
+    def get_residual_transformation(self):
+        logging.debug("Getting resiual; my dir is {}".format(self.dir))
         if self.dir == DIR.NEGY:
             r = (self.ymax - self.ymin) / self.angle
             a = self.angle
@@ -176,7 +183,7 @@ class ZBend(Transformation):
             )
             newTr[2] = 0, sin(a), cos(a), self.ymax * sin(a) - r * (1 - cos(a))
 
-            newBounds = shapely.geometry.box(
+            newBounds = sh.box(
                 self.parent.xmin, self.ymax, self.parent.xmax, self.parent.ymin
             )
             ret = LinearTransformation(
@@ -202,7 +209,7 @@ class ZBend(Transformation):
                 -self.ymax * sin(a) + r * (1 - cos(a)),
             )
 
-            newBounds = shapely.geometry.box(
+            newBounds = sh.box(
                 self.parent.xmin, self.ymax, self.parent.xmax, self.parent.ymax
             )
             return LinearTransformation(
@@ -228,7 +235,7 @@ class ZBend(Transformation):
                 -self.xmax * sin(a) + r * (1 - cos(a)),
             )
 
-            newBounds = shapely.geometry.box(
+            newBounds = sh.box(
                 self.xmax, self.parent.ymin, self.parent.xmin, self.parent.ymax
             )
             ret = LinearTransformation(
@@ -253,7 +260,7 @@ class ZBend(Transformation):
                 -self.xmax * sin(a) + r * (1 - cos(a)),
             )
 
-            newBounds = shapely.geometry.box(
+            newBounds = sh.box(
                 self.xmax, self.parent.ymin, self.parent.xmax, self.parent.ymax
             )
             ret = LinearTransformation(
@@ -268,7 +275,7 @@ class ZBend(Transformation):
         ret.name = self.name + "-Res"
         return ret
 
-    def getMatrixAt(self, pt):
+    def get_matrix_at(self, pt):
         x = pt[0]
         y = pt[1]
         mat = np.zeros((3, 4), dtype=float)
