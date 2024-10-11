@@ -5,6 +5,7 @@ data_dir = Path(__file__).parent
 
 
 def main():
+    print("Making DXF test files")
     make_dxf_layers()
     make_dxf_lines()
     make_dxf_arc()
