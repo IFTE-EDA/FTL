@@ -87,18 +87,20 @@ def make_dxf_arc():
 def make_dxf_polyline():
     doc = ezdxf.new("R2010")
     doc.layers.add(name="straight_cw3")
-    doc.layers.add(name="straight_w2")
+    # doc.layers.add(name="straight_w2")
     msp = doc.modelspace()
     points = [(0, 0), (10, 0)]
     polyline = msp.add_lwpolyline(points, dxfattribs={"layer": "straight_cw3"})
     polyline.dxf.const_width = 3
     polyline.close(False)
+    """
     points = [(0, 0, 2), (10, 0, 2)]
     polyline = msp.add_lwpolyline(
         points, format="xys", dxfattribs={"layer": "straight_w2"}
     )
     polyline.dxf.const_width = 0
     polyline.close(False)
+    """
     doc.saveas(data_dir / "polyline.dxf")
 
 

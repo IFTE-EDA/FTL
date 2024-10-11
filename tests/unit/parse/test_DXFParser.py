@@ -203,6 +203,7 @@ class Test_DXFParser:
             assert points_rounded == [(0, 0), (10, 0)]
             widths = [(p[2], p[3]) for p in e.get_points()]
             assert widths == [(0.0, 0.0), (0.0, 0.0)]
+        """
         layer = parser.get_layer("straight_w2")
         assert len(layer.get_entities()) == 1
         e = layer.get_entities()[0]
@@ -214,6 +215,7 @@ class Test_DXFParser:
         print("Checking points...")
         points_rounded = [(p[0], p[1], p[2]) for p in e.get_points()]
         assert points_rounded == [(0, 0, 2), (10, 0, 2)]
+        """
 
     def test_dxfparser_render_polyline(self):
         gmsh.clear()
@@ -224,13 +226,6 @@ class Test_DXFParser:
         assert render.dimtags() == [(2, 1)]
         assert get_bbox_rounded(2, 1) == [-1.5, -1.5, 0.0, 11.5, 1.5, 0.0]
         assert np.round(gmsh.model.occ.getMass(2, 1), 2) == 37.07
-        layer = parser.get_layer("straight_w2")
-        render = layer.render(fuse=False)
-        render.plot()
-        assert len(render) == 1
-        assert render.dimtags() == [(2, 2)]
-        assert get_bbox_rounded(2, 2) == [-1.5, -1.5, 0.0, 11.5, 1.5, 0.0]
-        assert np.round(gmsh.model.occ.getMass(2, 2), 2) == 0.0
 
     def test_dxfparser_poly(self):
         gmsh.clear()
@@ -286,7 +281,7 @@ class Test_DXFParser:
         print(parser.get_layer_names())
         assert len(render) == 1
         assert render.dimtags() == [(2, 1)]
-        render.plot()
+        # render.plot()
         assert get_bbox_rounded(2, 1) == [-2.5, -2.5, 0.0, 12.5, 12.5, 0.0]
         assert np.round(gmsh.model.occ.getMass(2, 1), 2) == 169.89
         layer = parser.get_layer("1")

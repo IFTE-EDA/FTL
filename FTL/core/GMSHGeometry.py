@@ -417,28 +417,13 @@ class GMSHGeom2D(AbstractGeom2D):
         coords: list[tuple[float, float, float, float, float]],
         width: float,
     ) -> GMSHGeom2D:
-        def _add_line(pt1, pt2, width):
-            print(
-                f"Adding line from {pt1} to {pt2} with bulge {pt1[4]} and width {width}"
-            )
+        def _add_line(pt1, pt2):
+            print(f"Adding line from {pt1} to {pt2} with bulge {pt1[4]}")
             p1 = gmsh.model.occ.add_point(pt1[0], pt1[1], 0)
             p2 = gmsh.model.occ.add_point(pt2[0], pt2[1], 0)
             if pt1[4] == 0:
                 # render straight line
-                if not width:
-                    # external width is 0; have a look at the local width and stroke accordingly
-                    # return gmsh.model.occ.add_line(p1, p2)
-                    return _add_line(pt1, pt2, pt1[2])
-                else:
-                    p12 = ((p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2)
-                    segment = [
-                        gmsh.model.occ.add_line(p1, p12),
-                        gmsh.model.occ.add_line(p12, p2),
-                    ]
-                    print(
-                        f"Split to create segment with const_width: {width} and local_width: {pt1[2]}"
-                    )
-                    width = pt1[2]
+                return gmsh.model.occ.add_line(p1, p2)
             else:
                 # render bulged line
                 delta_x = pt2[0] - pt1[0]
@@ -479,26 +464,25 @@ class GMSHGeom2D(AbstractGeom2D):
                     p1, pu, p2, center=False
                 )
 
-            if not width:
-                # we want a straight line
                 return segment
-            else:
-                if not isinstance(segment, list):
-                    segment = [segment]
-                # we want a line with width
-                # offset_curve = gmsh.model.occ.offset_curve(segment, width / 2)
-                wire = gmsh.model.occ.add_wire(segment)
-                offset_curve = gmsh.model.occ.offset_curve(wire, width / 2)
-                gmsh.model.occ.synchronize()
-                gmsh.fltk.run()
-                return offset_curve
 
         in_outline = coords
         if orient:
             in_outline.reverse()
             print("Re-oriented.")
+        if len(in_outline) == 2:
+            # TODO: test if it really works
+            pt12 = tuple(
+                (
+                    (in_outline[0][i] + in_outline[1][i]) / 2
+                    for i in range(0, 5)
+                )
+            )
+            print(pt12)
+            in_outline = [in_outline[0], pt12, in_outline[1]]
+        print("Coords: ", "\n".join([str(e) for e in in_outline]))
         lines = [
-            _add_line(in_outline[i], in_outline[i + 1], in_outline[i][4])
+            _add_line(in_outline[i], in_outline[i + 1])
             for i in range(len(in_outline) - 1)
         ]
         # lines.append(
