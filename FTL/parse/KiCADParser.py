@@ -889,8 +889,8 @@ class KiCADPart(KiCADEntity):
     def __init__(self, parent: Loggable, params: dict):
         super().__init__(parent, params)
         self.ref = self._parse_ref(params)
-        self.descr = dict["descr"]
-        self.tags = dict["tags"]
+        self.descr = params["descr"]
+        self.tags = params["tags"]
         self.layer = params["layer"]
         self.path = params["path"] if "path" in params else None
         self.pads = params["pad"] if "pad" in params else None
@@ -906,6 +906,7 @@ class KiCADPart(KiCADEntity):
         for key in self.geoms.keys():
             self.geoms[key] = params[key] if key in params else []
 
+    # TODO: for older kicad versions, "reference" is implemented as a fp_text
     def _parse_ref(self, params):
         for property in params["property"]:
             if property[0] == '"Reference"':
