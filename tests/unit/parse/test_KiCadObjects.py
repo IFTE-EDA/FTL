@@ -16,6 +16,8 @@ from FTL.parse.KiCADParser import (
     KiCADArc,
     KiCADPolygon,
     KiCADFilledPolygon,
+    KiCADZone,
+    KiCADPart,
 )
 
 """PARAMS_MULTILAYER = {
@@ -105,17 +107,65 @@ PARAMS_ZONE = {
             ]
         },
     },
-    "filled_polygon": {
-        "pts": [
-            [0, 0],
-            [100, 0],
-            [100, 100],
-            [0, 100],
-        ],
-    },
+    "filled_polygon": [
+        {
+            "pts": {
+                "xy": [
+                    [0, 0],
+                    [100, 0],
+                    [100, 100],
+                    [0, 100],
+                ]
+            },
+        }
+    ],
     "fill": "solid",
     "layer": "Testlayer",
     "tstamp": "TSTAMPTEST",
+}
+
+PARAMS_PART = {
+    0: "TestPart",
+    # "ref": "U1",
+    "descr": "TestDescription",
+    "tags": ["TestTag1", "TestTag2"],
+    "layer": "Testlayer",
+    "path": "TestPath",
+    "at": [0, 0, 0],
+    "pads": [
+        {
+            "name": "TestPad1",
+            "shape": "rect",
+            "pos": [0, 0],
+            "size": [100, 100],
+            "drill": 50,
+            "layers": ["Testlayer1", "Testlayer2"],
+        },
+        {
+            "name": "TestPad2",
+            "shape": "circle",
+            "pos": [100, 100],
+            "size": [100, 100],
+            "drill": 50,
+            "layers": ["Testlayer1", "Testlayer2"],
+        },
+    ],
+    "property": [
+        [
+            '"Reference"',
+            "T1",
+        ]
+    ],
+    "footprint": "TestFootprint",
+    "datasheet": "TestDatasheet",
+    "tstamp": "TSTAMPTEST",
+}
+
+PARAMS_PAD = {
+    "at": [0, 0, 0],
+    "size": [10, 14],
+    "drill": 1,
+    "layers": ["Testlayer1", "Testlayer2"],
 }
 
 
@@ -223,12 +273,35 @@ class Test_KiCadLayer:
 
         assert obj.points == PARAMS_POLYGON["pts"]["xy"]
 
-    """
+    def test_kicadpart_create(self):
+        obj = KiCADPart(self.logger, PARAMS_PART)
+        assert obj.params == PARAMS_PART
+        assert obj.layer == PARAMS_PART["layer"]
+        assert obj.layers is None
+        assert obj.at == PARAMS_PART["at"]
+        assert obj.angle == PARAMS_PART["at"][2]
+
+        assert obj.name == PARAMS_PART[0]
+        assert obj.descr == PARAMS_PART["descr"]
+        assert obj.tags == PARAMS_PART["tags"]
+        assert obj.path == PARAMS_PART["path"]
+
+    def test_kicadpart_get_coordinates(self):
+        obj = KiCADPart(self.logger, PARAMS_PART)
+        assert obj.x == PARAMS_PART["at"][0]
+        assert obj.y == PARAMS_PART["at"][1]
+
+    def test_kicadpart_move_relative(self):
+        obj = KiCADPart(self.logger, PARAMS_PART)
+        obj.move_relative([100, 100])
+        assert obj.x == PARAMS_PART["at"][0] + 100
+        assert obj.y == PARAMS_PART["at"][1] + 100
+
     def test_kicadzone_create(self):
         obj = KiCADZone(self.logger, PARAMS_ZONE)
         assert obj.params == PARAMS_ZONE
         assert obj.layer == PARAMS_ZONE["layer"]
-        assert obj.layers == None
+        assert obj.layers is None
 
         assert obj.net == PARAMS_ZONE["net"]
         assert obj.net_name == PARAMS_ZONE["net_name"]
@@ -236,14 +309,15 @@ class Test_KiCadLayer:
         assert obj.connect_pads == PARAMS_ZONE["connect_pads"]
         assert obj.min_thickness == PARAMS_ZONE["min_thickness"]
         assert obj.polygon == PARAMS_ZONE["polygon"]
-        assert obj.filled_polygon == PARAMS_ZONE["filled_polygon"]
+        filled_polygon = obj.filled_polygon[0]
+        print(filled_polygon.points)
+        # TODO - this checks if the last point is the same as the first point. Is that correct?
+        assert (
+            filled_polygon.points[0:4]
+            == PARAMS_ZONE["filled_polygon"][0]["pts"]["xy"]
+        )
+        assert (
+            filled_polygon.points[4]
+            == PARAMS_ZONE["filled_polygon"][0]["pts"]["xy"][0]
+        )
         assert obj.fill == PARAMS_ZONE["fill"]
-    """
-
-    """
-    def test_kicadobject_create_multilayer_obj(self):
-        obj = KiCADObject(self.logger, 0, PARAMS_MULTILAYER)
-        assert obj.params == PARAMS_MULTILAYER
-        assert obj.layer == None
-        assert obj.layers == PARAMS_MULTILAYER["layers"]
-    """
