@@ -862,7 +862,7 @@ class KiCADRect(KiCADPolygon):
 
 class KiCADLine(KiCADObject):
     def __init__(self, parent: Loggable, params: dict):
-        Loggable.__init__(self, parent)
+        super().__init__(parent, params)
         self.start = params["start"]
         self.end = params["end"]
         self.width = params["stroke"]["width"]
@@ -874,7 +874,7 @@ class KiCADLine(KiCADObject):
 
 class KiCADArc(KiCADObject):
     def __init__(self, parent: Loggable, params: dict):
-        Loggable.__init__(self, parent)
+        super().__init__(parent, params)
         self.start = params["start"]
         self.mid = params["mid"]
         self.end = params["end"]
@@ -887,7 +887,7 @@ class KiCADArc(KiCADObject):
 
 class KiCADPart(KiCADEntity):
     def __init__(self, parent: Loggable, params: dict):
-        KiCADEntity.__init__(self, parent, params)
+        super().__init__(parent, params)
         self.ref = self._parse_ref(params)
         self.descr = dict["descr"]
         self.tags = dict["tags"]
