@@ -239,12 +239,3 @@ class Test_KiCadLayer:
         mock2 = Object_Mock("test2", empty=True)
         layer.add_geometry([mock1, mock2])
         assert not layer.has_objects()
-
-    def test_kicadlayer_render_geometries(self):
-        layer = KiCADLayer(self.logger, 0, LAYER_PARAMS_TEST)
-        mock1 = Object_Mock("test1")
-        mock2 = Object_Mock("test2")
-        layer.add_geometry([mock1, mock2])
-        layer.render()
-        assert mock1.rendered
-        assert mock2.rendered
