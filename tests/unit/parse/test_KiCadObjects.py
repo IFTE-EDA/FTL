@@ -9,11 +9,13 @@ import pytest
 
 from FTL.Util.logging import Logger
 from FTL.parse.KiCADParser import (
-    KiCADLayer,
     KiCADObject,
     KiCADEntity,
-    KiCADFilledPolygon,
+    KiCADLine,
     KiCADRect,
+    KiCADArc,
+    KiCADPolygon,
+    KiCADFilledPolygon,
 )
 
 """PARAMS_MULTILAYER = {
@@ -32,6 +34,32 @@ from FTL.parse.KiCADParser import (
     "tstamp": "TSTAMPTEST",
 }"""
 
+PARAMS_LINE = {
+    "start": [0, 0],
+    "end": [100, 100],
+    "stroke": {"width": 0.2, "type": "default"},
+    "layer": "Testlayer",
+    "tstamp": "TSTAMPTEST",
+}
+
+PARAMS_RECT = {
+    "start": [0, 0],
+    "end": [100, 100],
+    "stroke": {"width": 0.2, "type": "default"},
+    "fill": "solid",
+    "layer": "Testlayer",
+    "tstamp": "TSTAMPTEST",
+}
+
+PARAMS_ARC = {
+    "start": [-50, 0],
+    "mid": [0, 50],
+    "end": [50, 0],
+    "stroke": {"width": 0.2, "type": "solid"},
+    "layer": "Testlayer",
+    "tstamp": "TSTAMPTEST",
+}
+
 PARAMS_POLYGON = {
     "pts": {
         "xy": [
@@ -41,6 +69,9 @@ PARAMS_POLYGON = {
             [100, 0],
         ]
     },
+    "stroke": {"width": 0.2, "type": "default"},
+    "width": 0.2,
+    "fill": "no",
     "layer": "Testlayer",
     "tstamp": "TSTAMPTEST",
 }
@@ -82,15 +113,6 @@ PARAMS_ZONE = {
             [0, 100],
         ],
     },
-    "fill": "solid",
-    "layer": "Testlayer",
-    "tstamp": "TSTAMPTEST",
-}
-
-PARAMS_RECT = {
-    "start": [0, 0],
-    "end": [100, 100],
-    "stroke": {"width": 0.2, "type": "default"},
     "fill": "solid",
     "layer": "Testlayer",
     "tstamp": "TSTAMPTEST",
@@ -171,6 +193,35 @@ class Test_KiCadLayer:
             [100, 100],
             [0, 100],
         ]
+
+    def test_kicadline_create(self):
+        obj = KiCADLine(self.logger, PARAMS_LINE)
+        # TODO - why no params?
+        assert obj.params == PARAMS_LINE
+        assert obj.layer == PARAMS_LINE["layer"]
+        assert obj.layers is None
+
+        assert obj.start == PARAMS_LINE["start"]
+        assert obj.end == PARAMS_LINE["end"]
+        assert obj.width == PARAMS_LINE["stroke"]["width"]
+
+    def test_kicadarc_create(self):
+        obj = KiCADArc(self.logger, PARAMS_ARC)
+        assert obj.params == PARAMS_ARC
+        assert obj.layer == PARAMS_ARC["layer"]
+        assert obj.layers is None
+
+        assert obj.start == PARAMS_ARC["start"]
+        assert obj.end == PARAMS_ARC["end"]
+        assert obj.width == PARAMS_ARC["stroke"]["width"]
+
+    def test_kicadpolygon_create(self):
+        obj = KiCADPolygon(self.logger, PARAMS_POLYGON)
+        assert obj.params == PARAMS_POLYGON
+        assert obj.layer == PARAMS_POLYGON["layer"]
+        assert obj.layers is None
+
+        assert obj.points == PARAMS_POLYGON["pts"]["xy"]
 
     """
     def test_kicadzone_create(self):
