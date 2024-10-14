@@ -149,6 +149,11 @@ class DXFLayer(Loggable):
         print(f"Closed: {e.is_closed}")
         print(f"Has width: {e.has_width}")
 
+        if e.has_width and e.dxf.const_width == 0:
+            raise Exception(
+                "Width definition in segments not supported. Please use const_width instead."
+            )
+
         # for print(e.get_points())
         with e.points() as points:
             reshaped = np.reshape(points, (-1, 5))
