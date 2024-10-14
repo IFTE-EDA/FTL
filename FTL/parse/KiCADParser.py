@@ -467,7 +467,7 @@ class KiCADLayer(Loggable):
         self.params = params
         self.name = params[0].strip('"')
         self.type = params[1]
-        self.name_long = params[2] if 2 in params else None
+        self.name_long = params[2] if len(params) > 2 else None
         self.log_debug(
             f"Created layer #{id} '{self.name}' of type '{self.type}'..."
         )
@@ -680,6 +680,8 @@ class KiCADEntity(KiCADObject):
         self.at = (self.at[0] + dx, self.at[1] + dy)
 
 
+# TODO: remove this
+"""
 class KiCADSegment(KiCADObject):
     def __init__(self, parent: Loggable, params: dict):
         super().__init__(parent, params)
@@ -687,6 +689,7 @@ class KiCADSegment(KiCADObject):
         self.end = params["end"]
         self.width = params["width"]
         self.layer = params["layer"]
+"""
 
 
 class KiCADZone(KiCADObject):
@@ -845,9 +848,9 @@ class KiCADRect(KiCADPolygon):
         params["pts"] = {
             "xy": [
                 params["start"],
-                (params["end"][0], params["start"][1]),
+                [params["end"][0], params["start"][1]],
                 params["end"],
-                (params["start"][0], params["end"][1]),
+                [params["start"][0], params["end"][1]],
             ]
         }
         KiCADPolygon.__init__(self, parent, params)
