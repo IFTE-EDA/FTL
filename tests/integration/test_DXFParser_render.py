@@ -32,7 +32,6 @@ def round_array(arr):
             return [round(i, PRECISION_DIGITS) for i in lst]
 
     return round_list(arr)
-    # return [round(i, PRECISION_DIGITS) for i in arr]
 
 
 class Test_DXFParser_Render:
