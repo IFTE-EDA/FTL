@@ -1070,6 +1070,7 @@ class KiCADPad(KiCADEntity):
     def __init__(self, parent: Loggable, params: dict):
         super().__init__(parent, params)
         self.log_debug(f"Making pad with {params}")
+        # TODO: "parent is None" doesn't work as it is linked to the Logger class
         self.name = (
             "Pads." + params[0].strip('"')
             if parent is None
