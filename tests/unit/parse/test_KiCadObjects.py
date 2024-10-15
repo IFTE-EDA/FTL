@@ -239,7 +239,7 @@ class Mock_Layer(Loggable):
         self.ref = "T1"
 
 
-class Test_KiCadLayer:
+class Test_KiCadObjects:
     def setup_class(self):
         self.logger = Logger(__name__)
 
