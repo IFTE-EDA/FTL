@@ -7,7 +7,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from FTL.Util.logging import Logger
+from FTL.Util.logging import Logger, Loggable
 from FTL.parse.KiCADParser import (
     KiCADObject,
     KiCADEntity,
@@ -18,6 +18,7 @@ from FTL.parse.KiCADParser import (
     KiCADFilledPolygon,
     KiCADZone,
     KiCADPad,
+    KiCADVia,
     KiCADPart,
 )
 
@@ -125,6 +126,14 @@ PARAMS_ZONE = {
     "tstamp": "TSTAMPTEST",
 }
 
+PARAMS_VIA = {
+    "at": [0, 0],
+    "size": [3],
+    "drill": [1],
+    "layers": ["F.Cu", "B.Cu"],
+    "net": [2],
+}
+
 PARAMS_PART = {
     0: "TestPart",
     # "ref": "U1",
@@ -166,6 +175,49 @@ PARAMS_PART = {
     "tstamp": "TSTAMPTEST",
 }
 
+PARAMS_PART_DRILLED_PADS = {
+    0: "TestPart",
+    # "ref": "U1",
+    "descr": "TestDescription",
+    "tags": ["TestTag1", "TestTag2"],
+    "layer": "Testlayer",
+    "path": "TestPath",
+    "at": [0, 0, 0],
+    "pads": [
+        {
+            0: "1",
+            1: "thru_hole",
+            2: "oval",
+            "at": [-30, 0],
+            "size": [1.7, 1.7],
+            "drill": [1],
+            "layers": ["Testlayer1", "Testlayer2"],
+            "roundrect_rratio": 0.25,
+            "net": [0, "GND"],
+        },
+        {
+            0: "2",
+            1: "thru_hole",
+            2: "oval",
+            "at": [-30, 0],
+            "size": [1.7, 1.7],
+            "drill": [1],
+            "layers": ["Testlayer1", "Testlayer2"],
+            "roundrect_rratio": 0.25,
+            "net": [0, "GND"],
+        },
+    ],
+    "property": [
+        [
+            '"Reference"',
+            "T1",
+        ]
+    ],
+    "footprint": "TestFootprint",
+    "datasheet": "TestDatasheet",
+    "tstamp": "TSTAMPTEST",
+}
+
 
 class Object_Mock:
     def __init__(self, name, empty=False):
@@ -179,6 +231,12 @@ class Object_Mock:
     def render(self):
         self.rendered = True
         return 1
+
+
+class Mock_Layer(Loggable):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.ref = "T1"
 
 
 class Test_KiCadLayer:
@@ -270,6 +328,74 @@ class Test_KiCadLayer:
         assert obj.layers is None
 
         assert obj.points == PARAMS_POLYGON["pts"]["xy"]
+
+    def test_kicadpad_create(self):
+        par = Mock_Layer(self.logger)
+        obj = KiCADPad(par, PARAMS_PART["pads"][0])
+        assert obj.params == PARAMS_PART["pads"][0]
+        assert (
+            obj.name
+            == PARAMS_PART["property"][0][1]
+            + ".Pads."
+            + PARAMS_PART["pads"][0][0]
+        )
+        assert obj.type == PARAMS_PART["pads"][0][1]
+        assert obj.shape == PARAMS_PART["pads"][0][2]
+        assert obj.at == PARAMS_PART["pads"][0]["at"]
+        assert obj.size == PARAMS_PART["pads"][0]["size"]
+        assert obj.layers == PARAMS_PART["pads"][0]["layers"]
+        # assert obj.roundrect_rratio == PARAMS_PART["pads"][0]["roundrect_rratio"]
+        assert obj.net == PARAMS_PART["pads"][0]["net"]
+
+    def test_kicadpad_create_drilled(self):
+        par = Mock_Layer(self.logger)
+        obj = KiCADPad(par, PARAMS_PART_DRILLED_PADS["pads"][0])
+        assert obj.params == PARAMS_PART_DRILLED_PADS["pads"][0]
+        assert (
+            obj.name
+            == PARAMS_PART_DRILLED_PADS["property"][0][1]
+            + ".Pads."
+            + PARAMS_PART_DRILLED_PADS["pads"][0][0]
+        )
+        assert obj.type == PARAMS_PART_DRILLED_PADS["pads"][0][1]
+        assert obj.shape == PARAMS_PART_DRILLED_PADS["pads"][0][2]
+        assert obj.at == PARAMS_PART_DRILLED_PADS["pads"][0]["at"]
+        assert obj.size == PARAMS_PART_DRILLED_PADS["pads"][0]["size"]
+        assert obj.layers == PARAMS_PART_DRILLED_PADS["pads"][0]["layers"]
+        assert obj.net == PARAMS_PART_DRILLED_PADS["pads"][0]["net"]
+        assert obj.drill == PARAMS_PART_DRILLED_PADS["pads"][0]["drill"]
+
+    def test_kicadvia_create(self):
+        obj = KiCADVia(self.logger, PARAMS_VIA)
+        assert obj.params == PARAMS_VIA
+        assert obj.layer is None
+        assert obj.layers == PARAMS_VIA["layers"]
+        assert obj.at == PARAMS_VIA["at"]
+        assert obj.size == PARAMS_VIA["size"]
+        assert obj.drill == PARAMS_VIA["drill"]
+        # TODO: maybe add this to every object?
+        # assert obj.net == PARAMS_VIA["net"]
+
+    def test_kicadvia_get_layer_names(self):
+        obj = KiCADVia(self.logger, PARAMS_VIA)
+        assert obj.get_layer_names() == ["F.Cu", "B.Cu"]
+
+    def test_kicadpart_has_drill(self):
+        par = Mock_Layer(self.logger)
+        obj1 = KiCADPad(par, PARAMS_PART["pads"][0])
+        obj2 = KiCADPad(par, PARAMS_PART_DRILLED_PADS["pads"][0])
+        assert obj1.has_drill() is False
+        assert obj2.has_drill() is True
+
+    # TODO: move to integration test
+    """
+    def test_kicadpad_get_drill(self):
+        par = Mock_Layer(self.logger)
+        obj = KiCADPad(par, PARAMS_PART_DRILLED_PADS["pads"][0])
+        drill = obj.get_drill()
+        self.logger.critical(drill.geoms[0])
+        assert False
+    """
 
     def test_kicadpart_create(self):
         obj = KiCADPart(self.logger, PARAMS_PART)
