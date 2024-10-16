@@ -257,10 +257,6 @@ class GMSHGeom2D(AbstractGeom2D):
             c_u = pt1[2] * length / 2
             if pt1[2] > 0:
                 c_u = -c_u
-            """pt_u = (
-                pt_m[0] + c_u * (pt2[1] - pt1[1]) / length,
-                pt_m[1] + c_u * (pt1[0] - pt2[0]) / length,
-            )"""
             if pt1[2] > 0:
                 pt_u = (
                     pt_m[0] + c_u * np.cos(alpha + np.pi / 2),
@@ -276,11 +272,7 @@ class GMSHGeom2D(AbstractGeom2D):
             #    pt_m[0] - c_u * np.sin(alpha),
             #    pt_m[1] - c_u * np.cos(alpha),
             # )
-            print(f"U-point: {pt_u}")
-
             pu = gmsh.model.occ.add_point(pt_u[0], pt_u[1], 0)
-            print("Created pu: ", pu)
-            print("P1/P2: ", p1, p2)
             return gmsh.model.occ.add_circle_arc(p1, pu, p2, center=False)
 
         holes = []
@@ -328,13 +320,9 @@ class GMSHGeom2D(AbstractGeom2D):
                 )
             )
 
-        print("Line array before curve loop: ", lines)
-        print("GMSH 1D entities: ", gmsh.model.occ.getEntities(1))
-        print("GMSH 0D entities: ", gmsh.model.occ.getEntities(0))
         outline = gmsh.model.occ.add_curve_loop(lines)
-        print("Line array after curve loop: ", lines)
-        print("GMSH 1D entities: ", gmsh.model.occ.getEntities(1))
         for pts_hole in coords_holes:
+            # TODO: remove additional holes?
             print("Making hole...")
             lines = [
                 _add_line(pts_hole[i], pts_hole[i + 1])
@@ -343,8 +331,6 @@ class GMSHGeom2D(AbstractGeom2D):
             lines.append(_add_line(pts_hole[len(pts_hole) - 1], pts_hole[0]))
             hole = gmsh.model.occ.add_curve_loop(lines)
             holes.append(hole)
-        print("Final line array: ", lines)
-        print("GMSH 1D entities: ", gmsh.model.occ.getEntities(1))
         surface = gmsh.model.occ.add_plane_surface([outline, *holes])
         gmsh.model.occ.synchronize()
         self.geoms.append(surface)
