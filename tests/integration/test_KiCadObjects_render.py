@@ -78,6 +78,15 @@ PARAMS_LINE = {
 PARAMS_RECT = {
     "start": [0, 0],
     "end": [100, 100],
+    "stroke": {"width": 0, "type": "default"},
+    "fill": "solid",
+    "layer": "Testlayer",
+    "tstamp": "TSTAMPTEST",
+}
+
+PARAMS_RECT_WIDTH = {
+    "start": [0, 0],
+    "end": [100, 100],
     "stroke": {"width": 0.2, "type": "default"},
     "fill": "solid",
     "layer": "Testlayer",
@@ -100,6 +109,7 @@ PARAMS_POLYGON = {
             [0, 100],
             [100, 100],
             [100, 0],
+            [0, 0],
         ]
     },
     "stroke": {"width": 0.2, "type": "default"},
@@ -298,39 +308,47 @@ class Test_KiCadObjects_Render:
         geom = obj.render()
         assert geom.geoms == [1]
         assert gmsh.model.occ.getEntities(2) == [(2, 1)]
+        assert gmsh.model.occ.getEntities(1) == [
+            (1, 1),
+            (1, 2),
+            (1, 3),
+            (1, 4),
+        ]
+        # assert get_bbox_rounded(2, 1) == [-0.1, -0.1, 0, 100.1, 100.1, 0]
+        assert get_bbox_rounded(2, 1) == [0, 0, 0, 100, 100, 0]
+        assert get_mass_rounded(2, 1) == 10000.00
+
+    def test_kicadline_render(self):
+        gmsh.clear()
+        obj = KiCADLine(self.logger, PARAMS_LINE)
+        geom = obj.render()
+        # geom.plot()
+        assert geom.geoms == [1]
+        assert gmsh.model.occ.getEntities(2) == [(2, 1)]
         assert get_bbox_rounded(2, 1) == [-0.1, -0.1, 0, 100.1, 100.1, 0]
-        assert get_mass_rounded(2, 1) == 60.03
+        assert get_mass_rounded(2, 1) == 28.32
+
+    def test_kicadarc_render(self):
+        gmsh.clear()
+        obj = KiCADArc(self.logger, PARAMS_ARC)
+        geom = obj.render()
+        # geom.plot()
+        assert geom.geoms == [1]
+        assert gmsh.model.occ.getEntities(2) == [(2, 1)]
+        assert get_bbox_rounded(2, 1) == [-50.1, -0.1, 0, 50.1, 50.1, 0]
+        assert get_mass_rounded(2, 1) == 31.45
+
+    def test_kicadpolygon_render(self):
+        gmsh.clear()
+        obj = KiCADPolygon(self.logger, PARAMS_POLYGON)
+        geom = obj.render()
+        assert geom.geoms == [1]
+        assert gmsh.model.occ.getEntities(2) == [(2, 1)]
+        assert not (1, 13) in gmsh.model.occ.getEntities(1)
+        assert get_bbox_rounded(2, 1) == [-0.1, -0.1, 0, 100.1, 100.1, 0]
+        assert get_mass_rounded(2, 1) == 10040.03
 
     """
-    def test_kicadline_create(self):
-        obj = KiCADLine(self.logger, PARAMS_LINE)
-        # TODO - why no params?
-        assert obj.params == PARAMS_LINE
-        assert obj.layer == PARAMS_LINE["layer"]
-        assert obj.layers is None
-
-        assert obj.start == PARAMS_LINE["start"]
-        assert obj.end == PARAMS_LINE["end"]
-        assert obj.width == PARAMS_LINE["stroke"]["width"]
-
-    def test_kicadarc_create(self):
-        obj = KiCADArc(self.logger, PARAMS_ARC)
-        assert obj.params == PARAMS_ARC
-        assert obj.layer == PARAMS_ARC["layer"]
-        assert obj.layers is None
-
-        assert obj.start == PARAMS_ARC["start"]
-        assert obj.end == PARAMS_ARC["end"]
-        assert obj.width == PARAMS_ARC["stroke"]["width"]
-
-    def test_kicadpolygon_create(self):
-        obj = KiCADPolygon(self.logger, PARAMS_POLYGON)
-        assert obj.params == PARAMS_POLYGON
-        assert obj.layer == PARAMS_POLYGON["layer"]
-        assert obj.layers is None
-
-        assert obj.points == PARAMS_POLYGON["pts"]["xy"]
-
     def test_kicadpad_create(self):
         par = Mock_Layer(self.logger)
         obj = KiCADPad(par, PARAMS_PART["pads"][0])
