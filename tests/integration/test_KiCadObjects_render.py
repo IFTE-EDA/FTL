@@ -273,6 +273,7 @@ class Test_KiCadObjects_Render:
         self.logger = Logger(__name__)
 
     def test_kicadlayer_render_empty(self):
+        gmsh.clear()
         layer = KiCADLayer(self.logger, 0, LAYER_PARAMS_TEST)
         geom = layer.render()
         print("Geoms: ", geom.geoms)
