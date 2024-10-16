@@ -233,18 +233,16 @@ class GMSHGeom2D(AbstractGeom2D):
                 return lst
             return lst[0:-1] if lst[0] == lst[-1] else lst
 
-        def _add_line(pt1, pt2, bulge=0, pids=False):
-            if pids:
-                p1 = pt1
-                p2 = pt2
-                b = bulge
+        def _add_line(pt1, pt2, pids=None):
+            if pids is not None:
+                p1 = pids[0]
+                p2 = pids[1]
             else:
                 p1 = gmsh.model.occ.add_point(pt1[0], pt1[1], 0)
                 p2 = gmsh.model.occ.add_point(pt2[0], pt2[1], 0)
-                b = pt1[2]
-            print(f"Adding line from {pt1} to {pt2} with bulge {b}")
+            print(f"Adding line from {pt1} to {pt2} with bulge {pt1[2]}")
             # no bulge? draw a straight line
-            if b == 0:
+            if pt1[2] == 0:
                 return gmsh.model.occ.add_line(p1, p2)
             # bulged line
             delta_x = pt2[0] - pt1[0]
@@ -299,7 +297,7 @@ class GMSHGeom2D(AbstractGeom2D):
             ]
             lines = [
                 _add_line(
-                    pts[i], pts[i + 1], pids=True, bulge=in_outline[i][2]
+                    in_outline[i], in_outline[i + 1], pids=(pts[i], pts[i + 1])
                 )
                 for i in range(len(in_outline) - 1)
             ]
@@ -307,8 +305,10 @@ class GMSHGeom2D(AbstractGeom2D):
                 _add_line(
                     pts[len(pts) - 1],
                     pts[0],
-                    pids=True,
-                    bulge=in_outline[-1][2],
+                    pids=(
+                        pts[len(pts) - 1],
+                        pts[0],
+                    ),
                 )
             )
         else:
@@ -316,16 +316,15 @@ class GMSHGeom2D(AbstractGeom2D):
             pts = [gmsh.model.occ.add_point(x, y, 0) for x, y, _ in in_outline]
             lines = [
                 _add_line(
-                    pts[i], pts[i + 1], pids=True, bulge=in_outline[i][2]
+                    in_outline[i], in_outline[i + 1], pids=(pts[i], pts[i + 1])
                 )
                 for i in range(len(in_outline) - 1)
             ]
             lines.append(
                 _add_line(
-                    pts[len(pts) - 1],
-                    pts[0],
-                    pids=True,
-                    bulge=in_outline[-1][2],
+                    in_outline[len(pts) - 1],
+                    in_outline[0],
+                    pids=(pts[len(pts) - 1], pts[0]),
                 )
             )
 

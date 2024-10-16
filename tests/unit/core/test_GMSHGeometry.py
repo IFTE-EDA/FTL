@@ -128,17 +128,19 @@ class Test_GMSHGeom2D:
             [(0, 0, 0.2), (1, 0, 0.2), (1, 1, 0.2), (0, 1, 0.2), (0, 0, 0.2)],
             bulge=True,
         )
-        # geom.plot()
         assert gmsh.model.occ.getEntities(2) == [(2, 1)]
         assert get_mass_rounded(2, 1) == 1.27
-        assert gmsh.model.occ.getCenterOfMass(2, 1) == (0.5, 0.5, 0)
+        assert get_bbox_rounded(2, 1) == [-0.1, -0.1, 0, 1.1, 1.1, 0]
         assert geom.geoms == [1]
-
-        assert gmsh.model.occ.getEntities(1) == [
-            (2, 1),
-            (2, 2),
-            (2, 3),
-            (2, 4),
+        assert gmsh.model.occ.getEntities(0) == [
+            (0, 1),
+            (0, 2),
+            (0, 3),
+            (0, 4),
+            (0, 5),
+            (0, 6),
+            (0, 7),
+            (0, 8),
         ]
 
     # TODO: Change that. This test shall fail this way! The mass/area cannot be bigger than 1. Polys need to be reordered.
