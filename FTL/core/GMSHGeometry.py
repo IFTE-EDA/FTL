@@ -233,13 +233,18 @@ class GMSHGeom2D(AbstractGeom2D):
                 return lst
             return lst[0:-1] if lst[0] == lst[-1] else lst
 
-        def _add_line(pt1, pt2):
+        def _add_line(pt1, pt2, pids=False):
             print(f"Adding line from {pt1} to {pt2} with bulge {pt1[2]}")
-            p1 = gmsh.model.occ.add_point(pt1[0], pt1[1], 0)
-            p2 = gmsh.model.occ.add_point(pt2[0], pt2[1], 0)
+            if pids:
+                p1 = pt1
+                p2 = pt2
+            else:
+                p1 = gmsh.model.occ.add_point(pt1[0], pt1[1], 0)
+                p2 = gmsh.model.occ.add_point(pt2[0], pt2[1], 0)
+            # no bulge? draw a straight line
             if pt1[2] == 0:
                 return gmsh.model.occ.add_line(p1, p2)
-
+            # bulged line
             delta_x = pt2[0] - pt1[0]
             delta_y = pt2[1] - pt1[1]
             alpha = math.atan2(delta_y, delta_x)
@@ -521,11 +526,21 @@ class GMSHGeom2D(AbstractGeom2D):
                 (coords[0][0] + coords[2][0]) / 2,
                 (coords[0][1] + coords[2][1]) / 2,
             )
-        pts = [gmsh.model.occ.add_point(x, y, 0) for x, y in coords]
-        lines = [
-            gmsh.model.occ.add_line(pts[i], pts[i + 1])
-            for i in range(len(pts) - 1)
-        ]
+        if coords[0] == coords[-1]:
+            print("Rendering closed line...")
+            pts = [gmsh.model.occ.add_point(x, y, 0) for x, y in coords[:-1]]
+            lines = [
+                gmsh.model.occ.add_line(pts[i], pts[i + 1])
+                for i in range(len(pts) - 1)
+            ]
+            lines.append(gmsh.model.occ.add_line(pts[len(pts) - 1], pts[0]))
+        else:
+            print("Rendering open line...")
+            pts = [gmsh.model.occ.add_point(x, y, 0) for x, y in coords]
+            lines = [
+                gmsh.model.occ.add_line(pts[i], pts[i + 1])
+                for i in range(len(pts) - 1)
+            ]
         # lines.append(gmsh.model.occ.add_line(pts[len(pts) - 1], pts[0]))
         curve_loop = gmsh.model.occ.add_wire(lines)
         offset_curve = gmsh.model.occ.offset_curve(curve_loop, width / 2)
