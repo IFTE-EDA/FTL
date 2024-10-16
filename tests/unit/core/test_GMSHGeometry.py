@@ -12,6 +12,29 @@ import numpy as np
 import vedo as v
 from FTL.core.GMSHGeometry import GMSHGeom2D, GMSHGeom3D, dimtags, dimtags2int
 
+PRECISION_DIGITS = 2
+
+
+def get_bbox_rounded(dim, tag):
+    return [
+        round(i, PRECISION_DIGITS)
+        for i in gmsh.model.occ.getBoundingBox(dim, tag)
+    ]
+
+
+def get_mass_rounded(dim, tag):
+    return round(gmsh.model.occ.getMass(dim, tag), PRECISION_DIGITS)
+
+
+def round_array(arr):
+    def round_list(lst):
+        if isinstance(lst[0], (list, tuple, np.ndarray)):
+            return [round_list(e) for e in lst]
+        else:
+            return [round(i, PRECISION_DIGITS) for i in lst]
+
+    return round_list(arr)
+
 
 class Test_GMSHGeometry_Utilities:
     def setup_class(self):
@@ -97,6 +120,26 @@ class Test_GMSHGeom2D:
         assert gmsh.model.occ.getMass(2, 1) == 1
         assert gmsh.model.occ.getCenterOfMass(2, 1) == (0.5, 0.5, 0)
         assert geom.geoms == [1]
+
+    def test_gmshgeom2d_add_polygon_from_list_bulged(self):
+        gmsh.clear()
+        geom = GMSHGeom2D()
+        geom.add_polygon(
+            [(0, 0, 0.2), (1, 0, 0.2), (1, 1, 0.2), (0, 1, 0.2), (0, 0, 0.2)],
+            bulge=True,
+        )
+        # geom.plot()
+        assert gmsh.model.occ.getEntities(2) == [(2, 1)]
+        assert get_mass_rounded(2, 1) == 1.27
+        assert gmsh.model.occ.getCenterOfMass(2, 1) == (0.5, 0.5, 0)
+        assert geom.geoms == [1]
+
+        assert gmsh.model.occ.getEntities(1) == [
+            (2, 1),
+            (2, 2),
+            (2, 3),
+            (2, 4),
+        ]
 
     # TODO: Change that. This test shall fail this way! The mass/area cannot be bigger than 1. Polys need to be reordered.
     def test_gmshgeom2d_add_polygon_with_holes_from_list_wrong_orientation(
