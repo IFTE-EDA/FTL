@@ -851,6 +851,7 @@ class KiCADRect(KiCADPolygon):
                 [params["end"][0], params["start"][1]],
                 params["end"],
                 [params["start"][0], params["end"][1]],
+                params["start"],
             ]
         }
         KiCADPolygon.__init__(self, parent, params)
