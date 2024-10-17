@@ -780,51 +780,32 @@ class Test_GMSHGeom2D:
         extrusion = geom.extrude(0.1)
         assert isinstance(extrusion, GMSHGeom3D)
         assert extrusion.geoms == [1, 2]
-        assert round(gmsh.model.occ.getMass(3, 1), 5) == 0.1
-        assert round(gmsh.model.occ.getMass(3, 2), 5) == 0.1
-        assert (3, 1) in gmsh.model.occ.getEntities() and (
-            3,
-            2,
-        ) in gmsh.model.occ.getEntities()
-        bbox_rounded_1 = [
-            round(i, 2) for i in gmsh.model.occ.getBoundingBox(3, 1)
-        ]
-        bbox_rounded_2 = [
-            round(i, 2) for i in gmsh.model.occ.getBoundingBox(3, 2)
-        ]
-        assert bbox_rounded_1 == [0, 0, 0, 1, 1, 0.1]
-        assert bbox_rounded_2 == [2, 2, 0, 3, 3, 0.1]
+        assert gmsh.model.occ.getEntities(0) == [(0, i) for i in range(1, 17)]
+        assert gmsh.model.occ.getEntities(1) == [(1, i) for i in range(1, 25)]
+        assert gmsh.model.occ.getEntities(2) == [(2, i) for i in range(1, 13)]
+        assert gmsh.model.occ.getEntities(3) == [(3, i) for i in range(1, 3)]
+        assert get_mass_rounded(3, 1) == 0.1
+        assert get_mass_rounded(3, 2) == 0.1
+        assert get_bbox_rounded(3, 1) == [0, 0, 0, 1, 1, 0.1]
+        assert get_bbox_rounded(3, 2) == [2, 2, 0, 3, 3, 0.1]
 
     def test_gmshgeom2d_extrude_rectangles_overlapping_unfused(self):
         gmsh.clear()
         geom = GMSHGeom2D()
         geom.add_rectangle((0, 0), (2, 2))
         geom.add_rectangle((1, 1), (3, 3))
-        assert (2, 1) in gmsh.model.occ.getEntities() and (
-            2,
-            2,
-        ) in gmsh.model.occ.getEntities()
+        assert gmsh.model.occ.getEntities(2) == [(2, 1), (2, 2)]
         extrusion = geom.extrude(0.1, fuse=False)
+        # extrusion.plot()
         assert isinstance(extrusion, GMSHGeom3D)
-        assert (2, 1) in gmsh.model.occ.getEntities() and (
-            2,
-            2,
-        ) in gmsh.model.occ.getEntities()
-        assert (3, 1) in gmsh.model.occ.getEntities() and (
-            3,
-            2,
-        ) in gmsh.model.occ.getEntities()
-        assert extrusion.geoms == [1, 2]
-        assert round(gmsh.model.occ.getMass(3, 1), 5) == 0.4
-        assert round(gmsh.model.occ.getMass(3, 2), 5) == 0.4
-        bbox_rounded_1 = [
-            round(i, 2) for i in gmsh.model.occ.getBoundingBox(3, 1)
-        ]
-        bbox_rounded_2 = [
-            round(i, 2) for i in gmsh.model.occ.getBoundingBox(3, 2)
-        ]
-        assert bbox_rounded_1 == [0, 0, 0, 2, 2, 0.1]
-        assert bbox_rounded_2 == [1, 1, 0, 3, 3, 0.1]
+        assert gmsh.model.occ.getEntities(0) == [(0, i) for i in range(1, 17)]
+        assert gmsh.model.occ.getEntities(1) == [(1, i) for i in range(1, 25)]
+        assert gmsh.model.occ.getEntities(2) == [(2, i) for i in range(1, 13)]
+        assert gmsh.model.occ.getEntities(3) == [(3, i) for i in range(1, 3)]
+        assert get_mass_rounded(3, 1) == 0.4
+        assert get_mass_rounded(3, 2) == 0.4
+        assert get_bbox_rounded(3, 1) == [0, 0, 0, 2, 2, 0.1]
+        assert get_bbox_rounded(3, 2) == [1, 1, 0, 3, 3, 0.1]
 
     def test_gmshgeom2d_extrude_rectangles_overlapping_fused_by_default(self):
         gmsh.clear()
@@ -832,27 +813,14 @@ class Test_GMSHGeom2D:
         geom.add_rectangle((0, 0), (2, 2))
         geom.add_rectangle((1, 1), (3, 3))
         print("Entities before extruding: ", gmsh.model.occ.getEntities())
-        assert (2, 1) in gmsh.model.occ.getEntities() and (
-            2,
-            2,
-        ) in gmsh.model.occ.getEntities()
+        gmsh.model.occ.getEntities(2) == [(2, 1), (2, 2)]
         extrusion = geom.extrude(0.1)
-        assert isinstance(extrusion, GMSHGeom3D)
-        print("Entities after extruding: ", gmsh.model.occ.getEntities())
-        assert (3, 1) in gmsh.model.occ.getEntities() and not (
-            3,
-            2,
-        ) in gmsh.model.occ.getEntities()
-        assert extrusion.geoms == [1]
-        assert round(gmsh.model.occ.getMass(3, 1), 5) == 0.7
-        bbox_rounded = [
-            round(i, 2) for i in gmsh.model.occ.getBoundingBox(3, 1)
-        ]
-        assert bbox_rounded == [0, 0, 0, 3, 3, 0.1]
-        CoM_rounded = [
-            round(i, 2) for i in gmsh.model.occ.getCenterOfMass(3, 1)
-        ]
-        assert CoM_rounded == [1.5, 1.5, 0.05]
+        assert gmsh.model.occ.getEntities(0) == [(0, i) for i in range(6, 22)]
+        assert gmsh.model.occ.getEntities(1) == [(1, i) for i in range(6, 30)]
+        assert gmsh.model.occ.getEntities(2) == [(2, i) for i in range(1, 11)]
+        assert gmsh.model.occ.getEntities(3) == [(3, 1)]
+        assert get_mass_rounded(3, 1) == 0.7
+        assert get_bbox_rounded(3, 1) == [0, 0, 0, 3, 3, 0.1]
 
     # TODO: test for empty objects/lists in make_compound
 
