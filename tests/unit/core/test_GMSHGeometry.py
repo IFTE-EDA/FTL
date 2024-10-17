@@ -116,8 +116,18 @@ class Test_GMSHGeom2D:
         gmsh.clear()
         geom = GMSHGeom2D()
         geom.add_polygon([(0, 0), (0, 1), (1, 1), (1, 0), (0, 0)])
-        assert gmsh.model.occ.getEntities(0) == [(0, 1), (0, 2), (0, 3), (0, 4)]
-        assert gmsh.model.occ.getEntities(1) == [(1, 1), (1, 2), (1, 3), (1, 4)]
+        assert gmsh.model.occ.getEntities(0) == [
+            (0, 1),
+            (0, 2),
+            (0, 3),
+            (0, 4),
+        ]
+        assert gmsh.model.occ.getEntities(1) == [
+            (1, 1),
+            (1, 2),
+            (1, 3),
+            (1, 4),
+        ]
         assert gmsh.model.occ.getEntities(2) == [(2, 1)]
         assert gmsh.model.occ.getMass(2, 1) == 1
         assert gmsh.model.occ.getCenterOfMass(2, 1) == (0.5, 0.5, 0)
@@ -130,8 +140,22 @@ class Test_GMSHGeom2D:
             [(0, 0, 0.2), (1, 0, 0.2), (1, 1, 0.2), (0, 1, 0.2), (0, 0, 0.2)],
             bulge=True,
         )
-        assert gmsh.model.occ.getEntities(0) == [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 7), (0, 8)]
-        assert gmsh.model.occ.getEntities(1) == [(1, 1), (1, 2), (1, 3), (1, 4)]
+        assert gmsh.model.occ.getEntities(0) == [
+            (0, 1),
+            (0, 2),
+            (0, 3),
+            (0, 4),
+            (0, 5),
+            (0, 6),
+            (0, 7),
+            (0, 8),
+        ]
+        assert gmsh.model.occ.getEntities(1) == [
+            (1, 1),
+            (1, 2),
+            (1, 3),
+            (1, 4),
+        ]
         assert gmsh.model.occ.getEntities(2) == [(2, 1)]
         assert get_mass_rounded(2, 1) == 1.27
         assert get_bbox_rounded(2, 1) == [-0.1, -0.1, 0, 1.1, 1.1, 0]
@@ -420,7 +444,6 @@ class Test_GMSHGeom2D:
         assert get_mass_rounded(2, 1) == 0.25
         assert get_bbox_rounded(2, 1) == [-0.05, -0.05, 0, 2.05, 1.05, 0]
         assert geom.geoms == [1]
-
 
     # TODO: weird middle-point on right outline segment. maybe fix?
     def test_gmshgeom2d_add_line_x(self):
@@ -961,8 +984,8 @@ class Test_GMSHGeom3D:
         ]
         assert bbox_rounded == [2, 2, 0, 3, 3, 0.1]
 
-
-"""def test_gmshgeom2d_fix_list(self):
+    """
+    def test_gmshgeom2d_fix_list(self):
         geom = GMSHGeom2D()
         assert geom._fix_list([]) == []
         assert geom._fix_list([1, 2, 3, 4]) == [1, 2, 3, 4]
