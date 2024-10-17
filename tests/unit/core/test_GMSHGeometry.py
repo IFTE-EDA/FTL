@@ -738,9 +738,9 @@ class Test_GMSHGeom2D:
         geom2 = GMSHGeom2D().get_rectangle((1, 1), (3, 3))
         assert geom1.geoms == [1]
         assert geom2.geoms == [2]
-        geom1.plot()
+        # geom1.plot()
         compound = GMSHGeom2D.make_compound([geom1, geom2])
-        compound.plot()
+        # compound.plot()
         assert isinstance(compound, GMSHGeom2D)
         print(gmsh.model.occ.getEntities())
         assert gmsh.model.occ.getEntities(0) == [(0, i) for i in range(6, 14)]
