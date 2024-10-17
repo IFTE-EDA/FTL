@@ -116,7 +116,9 @@ class Test_GMSHGeom2D:
         gmsh.clear()
         geom = GMSHGeom2D()
         geom.add_polygon([(0, 0), (0, 1), (1, 1), (1, 0), (0, 0)])
-        assert (2, 1) in gmsh.model.occ.getEntities()
+        assert gmsh.model.occ.getEntities(0) == [(0, 1), (0, 2), (0, 3), (0, 4)]
+        assert gmsh.model.occ.getEntities(1) == [(1, 1), (1, 2), (1, 3), (1, 4)]
+        assert gmsh.model.occ.getEntities(2) == [(2, 1)]
         assert gmsh.model.occ.getMass(2, 1) == 1
         assert gmsh.model.occ.getCenterOfMass(2, 1) == (0.5, 0.5, 0)
         assert geom.geoms == [1]
@@ -128,6 +130,8 @@ class Test_GMSHGeom2D:
             [(0, 0, 0.2), (1, 0, 0.2), (1, 1, 0.2), (0, 1, 0.2), (0, 0, 0.2)],
             bulge=True,
         )
+        assert gmsh.model.occ.getEntities(0) == [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 7), (0, 8)]
+        assert gmsh.model.occ.getEntities(1) == [(1, 1), (1, 2), (1, 3), (1, 4)]
         assert gmsh.model.occ.getEntities(2) == [(2, 1)]
         assert get_mass_rounded(2, 1) == 1.27
         assert get_bbox_rounded(2, 1) == [-0.1, -0.1, 0, 1.1, 1.1, 0]
@@ -156,12 +160,11 @@ class Test_GMSHGeom2D:
         # geom.render()
         # gmsh.fltk.run()
         # geom.cutout(sh.box(0.25, 0.25, 0.75, 0.75))
-        assert (2, 1) in gmsh.model.occ.getEntities() and (
-            1,
-            8,
-        ) in gmsh.model.occ.getEntities()
+        assert gmsh.model.occ.getEntities(0) == [(0, i) for i in range(1, 9)]
+        assert gmsh.model.occ.getEntities(1) == [(1, i) for i in range(1, 9)]
+        assert gmsh.model.occ.getEntities(2) == [(2, 1)]
         assert gmsh.model.occ.getMass(2, 1) == 1.36
-        assert gmsh.model.occ.getCenterOfMass(2, 1) == (0.5, 0.5, 0)
+        assert get_bbox_rounded(2, 1) == [0, 0, 0, 1, 1, 0]
         assert geom.geoms == [1]
 
     def test_gmshgeom2d_add_polygon_with_holes_from_list_right_orientation(
@@ -176,21 +179,23 @@ class Test_GMSHGeom2D:
         # geom.render()
         # gmsh.fltk.run()
         # geom.cutout(sh.box(0.25, 0.25, 0.75, 0.75))
-        assert (2, 1) in gmsh.model.occ.getEntities() and (
-            1,
-            8,
-        ) in gmsh.model.occ.getEntities()
+        assert gmsh.model.occ.getEntities(0) == [(0, i) for i in range(1, 9)]
+        assert gmsh.model.occ.getEntities(1) == [(1, i) for i in range(1, 9)]
+        assert gmsh.model.occ.getEntities(2) == [(2, 1)]
         assert round(gmsh.model.occ.getMass(2, 1), 2) == 0.64
         assert geom.geoms == [1]
-        # assert gmsh.model.occ.getCenterOfMass(2, 1) == (0.5, 0.5, 0)
+        assert get_bbox_rounded(2, 1) == [0, 0, 0, 1, 1, 0]
 
     def test_gmshgeom2d_add_shapely_polygon(self):
         gmsh.clear()
         geom = GMSHGeom2D()
         geom.add_polygon(sh.Polygon([(0, 0), (0, 1), (1, 1), (1, 0), (0, 0)]))
         print(gmsh.model.occ.getEntities())
-        assert (2, 1) in gmsh.model.occ.getEntities()
+        assert gmsh.model.occ.getEntities(0) == [(0, i) for i in range(1, 5)]
+        assert gmsh.model.occ.getEntities(1) == [(1, i) for i in range(1, 5)]
+        assert gmsh.model.occ.getEntities(2) == [(2, 1)]
         assert round(gmsh.model.occ.getMass(2, 1), 5) == 1
+        assert get_bbox_rounded(2, 1) == [0, 0, 0, 1, 1, 0]
         assert geom.geoms == [1]
 
     def test_gmshgeom2d_add_shapely_polygon_holes(self):
@@ -208,11 +213,11 @@ class Test_GMSHGeom2D:
             )
         )
         print(gmsh.model.occ.getEntities())
-        assert (2, 1) in gmsh.model.occ.getEntities() and (
-            1,
-            20,
-        ) in gmsh.model.occ.getEntities()
+        assert gmsh.model.occ.getEntities(0) == [(0, i) for i in range(1, 21)]
+        assert gmsh.model.occ.getEntities(1) == [(1, i) for i in range(1, 21)]
+        assert gmsh.model.occ.getEntities(2) == [(2, 1)]
         assert round(gmsh.model.occ.getMass(2, 1), 5) == 0.84
+        assert get_bbox_rounded(2, 1) == [0, 0, 0, 1, 1, 0]
         assert geom.geoms == [1]
 
     def test_gmshgeom2d_add_shapely_polygons_disjunct(self):
@@ -223,13 +228,17 @@ class Test_GMSHGeom2D:
         box2 = sh.geometry.box(1, 1, 2, 2)
         geom.add_polygon(box1)
         print(gmsh.model.occ.getEntities())
-        assert (2, 1) in gmsh.model.occ.getEntities()
-        assert round(gmsh.model.occ.getMass(2, 1), 5) == 1.0
-        assert gmsh.model.occ.getCenterOfMass(2, 1) == (-1.5, -1.5, 0)
+        assert gmsh.model.occ.getEntities(0) == [(0, i) for i in range(1, 5)]
+        assert gmsh.model.occ.getEntities(1) == [(1, i) for i in range(1, 5)]
+        assert gmsh.model.occ.getEntities(2) == [(2, 1)]
+        assert get_mass_rounded(2, 1) == 1.0
+        assert get_bbox_rounded(2, 1) == [-2, -2, 0, -1, -1, 0]
         geom.add_polygon(box2)
-        assert (2, 2) in gmsh.model.occ.getEntities()
-        assert round(gmsh.model.occ.getMass(2, 2), 5) == 1.0
-        assert gmsh.model.occ.getCenterOfMass(2, 2) == (1.5, 1.5, 0)
+        assert gmsh.model.occ.getEntities(0) == [(0, i) for i in range(1, 9)]
+        assert gmsh.model.occ.getEntities(1) == [(1, i) for i in range(1, 9)]
+        assert gmsh.model.occ.getEntities(2) == [(2, 1), (2, 2)]
+        assert get_mass_rounded(2, 2) == 1.0
+        assert get_bbox_rounded(2, 2) == [1, 1, 0, 2, 2, 0]
         assert geom.geoms == [1, 2]
 
     def test_gmshgeom2d_add_shapely_polygons_overlapping(self):
@@ -240,93 +249,84 @@ class Test_GMSHGeom2D:
         box2 = sh.geometry.box(-1, -1, 2, 2)
         geom.add_polygon(box1)
         geom.add_polygon(box2)
-        assert (2, 1) in gmsh.model.occ.getEntities()
-        assert round(gmsh.model.occ.getMass(2, 1), 5) == 9.0
-        assert gmsh.model.occ.getCenterOfMass(2, 1) == (-0.5, -0.5, 0)
-        assert (2, 2) in gmsh.model.occ.getEntities()
-        assert round(gmsh.model.occ.getMass(2, 2), 5) == 9.0
-        assert gmsh.model.occ.getCenterOfMass(2, 2) == (0.5, 0.5, 0)
+        assert gmsh.model.occ.getEntities(0) == [(0, i) for i in range(1, 9)]
+        assert gmsh.model.occ.getEntities(1) == [(1, i) for i in range(1, 9)]
+        assert gmsh.model.occ.getEntities(2) == [(2, 1), (2, 2)]
+        assert get_mass_rounded(2, 1) == 9.0
+        assert get_bbox_rounded(2, 1) == [-2, -2, 0, 1, 1, 0]
+        assert get_mass_rounded(2, 2) == 9.0
+        assert get_bbox_rounded(2, 2) == [-1, -1, 0, 2, 2, 0]
         assert geom.geoms == [1, 2]
 
     def test_gmshgeom2d_add_shapely_polygon_rectangle(self):
         gmsh.clear()
         geom = GMSHGeom2D()
         geom.add_polygon(sh.geometry.box(0, 0, 1, 1))
-        assert (2, 1) in gmsh.model.occ.getEntities()
-        assert round(gmsh.model.occ.getMass(2, 1), 5) == 1.0
-        assert gmsh.model.occ.getCenterOfMass(2, 1) == (0.5, 0.5, 0)
+        assert gmsh.model.occ.getEntities(0) == [(0, i) for i in range(1, 5)]
+        assert gmsh.model.occ.getEntities(1) == [(1, i) for i in range(1, 5)]
+        assert gmsh.model.occ.getEntities(2) == [(2, 1)]
+        assert get_mass_rounded(2, 1) == 1.0
+        assert get_bbox_rounded(2, 1) == [0, 0, 0, 1, 1, 0]
         assert geom.geoms == [1]
 
     def test_gmshgeom2d_add_rectangle(self):
         gmsh.clear()
         geom = GMSHGeom2D()
         geom.add_rectangle((0, 0), (1, 1))
-        assert (2, 1) in gmsh.model.occ.getEntities()
-        assert gmsh.model.occ.getMass(2, 1) == 1
-        assert gmsh.model.occ.getCenterOfMass(2, 1) == (0.5, 0.5, 0)
+        assert gmsh.model.occ.getEntities(0) == [(0, i) for i in range(1, 5)]
+        assert gmsh.model.occ.getEntities(1) == [(1, i) for i in range(1, 5)]
+        assert gmsh.model.occ.getEntities(2) == [(2, 1)]
+        assert get_mass_rounded(2, 1) == 1.0
+        assert get_bbox_rounded(2, 1) == [0, 0, 0, 1, 1, 0]
         assert geom.geoms == [1]
 
     def test_gmshgeom2d_get_rectangle(self):
         gmsh.clear()
         geom = GMSHGeom2D.get_rectangle((0, 0), (1, 1))
         tag = geom.geoms[0]
-        assert (2, tag) in gmsh.model.occ.getEntities()
-        assert gmsh.model.occ.getMass(2, tag) == 1
-        assert gmsh.model.occ.getCenterOfMass(2, tag) == (0.5, 0.5, 0)
+        assert gmsh.model.occ.getEntities(0) == [(0, i) for i in range(1, 5)]
+        assert gmsh.model.occ.getEntities(1) == [(1, i) for i in range(1, 5)]
+        assert gmsh.model.occ.getEntities(2) == [(2, 1)]
+        assert get_mass_rounded(2, tag) == 1.0
+        assert get_bbox_rounded(2, tag) == [0, 0, 0, 1, 1, 0]
         assert geom.geoms == [tag]
 
     def test_gmshgeom2d_add_circle(self):
         gmsh.clear()
         geom = GMSHGeom2D()
         geom.add_circle((0, 0), 1)
-        assert (2, 1) in gmsh.model.occ.getEntities()
-        assert round(gmsh.model.occ.getMass(2, 1), 2) == 3.14
-        CoM_rounded = [
-            round(i, 2) for i in gmsh.model.occ.getCenterOfMass(2, 1)
-        ]
-        assert CoM_rounded == [0.0, 0.0, 0.0]
-        bounding_box_rounded = [
-            round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 1)
-        ]
-        print(bounding_box_rounded)
-        assert bounding_box_rounded == [-1.0, -1.0, 0.0, 1.0, 1.0, 0.0]
+        assert gmsh.model.occ.getEntities(0) == [(0, 1)]
+        assert gmsh.model.occ.getEntities(1) == [(1, 1)]
+        assert gmsh.model.occ.getEntities(2) == [(2, 1)]
+        assert get_mass_rounded(2, 1) == 3.14
+        assert get_bbox_rounded(2, 1) == [-1.0, -1.0, 0.0, 1.0, 1.0, 0.0]
         assert geom.geoms == [1]
 
     def test_gmshgeom2d_add_circle_1arg(self):
         gmsh.clear()
         geom = GMSHGeom2D()
         geom.add_circle(2)
-        assert (2, 1) in gmsh.model.occ.getEntities()
-        assert round(gmsh.model.occ.getMass(2, 1), 2) == 12.57
-        CoM_rounded = [
-            round(i, 2) for i in gmsh.model.occ.getCenterOfMass(2, 1)
-        ]
-        assert CoM_rounded == [0.0, 0.0, 0.0]
-        bounding_box_rounded = [
-            round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 1)
-        ]
-        print(bounding_box_rounded)
-        assert bounding_box_rounded == [-2.0, -2.0, 0.0, 2.0, 2.0, 0.0]
+        assert gmsh.model.occ.getEntities(0) == [(0, 1)]
+        assert gmsh.model.occ.getEntities(1) == [(1, 1)]
+        assert gmsh.model.occ.getEntities(2) == [(2, 1)]
+        assert get_mass_rounded(2, 1) == 12.57
+        assert get_bbox_rounded(2, 1) == [-2.0, -2.0, 0.0, 2.0, 2.0, 0.0]
         assert geom.geoms == [1]
 
     def test_gmshgeom2d_get_circle(self):
         gmsh.clear()
         c1 = GMSHGeom2D.get_circle(1)
-        assert (2, 1) in gmsh.model.occ.getEntities()
-        assert round(gmsh.model.occ.getMass(2, 1), 2) == 3.14
-        CoM_rounded = [
-            round(i, 2) for i in gmsh.model.occ.getCenterOfMass(2, 1)
-        ]
-        assert CoM_rounded == [0.0, 0.0, 0.0]
-        bounding_box_rounded = [
-            round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 1)
-        ]
-        print(bounding_box_rounded)
-        assert bounding_box_rounded == [-1.0, -1.0, 0.0, 1.0, 1.0, 0.0]
+        assert gmsh.model.occ.getEntities(0) == [(0, 1)]
+        assert gmsh.model.occ.getEntities(1) == [(1, 1)]
+        assert gmsh.model.occ.getEntities(2) == [(2, 1)]
+        assert get_mass_rounded(2, 1) == 3.14
+        assert get_bbox_rounded(2, 1) == [-1.0, -1.0, 0.0, 1.0, 1.0, 0.0]
         assert c1.geoms == [1]
 
         c2 = GMSHGeom2D.get_circle((1, 1), 1)
-        assert (2, 2) in gmsh.model.occ.getEntities()
+        assert gmsh.model.occ.getEntities(0) == [(0, 1), (0, 2)]
+        assert gmsh.model.occ.getEntities(1) == [(1, 1), (1, 2)]
+        assert gmsh.model.occ.getEntities(2) == [(2, 1), (2, 2)]
         assert round(gmsh.model.occ.getMass(2, 2), 2) == 3.14
         CoM_rounded = [
             round(i, 2) for i in gmsh.model.occ.getCenterOfMass(2, 2)
@@ -345,29 +345,15 @@ class Test_GMSHGeom2D:
         geom2 = GMSHGeom2D()
         geom1.add_ellipse((0, 0), (1, 2))
         geom2.add_ellipse((0, 0), (2, 1), 90)
-        assert (2, 1) in gmsh.model.occ.getEntities()
-        assert round(gmsh.model.occ.getMass(2, 1), 2) == 6.28
-        CoM_rounded = [
-            round(i, 2) for i in gmsh.model.occ.getCenterOfMass(2, 1)
-        ]
-        assert CoM_rounded == [0.0, 0.0, 0.0]
-        bounding_box_rounded = [
-            round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 1)
-        ]
-        print(bounding_box_rounded)
-        assert bounding_box_rounded == [-1.0, -2.0, 0.0, 1.0, 2.0, 0.0]
+        assert gmsh.model.occ.getEntities(0) == [(0, 1), (0, 2)]
+        assert gmsh.model.occ.getEntities(1) == [(1, 1), (1, 2)]
+        assert gmsh.model.occ.getEntities(2) == [(2, 1), (2, 2)]
+        assert get_mass_rounded(2, 1) == 6.28
+        assert get_bbox_rounded(2, 1) == [-1.0, -2.0, 0.0, 1.0, 2.0, 0.0]
         assert geom1.geoms == [1]
         assert (2, 2) in gmsh.model.occ.getEntities()
-        assert round(gmsh.model.occ.getMass(2, 2), 2) == 6.28
-        CoM_rounded = [
-            round(i, 2) for i in gmsh.model.occ.getCenterOfMass(2, 2)
-        ]
-        assert CoM_rounded == [0.0, 0.0, 0.0]
-        bounding_box_rounded = [
-            round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 2)
-        ]
-        print(bounding_box_rounded)
-        assert bounding_box_rounded == [-1.0, -2.0, 0.0, 1.0, 2.0, 0.0]
+        assert get_mass_rounded(2, 2) == 6.28
+        assert get_bbox_rounded(2, 2) == [-1.0, -2.0, 0.0, 1.0, 2.0, 0.0]
         assert geom2.geoms == [2]
         # geom1.cutout(geom2)
         # assert geom1.polygons.area <= 0.0001
@@ -377,29 +363,15 @@ class Test_GMSHGeom2D:
         gmsh.clear()
         geom1 = GMSHGeom2D.get_ellipse((0, 0), (1, 2))
         geom2 = GMSHGeom2D.get_ellipse((0, 0), (2, 1), 90)
-        assert (2, 1) in gmsh.model.occ.getEntities()
-        assert round(gmsh.model.occ.getMass(2, 1), 2) == 6.28
-        CoM_rounded = [
-            round(i, 2) for i in gmsh.model.occ.getCenterOfMass(2, 1)
-        ]
-        assert CoM_rounded == [0.0, 0.0, 0.0]
-        bounding_box_rounded = [
-            round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 1)
-        ]
-        print(bounding_box_rounded)
-        assert bounding_box_rounded == [-1.0, -2.0, 0.0, 1.0, 2.0, 0.0]
+        assert gmsh.model.occ.getEntities(0) == [(0, 1), (0, 2)]
+        assert gmsh.model.occ.getEntities(1) == [(1, 1), (1, 2)]
+        assert gmsh.model.occ.getEntities(2) == [(2, 1), (2, 2)]
+        assert get_mass_rounded(2, 1) == 6.28
+        assert get_bbox_rounded(2, 1) == [-1.0, -2.0, 0.0, 1.0, 2.0, 0.0]
         assert geom1.geoms == [1]
         assert (2, 2) in gmsh.model.occ.getEntities()
-        assert round(gmsh.model.occ.getMass(2, 2), 2) == 6.28
-        CoM_rounded = [
-            round(i, 2) for i in gmsh.model.occ.getCenterOfMass(2, 2)
-        ]
-        assert CoM_rounded == [0.0, 0.0, 0.0]
-        bounding_box_rounded = [
-            round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 2)
-        ]
-        print(bounding_box_rounded)
-        assert bounding_box_rounded == [-1.0, -2.0, 0.0, 1.0, 2.0, 0.0]
+        assert get_mass_rounded(2, 2) == 6.28
+        assert get_bbox_rounded(2, 2) == [-1.0, -2.0, 0.0, 1.0, 2.0, 0.0]
         assert geom2.geoms == [2]
         # geom1.cutout(geom2)
         # assert geom1.polygons.area <= 0.0001
@@ -409,81 +381,57 @@ class Test_GMSHGeom2D:
         gmsh.clear()
         geom = GMSHGeom2D()
         geom.add_roundrect((0, 0), (1, 1), 0.1)
-        bbox_rounded = [
-            round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 1)
-        ]
-        assert (2, 1) in gmsh.model.occ.getEntities()
-        CoM_rounded = [
-            round(i, 2) for i in gmsh.model.occ.getCenterOfMass(2, 1)
-        ]
-        assert CoM_rounded == [0.5, 0.5, 0]
-        assert bbox_rounded == [0, 0, 0, 1, 1, 0]
-        assert gmsh.model.occ.getMass(2, 1) == 0.9914159265358979
+        assert gmsh.model.occ.getEntities(0) == [(0, i) for i in range(1, 9)]
+        assert gmsh.model.occ.getEntities(1) == [(1, i) for i in range(1, 9)]
+        assert gmsh.model.occ.getEntities(2) == [(2, 1)]
+        assert get_mass_rounded(2, 1) == 0.99
+        assert get_bbox_rounded(2, 1) == [0, 0, 0, 1, 1, 0]
         assert geom.geoms == [1]
 
     def test_gmshgeom2d_add_roundrect_circle(self):
         gmsh.clear()
         geom = GMSHGeom2D()
         geom.add_roundrect((-1, -1), (1, 1), 0.999)
-        bbox_rounded = [
-            round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 1)
-        ]
-        assert (2, 1) in gmsh.model.occ.getEntities()
-        CoM_rounded = [
-            round(i, 2) for i in gmsh.model.occ.getCenterOfMass(2, 1)
-        ]
-        assert CoM_rounded == [0.0, 0.0, 0.0]
-        assert bbox_rounded == [-1, -1, 0, 1, 1, 0]
-        assert round(gmsh.model.occ.getMass(2, 1), 2) == 3.14
+        assert gmsh.model.occ.getEntities(0) == [(0, i) for i in range(1, 9)]
+        assert gmsh.model.occ.getEntities(1) == [(1, i) for i in range(1, 9)]
+        assert gmsh.model.occ.getEntities(2) == [(2, 1)]
+        assert get_bbox_rounded(2, 1) == [-1.0, -1.0, 0.0, 1.0, 1.0, 0.0]
+        assert get_mass_rounded(2, 1) == 3.14
         assert geom.geoms == [1]
 
     def test_gmshgeom2d_get_roundrect(self):
         gmsh.clear()
         geom = GMSHGeom2D.get_roundrect((0, 0), (1, 1), 0.1)
-        bbox_rounded = [
-            round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 1)
-        ]
-        assert (2, 1) in gmsh.model.occ.getEntities()
-        CoM_rounded = [
-            round(i, 2) for i in gmsh.model.occ.getCenterOfMass(2, 1)
-        ]
-        assert CoM_rounded == [0.5, 0.5, 0]
-        assert bbox_rounded == [0, 0, 0, 1, 1, 0]
-        assert gmsh.model.occ.getMass(2, 1) == 0.9914159265358979
+        assert gmsh.model.occ.getEntities(0) == [(0, i) for i in range(1, 9)]
+        assert gmsh.model.occ.getEntities(1) == [(1, i) for i in range(1, 9)]
+        assert gmsh.model.occ.getEntities(2) == [(2, 1)]
+        assert get_mass_rounded(2, 1) == 0.99
+        assert get_bbox_rounded(2, 1) == [0, 0, 0, 1, 1, 0]
         assert geom.geoms == [1]
 
+    # TODO: there is still the "skeleton" inside the offset curve. Maybe remove it in the future?
     def test_gmshgeom2d_add_line_3points(self):
         gmsh.clear()
         geom = GMSHGeom2D()
         geom.add_line([(0, 0), (1, 1), (2, 1)], 0.1)
-        # geom.plot()
-        assert (2, 1) in gmsh.model.occ.getEntities()
-        CoM_rounded = [
-            round(i, 2) for i in gmsh.model.occ.getCenterOfMass(2, 1)
-        ]
-        bbox_rounded = [
-            round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 1)
-        ]
-        assert CoM_rounded == [0.92, 0.7, 0.0]
-        assert bbox_rounded == [-0.05, -0.05, 0, 2.05, 1.05, 0]
-        assert round(gmsh.model.occ.getMass(2, 1), 5) == 0.24922
+        assert gmsh.model.occ.getEntities(0) == [(0, i) for i in range(1, 13)]
+        assert gmsh.model.occ.getEntities(1) == [(1, i) for i in range(1, 12)]
+        assert gmsh.model.occ.getEntities(2) == [(2, 1)]
+        assert get_mass_rounded(2, 1) == 0.25
+        assert get_bbox_rounded(2, 1) == [-0.05, -0.05, 0, 2.05, 1.05, 0]
         assert geom.geoms == [1]
 
+
+    # TODO: weird middle-point on right outline segment. maybe fix?
     def test_gmshgeom2d_add_line_x(self):
         gmsh.clear()
         geom = GMSHGeom2D()
         geom.add_line([(-1, 0), (1, 0)], 0.1)
-        # geom.plot()
-        assert (2, 1) in gmsh.model.occ.getEntities()
-        CoM_rounded = [
-            round(i, 2) for i in gmsh.model.occ.getCenterOfMass(2, 1)
-        ]
-        bbox_rounded = [
-            round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 1)
-        ]
-        assert CoM_rounded == [0.0, 0.0, 0.0]
-        assert bbox_rounded == [-1.05, -0.05, 0, 1.05, 0.05, 0]
-        assert round(gmsh.model.occ.getMass(2, 1), 5) == 0.20785
+        assert gmsh.model.occ.getEntities(0) == [(0, i) for i in range(1, 12)]
+        assert gmsh.model.occ.getEntities(1) == [(1, i) for i in range(1, 11)]
+        assert gmsh.model.occ.getEntities(2) == [(2, 1)]
+        assert get_mass_rounded(2, 1) == 0.21
+        assert get_bbox_rounded(2, 1) == [-1.05, -0.05, 0, 1.05, 0.05, 0]
         assert geom.geoms == [1]
 
     def test_gmshgeom2d_add_line_y(self):
@@ -491,47 +439,33 @@ class Test_GMSHGeom2D:
         geom = GMSHGeom2D()
         geom.add_line([(0, -1), (0, 1)], 0.1)
         # geom.plot()
-        assert (2, 1) in gmsh.model.occ.getEntities()
-        CoM_rounded = [
-            round(i, 2) for i in gmsh.model.occ.getCenterOfMass(2, 1)
-        ]
-        bbox_rounded = [
-            round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 1)
-        ]
-        assert CoM_rounded == [0.0, 0.0, 0.0]
-        assert bbox_rounded == [-0.05, -1.05, 0, 0.05, 1.05, 0]
-        assert round(gmsh.model.occ.getMass(2, 1), 5) == 0.20785
+        assert gmsh.model.occ.getEntities(0) == [(0, i) for i in range(1, 12)]
+        assert gmsh.model.occ.getEntities(1) == [(1, i) for i in range(1, 11)]
+        assert gmsh.model.occ.getEntities(2) == [(2, 1)]
+        assert get_mass_rounded(2, 1) == 0.21
+        assert get_bbox_rounded(2, 1) == [-0.05, -1.05, 0, 0.05, 1.05, 0]
         assert geom.geoms == [1]
 
     def test_gmshgeom2d_get_line(self):
         gmsh.clear()
         geom = GMSHGeom2D.get_line(((0, 0), (1, 1), (2, 1)), 0.1)
-        assert (2, 1) in gmsh.model.occ.getEntities()
-        CoM_rounded = [
-            round(i, 2) for i in gmsh.model.occ.getCenterOfMass(2, 1)
-        ]
-        bbox_rounded = [
-            round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 1)
-        ]
-        assert CoM_rounded == [0.92, 0.7, 0.0]
-        assert bbox_rounded == [-0.05, -0.05, 0, 2.05, 1.05, 0]
-        assert round(gmsh.model.occ.getMass(2, 1), 5) == 0.24922
+        assert gmsh.model.occ.getEntities(0) == [(0, i) for i in range(1, 13)]
+        assert gmsh.model.occ.getEntities(1) == [(1, i) for i in range(1, 12)]
+        assert gmsh.model.occ.getEntities(2) == [(2, 1)]
+        assert get_mass_rounded(2, 1) == 0.25
+        assert get_bbox_rounded(2, 1) == [-0.05, -0.05, 0, 2.05, 1.05, 0]
         assert geom.geoms == [1]
 
+    # TODO: point 2 not attached to (skeleton) curve. Delete?
     def test_gmshgeom2d_add_half_arc(self):
         gmsh.clear()
         geom = GMSHGeom2D()
         geom.add_arc((1, 0), (0, 1), (-1, 0), 0.1)
-        assert (2, 1) in gmsh.model.occ.getEntities()
-        CoM_rounded = [
-            round(i, 2) for i in gmsh.model.occ.getCenterOfMass(2, 1)
-        ]
-        bbox_rounded = [
-            round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 1)
-        ]
-        assert CoM_rounded == [0.0, 0.62, 0.0]
-        assert bbox_rounded == [-1.05, -0.05, 0, 1.05, 1.05, 0]
-        assert round(gmsh.model.occ.getMass(2, 1), 5) == 0.32201
+        assert gmsh.model.occ.getEntities(0) == [(0, i) for i in range(1, 8)]
+        assert gmsh.model.occ.getEntities(1) == [(1, i) for i in range(1, 6)]
+        assert gmsh.model.occ.getEntities(2) == [(2, 1)]
+        assert get_mass_rounded(2, 1) == 0.32
+        assert get_bbox_rounded(2, 1) == [-1.05, -0.05, 0, 1.05, 1.05, 0]
         assert geom.geoms == [1]
 
     def test_gmshgeom2d_add_quarter_arc(self):
@@ -540,31 +474,21 @@ class Test_GMSHGeom2D:
         geom.add_arc(
             (1, 0), (math.cos(math.pi / 4), math.sin(math.pi / 4)), (0, 1), 0.1
         )
-        assert (2, 1) in gmsh.model.occ.getEntities()
-        CoM_rounded = [
-            round(i, 2) for i in gmsh.model.occ.getCenterOfMass(2, 1)
-        ]
-        bbox_rounded = [
-            round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 1)
-        ]
-        assert CoM_rounded == [0.63, 0.63, 0.0]
-        assert bbox_rounded == [-0.05, -0.05, 0, 1.05, 1.05, 0]
-        assert round(gmsh.model.occ.getMass(2, 1), 5) == 0.16493
+        assert gmsh.model.occ.getEntities(0) == [(0, i) for i in range(1, 10)]
+        assert gmsh.model.occ.getEntities(1) == [(1, i) for i in range(1, 8)]
+        assert gmsh.model.occ.getEntities(2) == [(2, 1)]
+        assert get_mass_rounded(2, 1) == 0.16
+        assert get_bbox_rounded(2, 1) == [-0.05, -0.05, 0, 1.05, 1.05, 0]
         assert geom.geoms == [1]
 
     def test_gmshgeom2d_get_arc(self):
         gmsh.clear()
         geom = GMSHGeom2D.get_arc((1, 0), (0, 1), (-1, 0), 0.1)
-        assert (2, 1) in gmsh.model.occ.getEntities()
-        CoM_rounded = [
-            round(i, 2) for i in gmsh.model.occ.getCenterOfMass(2, 1)
-        ]
-        bbox_rounded = [
-            round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 1)
-        ]
-        assert CoM_rounded == [0.0, 0.62, 0.0]
-        assert bbox_rounded == [-1.05, -0.05, 0, 1.05, 1.05, 0]
-        assert round(gmsh.model.occ.getMass(2, 1), 5) == 0.32201
+        assert gmsh.model.occ.getEntities(0) == [(0, i) for i in range(1, 8)]
+        assert gmsh.model.occ.getEntities(1) == [(1, i) for i in range(1, 6)]
+        assert gmsh.model.occ.getEntities(2) == [(2, 1)]
+        assert get_mass_rounded(2, 1) == 0.32
+        assert get_bbox_rounded(2, 1) == [-1.05, -0.05, 0, 1.05, 1.05, 0]
         assert geom.geoms == [1]
 
     def test_gmshgeom2d_fuse_all_overlapping(self):
@@ -573,26 +497,15 @@ class Test_GMSHGeom2D:
         geom.add_rectangle((0, 0), (2, 2))
         geom.add_rectangle((1, 1), (3, 3))
         geom.add_rectangle((2, 2), (4, 4))
-        assert (
-            (2, 1) in gmsh.model.occ.getEntities()
-            and (2, 2) in gmsh.model.occ.getEntities()
-            and (2, 3) in gmsh.model.occ.getEntities()
-        )
+        assert gmsh.model.occ.getEntities(0) == [(0, i) for i in range(1, 13)]
+        assert gmsh.model.occ.getEntities(1) == [(1, i) for i in range(1, 13)]
+        assert gmsh.model.occ.getEntities(2) == [(2, 1), (2, 2), (2, 3)]
         geom._fuse_all()
-        assert (
-            (2, 1) in gmsh.model.occ.getEntities()
-            and not (2, 2) in gmsh.model.occ.getEntities()
-            and not (2, 3) in gmsh.model.occ.getEntities()
-        )
-        CoM_rounded = [
-            round(i, 2) for i in gmsh.model.occ.getCenterOfMass(2, 1)
-        ]
-        bbox_rounded = [
-            round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 1)
-        ]
-        assert CoM_rounded == [2.0, 2.0, 0.0]
-        assert bbox_rounded == [0, 0, 0, 4, 4, 0]
-        assert round(gmsh.model.occ.getMass(2, 1), 5) == 10
+        assert gmsh.model.occ.getEntities(0) == [(0, i) for i in range(10, 22)]
+        assert gmsh.model.occ.getEntities(1) == [(1, i) for i in range(10, 22)]
+        assert gmsh.model.occ.getEntities(2) == [(2, 1)]
+        assert get_mass_rounded(2, 1) == 10
+        assert get_bbox_rounded(2, 1) == [0, 0, 0, 4, 4, 0]
         assert geom.geoms == [1]
 
     def test_gmshgeom2d_fuse_all_disjunct(self):
@@ -601,17 +514,13 @@ class Test_GMSHGeom2D:
         geom.add_rectangle((0, 0), (1, 1))
         geom.add_rectangle((2, 2), (3, 3))
         geom.add_rectangle((4, 4), (5, 5))
-        assert (
-            (2, 1) in gmsh.model.occ.getEntities()
-            and (2, 2) in gmsh.model.occ.getEntities()
-            and (2, 3) in gmsh.model.occ.getEntities()
-        )
+        assert gmsh.model.occ.getEntities(0) == [(0, i) for i in range(1, 13)]
+        assert gmsh.model.occ.getEntities(1) == [(1, i) for i in range(1, 13)]
+        assert gmsh.model.occ.getEntities(2) == [(2, 1), (2, 2), (2, 3)]
         geom._fuse_all()
-        assert (
-            (2, 1) in gmsh.model.occ.getEntities()
-            and (2, 2) in gmsh.model.occ.getEntities()
-            and (2, 3) in gmsh.model.occ.getEntities()
-        )
+        assert gmsh.model.occ.getEntities(0) == [(0, i) for i in range(1, 13)]
+        assert gmsh.model.occ.getEntities(1) == [(1, i) for i in range(1, 13)]
+        assert gmsh.model.occ.getEntities(2) == [(2, 1), (2, 2), (2, 3)]
         assert geom.geoms == [1, 2, 3]
 
     def test_gmshgeom2d_fuse_all_touching_point(self):
@@ -620,17 +529,13 @@ class Test_GMSHGeom2D:
         geom.add_rectangle((0, 0), (1, 1))
         geom.add_rectangle((1, 1), (2, 2))
         geom.add_rectangle((2, 2), (3, 3))
-        assert (
-            (2, 1) in gmsh.model.occ.getEntities()
-            and (2, 2) in gmsh.model.occ.getEntities()
-            and (2, 3) in gmsh.model.occ.getEntities()
-        )
+        assert gmsh.model.occ.getEntities(0) == [(0, i) for i in range(1, 13)]
+        assert gmsh.model.occ.getEntities(1) == [(1, i) for i in range(1, 13)]
+        assert gmsh.model.occ.getEntities(2) == [(2, 1), (2, 2), (2, 3)]
         geom._fuse_all()
-        assert (
-            (2, 1) in gmsh.model.occ.getEntities()
-            and (2, 2) in gmsh.model.occ.getEntities()
-            and (2, 3) in gmsh.model.occ.getEntities()
-        )
+        assert gmsh.model.occ.getEntities(0) == [(0, i) for i in range(1, 11)]
+        assert gmsh.model.occ.getEntities(1) == [(1, i) for i in range(1, 13)]
+        assert gmsh.model.occ.getEntities(2) == [(2, 1), (2, 2), (2, 3)]
         assert geom.geoms == [1, 2, 3]
 
     def test_gmshgeom2d_cutout_gmshgeom2d(self):
@@ -639,16 +544,11 @@ class Test_GMSHGeom2D:
         geom.add_rectangle((0, 0), (2, 2))
         geom.cutout(GMSHGeom2D.get_rectangle((0.5, 0.5), (1.5, 1.5)))
         print(gmsh.model.occ.getEntities())
-        assert (2, 1) in gmsh.model.occ.getEntities() and (
-            1,
-            12,
-        ) in gmsh.model.occ.getEntities()
-        assert gmsh.model.occ.getMass(2, 1) == 3
-        assert gmsh.model.occ.getCenterOfMass(2, 1) == (1, 1, 0)
-        bbox_rounded = [
-            round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 1)
-        ]
-        assert bbox_rounded == [0, 0, 0, 2, 2, 0]
+        assert gmsh.model.occ.getEntities(0) == [(0, i) for i in range(5, 13)]
+        assert gmsh.model.occ.getEntities(1) == [(1, i) for i in range(5, 13)]
+        assert gmsh.model.occ.getEntities(2) == [(2, 1)]
+        assert get_mass_rounded(2, 1) == 3.00
+        assert get_bbox_rounded(2, 1) == [0, 0, 0, 2, 2, 0]
         assert geom.geoms == [1]
 
     def test_gmshgeom2d_cutout_tag_list(self):
@@ -660,22 +560,18 @@ class Test_GMSHGeom2D:
             GMSHGeom2D.get_rectangle((x - 0.3, y - 0.3), (x + 0.3, y + 0.3))
             for x, y in [(0.6, 0.6), (1.4, 0.6), (0.6, 1.4), (1.4, 1.4)]
         ]
-        assert (2, 5) in gmsh.model.occ.getEntities() and (
-            1,
-            20,
-        ) in gmsh.model.occ.getEntities()
+        assert gmsh.model.occ.getEntities(0) == [(0, i) for i in range(1, 21)]
+        assert gmsh.model.occ.getEntities(1) == [(1, i) for i in range(1, 21)]
+        assert gmsh.model.occ.getEntities(2) == [(2, i) for i in range(1, 6)]
+        assert get_mass_rounded(2, 1) == 4
+        assert get_bbox_rounded(2, 1) == [0, 0, 0, 2, 2, 0]
         geom.cutout([hole.geoms[0] for hole in holes])
         print(gmsh.model.occ.getEntities())
-        assert (2, 1) in gmsh.model.occ.getEntities() and not (
-            2,
-            2,
-        ) in gmsh.model.occ.getEntities()
-        assert round(gmsh.model.occ.getMass(2, 1)) == 3
-        assert gmsh.model.occ.getCenterOfMass(2, 1) == (1, 1, 0)
-        bbox_rounded = [
-            round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 1)
-        ]
-        assert bbox_rounded == [0, 0, 0, 2, 2, 0]
+        assert gmsh.model.occ.getEntities(0) == [(0, i) for i in range(5, 25)]
+        assert gmsh.model.occ.getEntities(1) == [(1, i) for i in range(5, 25)]
+        assert gmsh.model.occ.getEntities(2) == [(2, 1)]
+        assert get_mass_rounded(2, 1) == 2.56
+        assert get_bbox_rounded(2, 1) == [0, 0, 0, 2, 2, 0]
         assert geom.geoms == [1]
 
     def test_gmshgeom2d_cutout_geom_list(self):
@@ -687,22 +583,18 @@ class Test_GMSHGeom2D:
             GMSHGeom2D.get_rectangle((x - 0.3, y - 0.3), (x + 0.3, y + 0.3))
             for x, y in [(0.6, 0.6), (1.4, 0.6), (0.6, 1.4), (1.4, 1.4)]
         ]
-        assert (2, 5) in gmsh.model.occ.getEntities() and (
-            1,
-            20,
-        ) in gmsh.model.occ.getEntities()
+        assert gmsh.model.occ.getEntities(0) == [(0, i) for i in range(1, 21)]
+        assert gmsh.model.occ.getEntities(1) == [(1, i) for i in range(1, 21)]
+        assert gmsh.model.occ.getEntities(2) == [(2, i) for i in range(1, 6)]
+        assert get_mass_rounded(2, 1) == 4
+        assert get_bbox_rounded(2, 1) == [0, 0, 0, 2, 2, 0]
         geom.cutout(holes)
         print(gmsh.model.occ.getEntities())
-        assert (2, 1) in gmsh.model.occ.getEntities() and not (
-            2,
-            2,
-        ) in gmsh.model.occ.getEntities()
-        assert round(gmsh.model.occ.getMass(2, 1)) == 3
-        assert gmsh.model.occ.getCenterOfMass(2, 1) == (1, 1, 0)
-        bbox_rounded = [
-            round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 1)
-        ]
-        assert bbox_rounded == [0, 0, 0, 2, 2, 0]
+        assert gmsh.model.occ.getEntities(0) == [(0, i) for i in range(5, 25)]
+        assert gmsh.model.occ.getEntities(1) == [(1, i) for i in range(5, 25)]
+        assert gmsh.model.occ.getEntities(2) == [(2, 1)]
+        assert get_mass_rounded(2, 1) == 2.56
+        assert get_bbox_rounded(2, 1) == [0, 0, 0, 2, 2, 0]
         assert geom.geoms == [1]
 
     def test_gmshgeom2d_cutout_multiple_geoms(self):
@@ -712,23 +604,16 @@ class Test_GMSHGeom2D:
         geom.add_rectangle((-1, -1), (2, 2))
         geom.add_rectangle((-2, -1), (1, 2))
         geom.add_rectangle((-1, -2), (2, 1))
-        assert all(
-            [(2, tag) in gmsh.model.occ.getEntities() for tag in [1, 2, 3, 4]]
-        )
+        assert gmsh.model.occ.getEntities(0) == [(0, i) for i in range(1, 17)]
+        assert gmsh.model.occ.getEntities(1) == [(1, i) for i in range(1, 17)]
+        assert gmsh.model.occ.getEntities(2) == [(2, i) for i in range(1, 5)]
         geom.cutout(GMSHGeom2D.get_rectangle((-0.5, -0.5), (0.5, 0.5)))
         # print("Fused: ", geom._fuse_all())
-        assert (2, 1) in gmsh.model.occ.getEntities() and not all(
-            [(2, tag) in gmsh.model.occ.getEntities() for tag in [2, 3, 4]]
-        )
-        assert gmsh.model.occ.getMass(2, 1) == 15
-        CoM_rounded = [
-            round(i, 2) for i in gmsh.model.occ.getCenterOfMass(2, 1)
-        ]
-        assert CoM_rounded == [0, 0, 0]
-        bbox_rounded = [
-            round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 1)
-        ]
-        assert bbox_rounded == [-2, -2, 0, 2, 2, 0]
+        assert gmsh.model.occ.getEntities(0) == [(0, i) for i in range(17, 25)]
+        assert gmsh.model.occ.getEntities(1) == [(1, i) for i in range(17, 25)]
+        assert gmsh.model.occ.getEntities(2) == [(2, 1)]
+        assert get_mass_rounded(2, 1) == 15
+        assert get_bbox_rounded(2, 1) == [-2, -2, 0, 2, 2, 0]
         assert geom.geoms == [1]
 
     """
@@ -759,11 +644,11 @@ class Test_GMSHGeom2D:
         gmsh.clear()
         geom = GMSHGeom2D()
         geom.add_rectangle((0, 0), (1, 1))
-        assert gmsh.model.occ.getCenterOfMass(2, 1) == (0.5, 0.5, 0)
-        assert gmsh.model.occ.getMass(2, 1) == 1
+        assert get_bbox_rounded(2, 1) == [0, 0, 0, 1, 1, 0]
+        assert get_mass_rounded(2, 1) == 1.0
         assert geom.geoms == [1]
         geom.translate(1, 1)
-        assert gmsh.model.occ.getCenterOfMass(2, 1) == (1.5, 1.5, 0)
+        assert get_bbox_rounded(2, 1) == [1, 1, 0, 2, 2, 0]
         assert geom.geoms == [1]
 
     def test_gmshgeom2d_rotate_origin(self):
@@ -771,24 +656,10 @@ class Test_GMSHGeom2D:
         geom = GMSHGeom2D()
         geom.add_polygon(sh.geometry.box(-1, -1, 1, 1))
         geom.rotate(45)
-        CoM_rounded = [
-            round(i, 2) for i in gmsh.model.occ.getCenterOfMass(2, 1)
-        ]
-        assert CoM_rounded == [0, 0, 0]
-        bbox_rounded = [
-            round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 1)
-        ]
-        assert bbox_rounded == [-1.41, -1.41, 0, 1.41, 1.41, 0]
+        assert get_bbox_rounded(2, 1) == [-1.41, -1.41, 0, 1.41, 1.41, 0]
         assert geom.geoms == [1]
         geom.rotate(45)
-        CoM_rounded = [
-            round(i, 2) for i in gmsh.model.occ.getCenterOfMass(2, 1)
-        ]
-        assert CoM_rounded == [0, 0, 0]
-        bbox_rounded = [
-            round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 1)
-        ]
-        assert bbox_rounded == [-1, -1, 0, 1, 1, 0]
+        assert get_bbox_rounded(2, 1) == [-1, -1, 0, 1, 1, 0]
         assert geom.geoms == [1]
 
     def test_gmshgeom2d_rotate_corner(self):
@@ -796,26 +667,19 @@ class Test_GMSHGeom2D:
         geom = GMSHGeom2D()
         geom.add_polygon(sh.geometry.box(-1, -1, 1, 1))
         geom.rotate(90, (1, 1))
-        CoM_rounded = [
-            round(i, 2) for i in gmsh.model.occ.getCenterOfMass(2, 1)
-        ]
-        assert CoM_rounded == [2, 0, 0]
-        bbox_rounded = [
-            round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 1)
-        ]
-        assert bbox_rounded == [1, -1, 0, 3, 1, 0]
+        assert get_bbox_rounded(2, 1) == [1, -1, 0, 3, 1, 0]
         assert geom.geoms == [1]
 
     def test_gmshgeom2d_extrude_rectangle(self):
         gmsh.clear()
         geom = GMSHGeom2D.get_rectangle((0, 0), (1, 1))
         extrusion = geom.extrude(0.1)
-        bbox_rounded = [
-            round(i, 2) for i in gmsh.model.occ.getBoundingBox(3, 1)
-        ]
-        assert (3, 1) in gmsh.model.occ.getEntities()
-        assert bbox_rounded == [0, 0, 0, 1, 1, 0.1]
-        assert round(gmsh.model.occ.getMass(3, 1), 5) == 0.1
+        assert gmsh.model.occ.getEntities(0) == [(0, i) for i in range(1, 9)]
+        assert gmsh.model.occ.getEntities(1) == [(1, i) for i in range(1, 13)]
+        assert gmsh.model.occ.getEntities(2) == [(2, i) for i in range(1, 7)]
+        assert gmsh.model.occ.getEntities(3) == [(3, 1)]
+        assert get_mass_rounded(3, 1) == 0.1
+        assert get_bbox_rounded(3, 1) == [0, 0, 0, 1, 1, 0.1]
         assert extrusion.geoms == [1]
 
     # TODO: unextruded z shift test
@@ -824,12 +688,12 @@ class Test_GMSHGeom2D:
         gmsh.clear()
         geom = GMSHGeom2D.get_rectangle((0, 0), (1, 1))
         extrusion = geom.extrude(0.1, zpos=0.2)
-        bbox_rounded = [
-            round(i, 2) for i in gmsh.model.occ.getBoundingBox(3, 1)
-        ]
-        assert (3, 1) in gmsh.model.occ.getEntities()
-        assert bbox_rounded == [0, 0, 0.2, 1, 1, 0.3]
-        assert round(gmsh.model.occ.getMass(3, 1), 5) == 0.1
+        assert gmsh.model.occ.getEntities(0) == [(0, i) for i in range(1, 9)]
+        assert gmsh.model.occ.getEntities(1) == [(1, i) for i in range(1, 13)]
+        assert gmsh.model.occ.getEntities(2) == [(2, i) for i in range(1, 7)]
+        assert gmsh.model.occ.getEntities(3) == [(3, 1)]
+        assert get_mass_rounded(3, 1) == 0.1
+        assert get_bbox_rounded(3, 1) == [0, 0, 0.2, 1, 1, 0.3]
         assert extrusion.geoms == [1]
 
     def test_gmshgeom2d_make_compound_disjunct(self):
@@ -838,24 +702,18 @@ class Test_GMSHGeom2D:
         geom2 = GMSHGeom2D().get_rectangle((2, 2), (3, 3))
         assert geom1.geoms == [1]
         assert geom2.geoms == [2]
-        bbox_rounded_1 = [
-            round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 1)
-        ]
-        bbox_rounded_2 = [
-            round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 2)
-        ]
-        assert bbox_rounded_1 == [0, 0, 0, 1, 1, 0]
-        assert bbox_rounded_2 == [2, 2, 0, 3, 3, 0]
-        assert (2, 1) in gmsh.model.occ.getEntities() and (
-            2,
-            2,
-        ) in gmsh.model.occ.getEntities()
+        assert gmsh.model.occ.getEntities(0) == [(0, i) for i in range(1, 9)]
+        assert gmsh.model.occ.getEntities(1) == [(1, i) for i in range(1, 9)]
+        assert gmsh.model.occ.getEntities(2) == [(2, i) for i in range(1, 3)]
+        assert get_mass_rounded(2, 1) == 1
+        assert get_mass_rounded(2, 2) == 1
+        assert get_bbox_rounded(2, 1) == [0, 0, 0, 1, 1, 0]
+        assert get_bbox_rounded(2, 2) == [2, 2, 0, 3, 3, 0]
         compound = GMSHGeom2D.make_compound([geom1, geom2])
         assert isinstance(compound, GMSHGeom2D)
-        assert (2, 1) in gmsh.model.occ.getEntities() and (
-            2,
-            2,
-        ) in gmsh.model.occ.getEntities()
+        assert gmsh.model.occ.getEntities(0) == [(0, i) for i in range(1, 9)]
+        assert gmsh.model.occ.getEntities(1) == [(1, i) for i in range(1, 9)]
+        assert gmsh.model.occ.getEntities(2) == [(2, i) for i in range(1, 3)]
         assert compound.geoms == [1, 2]
 
     def test_gmshgeom2d_make_compound_touching_point(self):
@@ -864,25 +722,15 @@ class Test_GMSHGeom2D:
         geom2 = GMSHGeom2D().get_rectangle((1, 1), (2, 2))
         assert geom1.geoms == [1]
         assert geom2.geoms == [2]
-        assert (2, 1) in gmsh.model.occ.getEntities() and (
-            2,
-            2,
-        ) in gmsh.model.occ.getEntities()
         compound = GMSHGeom2D.make_compound([geom1, geom2])
         assert isinstance(compound, GMSHGeom2D)
-        assert (2, 1) in gmsh.model.occ.getEntities() and (
-            2,
-            2,
-        ) in gmsh.model.occ.getEntities()
-        assert compound.geoms == [1, 2]
-        bbox_rounded_1 = [
-            round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 1)
-        ]
-        bbox_rounded_2 = [
-            round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 2)
-        ]
-        assert bbox_rounded_1 == [0, 0, 0, 1, 1, 0]
-        assert bbox_rounded_2 == [1, 1, 0, 2, 2, 0]
+        assert gmsh.model.occ.getEntities(0) == [(0, i) for i in range(1, 8)]
+        assert gmsh.model.occ.getEntities(1) == [(1, i) for i in range(1, 9)]
+        assert gmsh.model.occ.getEntities(2) == [(2, i) for i in range(1, 3)]
+        assert get_mass_rounded(2, 1) == 1
+        assert get_mass_rounded(2, 2) == 1
+        assert get_bbox_rounded(2, 1) == [0, 0, 0, 1, 1, 0]
+        assert get_bbox_rounded(2, 2) == [1, 1, 0, 2, 2, 0]
 
     def test_gmshgeom2d_make_compound_overlapping(self):
         gmsh.clear()
@@ -890,21 +738,16 @@ class Test_GMSHGeom2D:
         geom2 = GMSHGeom2D().get_rectangle((1, 1), (3, 3))
         assert geom1.geoms == [1]
         assert geom2.geoms == [2]
-        assert (2, 1) in gmsh.model.occ.getEntities() and (
-            2,
-            2,
-        ) in gmsh.model.occ.getEntities()
+        geom1.plot()
         compound = GMSHGeom2D.make_compound([geom1, geom2])
+        compound.plot()
         assert isinstance(compound, GMSHGeom2D)
-        assert (2, 1) in gmsh.model.occ.getEntities() and not (
-            2,
-            2,
-        ) in gmsh.model.occ.getEntities()
-        assert compound.geoms == [1]
-        bbox_rounded = [
-            round(i, 2) for i in gmsh.model.occ.getBoundingBox(2, 1)
-        ]
-        assert bbox_rounded == [0, 0, 0, 3, 3, 0]
+        print(gmsh.model.occ.getEntities())
+        assert gmsh.model.occ.getEntities(0) == [(0, i) for i in range(6, 14)]
+        assert gmsh.model.occ.getEntities(1) == [(1, i) for i in range(6, 14)]
+        assert gmsh.model.occ.getEntities(2) == [(2, 1)]
+        assert get_mass_rounded(2, 1) == 7
+        assert get_bbox_rounded(2, 1) == [0, 0, 0, 3, 3, 0]
 
     def test_gmshgeom2d_extrude_rectangles_disjunct(self):
         gmsh.clear()
