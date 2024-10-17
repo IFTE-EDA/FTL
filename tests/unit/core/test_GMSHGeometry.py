@@ -961,7 +961,6 @@ class Test_GMSHGeom3D:
         ]
         assert bbox_rounded == [2, 2, 0, 3, 3, 0.1]
 
-
 """def test_gmshgeom2d_fix_list(self):
         geom = GMSHGeom2D()
         assert geom._fix_list([]) == []
