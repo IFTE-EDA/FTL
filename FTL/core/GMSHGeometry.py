@@ -233,14 +233,14 @@ class GMSHGeom2D(AbstractGeom2D):
                 return lst
             return lst[0:-1] if lst[0] == lst[-1] else lst
 
-        def _add_line(pt1, pt2, pids=False):
-            print(f"Adding line from {pt1} to {pt2} with bulge {pt1[2]}")
-            if pids:
-                p1 = pt1
-                p2 = pt2
+        def _add_line(pt1, pt2, pids=None):
+            if pids is not None:
+                p1 = pids[0]
+                p2 = pids[1]
             else:
                 p1 = gmsh.model.occ.add_point(pt1[0], pt1[1], 0)
                 p2 = gmsh.model.occ.add_point(pt2[0], pt2[1], 0)
+            print(f"Adding line from {pt1} to {pt2} with bulge {pt1[2]}")
             # no bulge? draw a straight line
             if pt1[2] == 0:
                 return gmsh.model.occ.add_line(p1, p2)
@@ -257,10 +257,6 @@ class GMSHGeom2D(AbstractGeom2D):
             c_u = pt1[2] * length / 2
             if pt1[2] > 0:
                 c_u = -c_u
-            """pt_u = (
-                pt_m[0] + c_u * (pt2[1] - pt1[1]) / length,
-                pt_m[1] + c_u * (pt1[0] - pt2[0]) / length,
-            )"""
             if pt1[2] > 0:
                 pt_u = (
                     pt_m[0] + c_u * np.cos(alpha + np.pi / 2),
@@ -276,8 +272,6 @@ class GMSHGeom2D(AbstractGeom2D):
             #    pt_m[0] - c_u * np.sin(alpha),
             #    pt_m[1] - c_u * np.cos(alpha),
             # )
-            print(f"U-point: {pt_u}")
-
             pu = gmsh.model.occ.add_point(pt_u[0], pt_u[1], 0)
             return gmsh.model.occ.add_circle_arc(p1, pu, p2, center=False)
 
@@ -286,13 +280,50 @@ class GMSHGeom2D(AbstractGeom2D):
         if orient:
             in_outline.reverse()
             print("Re-oriented.")
-        lines = [
-            _add_line(in_outline[i], in_outline[i + 1])
-            for i in range(len(in_outline) - 1)
-        ]
-        lines.append(_add_line(in_outline[len(in_outline) - 1], in_outline[0]))
+
+        if in_outline[0] == in_outline[-1]:
+            print("Rendering closed line...")
+            pts = [
+                gmsh.model.occ.add_point(x, y, 0)
+                for x, y, _ in in_outline[:-1]
+            ]
+            lines = [
+                _add_line(
+                    in_outline[i], in_outline[i + 1], pids=(pts[i], pts[i + 1])
+                )
+                for i in range(len(in_outline) - 1)
+            ]
+            lines.append(
+                _add_line(
+                    pts[len(pts) - 1],
+                    pts[0],
+                    pids=(
+                        pts[len(pts) - 1],
+                        pts[0],
+                    ),
+                )
+            )
+        else:
+            print("Rendering open line as closed poly...")
+            pts = [gmsh.model.occ.add_point(x, y, 0) for x, y, _ in in_outline]
+            lines = [
+                _add_line(
+                    in_outline[i], in_outline[i + 1], pids=(pts[i], pts[i + 1])
+                )
+                for i in range(len(in_outline) - 1)
+            ]
+            lines.append(
+                _add_line(
+                    in_outline[len(pts) - 1],
+                    in_outline[0],
+                    pids=(pts[len(pts) - 1], pts[0]),
+                )
+            )
+
         outline = gmsh.model.occ.add_curve_loop(lines)
         for pts_hole in coords_holes:
+            # TODO: remove additional holes?
+            print("Making hole...")
             lines = [
                 _add_line(pts_hole[i], pts_hole[i + 1])
                 for i in range(len(pts_hole) - 1)
