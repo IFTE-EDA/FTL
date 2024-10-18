@@ -753,7 +753,8 @@ class KiCADFilledPolygon(KiCADObject):
     def __init__(self, parent: Loggable, params: dict):
         super().__init__(parent, params)
         self.points = list(params["pts"]["xy"])
-        self.points.append(self.points[0])
+        if self.points[0] != self.points[-1]:
+            self.points.append(self.points[0])
         visited_indices = []
         visited_points = []
         # self.holes = []
