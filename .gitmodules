@@ -1,6 +1,3 @@
-[submodule "pyUNV"]
-	path = FTL/Util/pyUNV
-	url = https://github.com/nico-arnold/pyUNV.git
 [submodule "FTL/parse/kicad_parser"]
 	path = FTL/parse/kicad_parser
 	url = https://github.com/realthunder/kicad_parser
