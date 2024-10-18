@@ -10,6 +10,7 @@ import gmsh
 
 from FTL.Util.logging import Logger, Loggable
 from FTL.core.GMSHGeometry import GMSHGeom2D, GMSHGeom3D, dimtags, dimtags2int
+from FTL.parse.KiCADParser import KiCADParser
 from FTL.parse.KiCADParser import (
     KiCADLayer,
     KiCADObject,
@@ -24,8 +25,26 @@ from FTL.parse.KiCADParser import (
     KiCADVia,
     KiCADPart,
 )
+from tests.data.KiCadObjects_data import (
+    LAYER_PARAMS_TEST,
+    PARAMS_RECT,
+    PARAMS_LINE,
+    PARAMS_ARC,
+    PARAMS_POLYGON,
+    PARAMS_POLYGON_CCW,
+    PARAMS_PAD_ROUNDRECT,
+    PARAMS_PAD_ROUNDRECT_DRILLED,
+    PARAMS_PART,
+    PARAMS_PART_DRILLED_PADS,
+    PARAMS_VIA,
+    PARAMS_ZONE,
+)
 
 PRECISION_DIGITS = 2
+
+
+def get_file(file_name: str):
+    return Path(__file__).parent.parent / "data" / file_name
 
 
 def get_bbox_rounded(dim, tag):
@@ -47,215 +66,6 @@ def round_array(arr):
             return [round(i, PRECISION_DIGITS) for i in lst]
 
     return round_list(arr)
-
-
-LAYER_PARAMS_TEST = ["Test Layer", "layer type", "Long Layer Name"]
-
-"""PARAMS_MULTILAYER = {
-    "start": [0, 0],
-    "end": [100, 100],
-    "stroke": {
-        "width": 0.2,
-        "type": "default"
-    },
-    "fill": "solid",
-    "layers": [
-        "Testlayer1",
-        "Testlayer2",
-        "Testlayer3",
-    ],
-    "tstamp": "TSTAMPTEST",
-}"""
-
-PARAMS_LINE = {
-    "start": [0, 0],
-    "end": [100, 100],
-    "stroke": {"width": 0.2, "type": "default"},
-    "layer": "Testlayer",
-    "tstamp": "TSTAMPTEST",
-}
-
-PARAMS_RECT = {
-    "start": [0, 0],
-    "end": [100, 100],
-    "stroke": {"width": 0, "type": "default"},
-    "fill": "solid",
-    "layer": "Testlayer",
-    "tstamp": "TSTAMPTEST",
-}
-
-PARAMS_RECT_WIDTH = {
-    "start": [0, 0],
-    "end": [100, 100],
-    "stroke": {"width": 0.2, "type": "default"},
-    "fill": "solid",
-    "layer": "Testlayer",
-    "tstamp": "TSTAMPTEST",
-}
-
-PARAMS_ARC = {
-    "start": [-50, 0],
-    "mid": [0, 50],
-    "end": [50, 0],
-    "stroke": {"width": 0.2, "type": "solid"},
-    "layer": "Testlayer",
-    "tstamp": "TSTAMPTEST",
-}
-
-PARAMS_POLYGON = {
-    "pts": {
-        "xy": [
-            [0, 0],
-            [0, 100],
-            [100, 100],
-            [100, 0],
-            [0, 0],
-        ]
-    },
-    "stroke": {"width": 0.2, "type": "default"},
-    "width": 0.2,
-    "fill": "no",
-    "layer": "Testlayer",
-    "tstamp": "TSTAMPTEST",
-}
-
-PARAMS_POLYGON_CCW = {
-    "pts": {
-        "xy": [
-            [0, 0],
-            [100, 0],
-            [100, 100],
-            [0, 100],
-        ]
-    },
-    "layer": "Testlayer",
-    "tstamp": "TSTAMPTEST",
-}
-
-PARAMS_ZONE = {
-    "net": 0,
-    "net_name": "MyNetName",
-    "hatch": "solid",
-    "connect_pads": "no",
-    "min_thickness": 0.2,
-    "polygon": {
-        "pts": {
-            "xy": [
-                [0, 0],
-                [100, 0],
-                [100, 100],
-                [0, 100],
-            ]
-        },
-    },
-    "filled_polygon": [
-        {
-            "pts": {
-                "xy": [
-                    [0, 0],
-                    [100, 0],
-                    [100, 100],
-                    [0, 100],
-                ]
-            },
-        }
-    ],
-    "fill": "solid",
-    "layer": "Testlayer",
-    "tstamp": "TSTAMPTEST",
-}
-
-PARAMS_VIA = {
-    "at": [0, 0],
-    "size": [3],
-    "drill": [1],
-    "layers": ["F.Cu", "B.Cu"],
-    "net": [2],
-}
-
-PARAMS_PART = {
-    0: "TestPart",
-    # "ref": "U1",
-    "descr": "TestDescription",
-    "tags": ["TestTag1", "TestTag2"],
-    "layer": "Testlayer",
-    "path": "TestPath",
-    "at": [0, 0, 0],
-    "pads": [
-        {
-            0: "1",
-            1: "smd",
-            2: "roundrect",
-            "at": [-30, 0],
-            "size": [10, 14],
-            "layers": ["Testlayer1", "Testlayer2"],
-            "roundrect_rratio": 0.25,
-            "net": [0, "GND"],
-        },
-        {
-            0: "2",
-            1: "smd",
-            2: "roundrect",
-            "at": [-30, 0],
-            "size": [10, 14],
-            "layers": ["Testlayer1", "Testlayer2"],
-            "roundrect_rratio": 0.25,
-            "net": [0, "GND"],
-        },
-    ],
-    "property": [
-        [
-            '"Reference"',
-            "T1",
-        ]
-    ],
-    "footprint": "TestFootprint",
-    "datasheet": "TestDatasheet",
-    "tstamp": "TSTAMPTEST",
-}
-
-PARAMS_PART_DRILLED_PADS = {
-    0: "TestPart",
-    # "ref": "U1",
-    "descr": "TestDescription",
-    "tags": ["TestTag1", "TestTag2"],
-    "layer": "Testlayer",
-    "path": "TestPath",
-    "at": [0, 0, 0],
-    "pads": [
-        {
-            0: "1",
-            1: "thru_hole",
-            2: "oval",
-            "at": [-30, 0],
-            "size": [1.7, 1.7],
-            "drill": [1],
-            "layers": ["Testlayer1", "Testlayer2"],
-            "roundrect_rratio": 0.25,
-            "net": [0, "GND"],
-        },
-        {
-            0: "2",
-            1: "thru_hole",
-            2: "oval",
-            "at": [-30, 0],
-            "size": [1.7, 1.7],
-            "drill": [1],
-            "layers": ["Testlayer1", "Testlayer2"],
-            "roundrect_rratio": 0.25,
-            "net": [0, "GND"],
-        },
-    ],
-    "property": [
-        [
-            '"Reference"',
-            "T1",
-        ]
-    ],
-    "footprint": "TestFootprint",
-    "datasheet": "TestDatasheet",
-    "tstamp": "TSTAMPTEST",
-}
 
 
 class Object_Mock:
@@ -281,6 +91,10 @@ class Mock_Layer(Loggable):
 class Test_KiCadObjects_Render:
     def setup_class(self):
         self.logger = Logger(__name__)
+        self.parser = KiCADParser(
+            get_file("empty.kicad_pcb"), logger=self.logger
+        )
+        self.layers = self.parser.stackup
 
     def test_kicadlayer_render_empty(self):
         gmsh.clear()
@@ -348,42 +162,48 @@ class Test_KiCadObjects_Render:
         assert get_bbox_rounded(2, 1) == [-0.1, -0.1, 0, 100.1, 100.1, 0]
         assert get_mass_rounded(2, 1) == 10040.03
 
-    """
-    def test_kicadpad_create(self):
+    def test_kicadpad_render_direct_roundrect(self):
+        gmsh.clear()
         par = Mock_Layer(self.logger)
-        obj = KiCADPad(par, PARAMS_PART["pads"][0])
-        assert obj.params == PARAMS_PART["pads"][0]
-        assert (
-            obj.name
-            == PARAMS_PART["property"][0][1]
-            + ".Pads."
-            + PARAMS_PART["pads"][0][0]
-        )
-        assert obj.type == PARAMS_PART["pads"][0][1]
-        assert obj.shape == PARAMS_PART["pads"][0][2]
-        assert obj.at == PARAMS_PART["pads"][0]["at"]
-        assert obj.size == PARAMS_PART["pads"][0]["size"]
-        assert obj.layers == PARAMS_PART["pads"][0]["layers"]
-        # assert obj.roundrect_rratio == PARAMS_PART["pads"][0]["roundrect_rratio"]
-        assert obj.net == PARAMS_PART["pads"][0]["net"]
+        obj = KiCADPad(par, PARAMS_PAD_ROUNDRECT)
+        geom = obj.render()
+        assert geom.geoms == [1]
+        assert gmsh.model.occ.getEntities(2) == [(2, 1)]
+        assert gmsh.model.occ.getEntities(1) == [(1, i) for i in range(1, 9)]
+        assert gmsh.model.occ.getEntities(0) == [(0, i) for i in range(1, 9)]
+        assert get_bbox_rounded(2, 1) == [-35.0, -7.0, 0.0, -25.0, 7.0, 0.0]
+        assert get_mass_rounded(2, 1) == 134.63
 
-    def test_kicadpad_create_drilled(self):
+    """
+    def test_kicadpad_render_layers_roundrect(self):
+        gmsh.clear()
+        par = Mock_Layer(self.logger)
+        obj = KiCADPad(par, PARAMS_PAD_ROUNDRECT_DRILLED)
+        obj.render(self.layers)
+        geom = self.layers.get_layer("F.Cu").render()
+        geom.plot()
+        for name, layer in self.layers.layers.items():
+            print(name, self.layers.render_layer(name).geoms)
+        assert geom.geoms == [1]
+        assert gmsh.model.occ.getEntities(2) == [(2, 1)]
+        assert gmsh.model.occ.getEntities(1) == [(1, i) for i in range(1, 9)]
+        assert gmsh.model.occ.getEntities(0) == [(0, i) for i in range(1, 9)]
+        assert get_bbox_rounded(2, 1) == [-35.0, -7.0, 0.0, -25.0, 7.0, 0.0]
+        assert get_mass_rounded(2, 1) == 134.63
+
+    def test_kicadpad_render_drilled(self):
+        gmsh.clear()
         par = Mock_Layer(self.logger)
         obj = KiCADPad(par, PARAMS_PART_DRILLED_PADS["pads"][0])
-        assert obj.params == PARAMS_PART_DRILLED_PADS["pads"][0]
-        assert (
-            obj.name
-            == PARAMS_PART_DRILLED_PADS["property"][0][1]
-            + ".Pads."
-            + PARAMS_PART_DRILLED_PADS["pads"][0][0]
-        )
-        assert obj.type == PARAMS_PART_DRILLED_PADS["pads"][0][1]
-        assert obj.shape == PARAMS_PART_DRILLED_PADS["pads"][0][2]
-        assert obj.at == PARAMS_PART_DRILLED_PADS["pads"][0]["at"]
-        assert obj.size == PARAMS_PART_DRILLED_PADS["pads"][0]["size"]
-        assert obj.layers == PARAMS_PART_DRILLED_PADS["pads"][0]["layers"]
-        assert obj.net == PARAMS_PART_DRILLED_PADS["pads"][0]["net"]
-        assert obj.drill == PARAMS_PART_DRILLED_PADS["pads"][0]["drill"]
+        geom = obj.render(self.layers)
+        r_fcu = self.layers.get_layer("F.Cu").render()
+        r_fcu.plot()
+        assert geom.geoms == [1]
+        assert gmsh.model.occ.getEntities(2) == [(2, 1)]
+        assert gmsh.model.occ.getEntities(1) == [(1, i) for i in range(1, 9)]
+        assert gmsh.model.occ.getEntities(0) == [(0, i) for i in range(1, 9)]
+        assert get_bbox_rounded(2, 1) == [-35.0, -7.0, 0.0, -25.0, 7.0, 0.0]
+        assert get_mass_rounded(2, 1) == 134.63
 
     def test_kicadvia_create(self):
         obj = KiCADVia(self.logger, PARAMS_VIA)
