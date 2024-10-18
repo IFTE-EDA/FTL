@@ -815,6 +815,7 @@ class Test_GMSHGeom2D:
         print("Entities before extruding: ", gmsh.model.occ.getEntities())
         gmsh.model.occ.getEntities(2) == [(2, 1), (2, 2)]
         extrusion = geom.extrude(0.1)
+        assert extrusion.geoms == [1]
         assert gmsh.model.occ.getEntities(0) == [(0, i) for i in range(6, 22)]
         assert gmsh.model.occ.getEntities(1) == [(1, i) for i in range(6, 30)]
         assert gmsh.model.occ.getEntities(2) == [(2, i) for i in range(1, 11)]
