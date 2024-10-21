@@ -87,7 +87,7 @@ class DXFLayer(Loggable):
 
     def render_entity(self, e, geom):
         if e.dxftype() == "LINE":
-            return self.render_line(e, geom)
+            pass  # return self.render_line(e, geom)
         elif e.dxftype() == "ARC":
             return self.render_arc(e, geom)
         elif e.dxftype() == "LWPOLYLINE":
@@ -102,8 +102,17 @@ class DXFLayer(Loggable):
     def render_line(self, e, geom):
         print(f"Line: {e.dxf.start} -> {e.dxf.end}, width={e.dxf.thickness}")
         # print(e.dxf.__dict__)
+        # TODO: midpoint should not be needed to be added here...
+        p_mid = (
+            (e.dxf.start[0] + e.dxf.end[0]) / 2,
+            (e.dxf.start[1] + e.dxf.end[1]) / 2,
+        )
         geom.add_line(
-            [(e.dxf.start[0], e.dxf.start[1]), (e.dxf.end[0], e.dxf.end[1])],
+            [
+                (e.dxf.start[0], e.dxf.start[1]),
+                p_mid,
+                (e.dxf.end[0], e.dxf.end[1]),
+            ],
             e.dxf.thickness,
         )
 
@@ -144,33 +153,40 @@ class DXFLayer(Loggable):
         print(f"Duplicate points: {len(points) - len(uniq)}")
 
     def render_lw_polyline(self, e, geom):
-        print(f"Rendering LWPolyline: {e.dxf}")
-        print(f"Const width: {e.dxf.const_width}")
-        print(f"Closed: {e.is_closed}")
-        print(f"Has width: {e.has_width}")
-
-        if e.has_width and e.dxf.const_width == 0:
-            raise Exception(
-                "Width definition in segments not supported. Please use const_width instead."
-            )
-
         # for print(e.get_points())
-        with e.points() as points:
-            reshaped = np.reshape(points, (-1, 5))
+        with e.points("xyb") as points:
+            reshaped = np.reshape(points, (-1, 3))
+            coords = [[round(p[i], 2) for i in [0, 1, 2]] for p in reshaped]
+            if (
+                round(reshaped[0][0], 6) == round(reshaped[-1][0], 6)
+                and round(reshaped[0][1], 6) == round(reshaped[-1][1], 6)
+            ) or e.is_closed:
+                return
+            print(
+                "Eval: ",
+                coords[0][0] == coords[-1][0],
+                coords[0][1] == coords[-1][1],
+            )
+            print("Eval: ", coords[0][0:1] == coords[-1][0:1])
+            print(coords[0])
+            print(coords[-1])
+            print(f"Rendering LWPolyline: {e.dxf.handle}")
+            print(f"Const width: {e.dxf.const_width}")
+            print(f"Closed: {e.is_closed}")
+            print(f"Has width: {e.has_width}")
             # if (len(reshaped) < 3):
             #    print("Not enough points to render polyline")
             #    return
             pts = []
             old_x, old_y = None, None
             # print(reshaped)
-            self.print_duplicates(reshaped)
-            for x, y, w_s, w_e, b in reshaped:
+            for x, y, b in coords:
                 x_rounded, y_rounded = round(x, 6), round(y, 6)
                 if x_rounded == old_x and y_rounded == old_y:
-                    print(f"Duplicate point: {x_rounded}, {y_rounded}")
+                    print(f"Found duplicate point: {x_rounded}, {y_rounded}")
                 else:
-                    pts.append((x_rounded, y_rounded, w_s, w_e, b))
-                    print((x_rounded, y_rounded), w_s, w_e, b)
+                    pts.append((x_rounded, y_rounded, b))
+                    # print((x_rounded, y_rounded))
                     old_x, old_y = x_rounded, y_rounded
             if pts[0] != pts[-1] and e.is_closed:
                 print("Closing shape...")
@@ -179,12 +195,19 @@ class DXFLayer(Loggable):
                 print("Not enough points to render polyline")
                 return None
             # print(pts)
-            self.print_duplicates(pts)
             # geom.add_line(pts, 5)
-            if pts[0] == pts[-1]:  # closed shape
-                geom.add_polygon([(p[0], p[1], p[4]) for p in pts], bulge=True)
+            if pts[0] == pts[-1]:
+                pass  # geom.add_polygon(pts, bulge=True)
             else:
-                geom.add_line(pts, e.dxf.const_width, bulge=True)
+                geom.add_line(
+                    [(np.round(p[0], 3), np.round(p[1], 3)) for p in pts],
+                    0.1,
+                    bulge=False,
+                )
+                gmsh.model.occ.synchronize()
+                gmsh.fltk.run()
+            # gmsh.model.occ.synchronize()
+            # gmsh.fltk.run()
 
     def render_circle(self, e, geom):
         print(f"Circle: {e.dxf.center}, {e.dxf.radius}")
