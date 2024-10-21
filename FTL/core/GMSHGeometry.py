@@ -240,7 +240,7 @@ class GMSHGeom2D(AbstractGeom2D):
             else:
                 p1 = gmsh.model.occ.add_point(pt1[0], pt1[1], 0)
                 p2 = gmsh.model.occ.add_point(pt2[0], pt2[1], 0)
-            print(f"Adding line from {pt1} to {pt2} with bulge {pt1[2]}")
+            # print(f"Adding line from {pt1} to {pt2} with bulge {pt1[2]}")
             # no bulge? draw a straight line
             if pt1[2] == 0:
                 return gmsh.model.occ.add_line(p1, p2)
@@ -248,12 +248,9 @@ class GMSHGeom2D(AbstractGeom2D):
             delta_x = pt2[0] - pt1[0]
             delta_y = pt2[1] - pt1[1]
             alpha = math.atan2(delta_y, delta_x)
-            print("Angle: ", math.degrees(alpha))
             length = math.sqrt(delta_x**2 + delta_y**2)
-            print(f"Length: {length}")
 
             pt_m = ((pt1[0] + pt2[0]) / 2, (pt1[1] + pt2[1]) / 2)
-            print(f"Midpoint: {pt_m}")
             c_u = pt1[2] * length / 2
             if pt1[2] > 0:
                 c_u = -c_u
@@ -454,7 +451,7 @@ class GMSHGeom2D(AbstractGeom2D):
         width: float,
     ) -> GMSHGeom2D:
         def _add_line(pt1, pt2):
-            print(f"Adding line from {pt1} to {pt2} with bulge {pt1[4]}")
+            # print(f"Adding line from {pt1} to {pt2} with bulge {pt1[4]}")
             p1 = gmsh.model.occ.add_point(pt1[0], pt1[1], 0)
             p2 = gmsh.model.occ.add_point(pt2[0], pt2[1], 0)
             if pt1[4] == 0:
@@ -465,19 +462,12 @@ class GMSHGeom2D(AbstractGeom2D):
                 delta_x = pt2[0] - pt1[0]
                 delta_y = pt2[1] - pt1[1]
                 alpha = math.atan2(delta_y, delta_x)
-                print("Angle: ", math.degrees(alpha))
                 length = math.sqrt(delta_x**2 + delta_y**2)
-                print(f"Length: {length}")
 
                 pt_m = ((pt1[0] + pt2[0]) / 2, (pt1[1] + pt2[1]) / 2)
-                print(f"Midpoint: {pt_m}")
                 c_u = pt1[4] * length / 2
                 if pt1[4] > 0:
                     c_u = -c_u
-                """pt_u = (
-                    pt_m[0] + c_u * (pt2[1] - pt1[1]) / length,
-                    pt_m[1] + c_u * (pt1[0] - pt2[0]) / length,
-                )"""
                 if pt1[4] > 0:
                     pt_u = (
                         pt_m[0] + c_u * np.cos(alpha + np.pi / 2),
@@ -493,7 +483,6 @@ class GMSHGeom2D(AbstractGeom2D):
                 #    pt_m[0] - c_u * np.sin(alpha),
                 #    pt_m[1] - c_u * np.cos(alpha),
                 # )
-                print(f"U-point: {pt_u}")
 
                 pu = gmsh.model.occ.add_point(pt_u[0], pt_u[1], 0)
                 segment = gmsh.model.occ.add_circle_arc(
@@ -514,9 +503,7 @@ class GMSHGeom2D(AbstractGeom2D):
                     for i in range(0, 5)
                 )
             )
-            print(pt12)
             in_outline = [in_outline[0], pt12, in_outline[1]]
-        print("Coords: ", "\n".join([str(e) for e in in_outline]))
         lines = [
             _add_line(in_outline[i], in_outline[i + 1])
             for i in range(len(in_outline) - 1)
@@ -546,11 +533,8 @@ class GMSHGeom2D(AbstractGeom2D):
     ) -> GMSHGeom2D:
         coords = list(coords)
         if bulge:
-            print("Bulged...")
             # TODO: make more compact
             return self._add_line_bulge(coords, width)
-        else:
-            print("Not bulged...")
         if len(coords) < 3:
             coords.append(coords[1])
             coords[1] = (
