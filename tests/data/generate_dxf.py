@@ -13,6 +13,7 @@ def main():
     make_dxf_polyline()
     make_dxf_poly_nobulge()
     make_dxf_poly_bulge()
+    make_dxf_poly_open()
 
 
 def make_dxf_layers():
@@ -128,6 +129,87 @@ def make_dxf_poly_bulge():
     )
     polyline_b_in.close(True)
     doc.saveas(data_dir / "poly_bulge.dxf")
+
+
+def make_dxf_poly_open():
+    doc = ezdxf.new("R2010")
+    doc.layers.add(name="invert_none")
+    doc.layers.add(name="invert_first")
+    doc.layers.add(name="invert_first_and_second")
+    doc.layers.add(name="invert_both")
+    msp = doc.modelspace()
+
+    pts_first_plain = [
+        (0, 0, 0),
+        (10, 0, 0),
+        (10, 10, 0),
+        (0, 10, 0),
+    ]
+    pts_second_plain = [
+        (0, 10, 0),
+        (0, 0, 0),
+    ]
+    pts_first_inverted = [
+        (0, 10, 0),
+        (10, 10, 0),
+        (10, 0, 0),
+        (0, 0, 0),
+    ]
+    pts_second_inverted = [
+        (0, 0, 0),
+        (0, 10, 0),
+    ]
+    poly1a = msp.add_lwpolyline(
+        pts_first_plain, format="xyb", dxfattribs={"layer": "invert_none"}
+    )
+    poly1a.close(False)
+    poly1a.dxf.const_width = 0
+    poly1b = msp.add_lwpolyline(
+        pts_second_plain, format="xyb", dxfattribs={"layer": "invert_none"}
+    )
+    poly1b.close(False)
+    poly1b.dxf.const_width = 0
+
+    poly2a = msp.add_lwpolyline(
+        pts_first_plain, format="xyb", dxfattribs={"layer": "invert_second"}
+    )
+    poly2a.close(False)
+    poly2a.dxf.const_width = 0
+    poly2b = msp.add_lwpolyline(
+        pts_second_inverted,
+        format="xyb",
+        dxfattribs={"layer": "invert_second"},
+    )
+    poly2b.close(False)
+    poly2b.dxf.const_width = 0
+
+    poly3a = msp.add_lwpolyline(
+        pts_first_inverted, format="xyb", dxfattribs={"layer": "invert_first"}
+    )
+    poly3a.close(False)
+    poly3a.dxf.const_width = 0
+    poly3b = msp.add_lwpolyline(
+        pts_second_plain, format="xyb", dxfattribs={"layer": "invert_first"}
+    )
+    poly3b.close(False)
+    poly3b.dxf.const_width = 0
+
+    poly4a = msp.add_lwpolyline(
+        pts_first_inverted,
+        format="xyb",
+        dxfattribs={"layer": "invert_first_and_second"},
+    )
+    poly4a.close(False)
+    poly4a.dxf.const_width = 0
+    poly4b = msp.add_lwpolyline(
+        pts_second_inverted,
+        format="xyb",
+        dxfattribs={"layer": "invert_first_and_second"},
+    )
+    poly4b.close(False)
+    poly4b.dxf.const_width = 0
+
+    doc.saveas(data_dir / "poly_open.dxf")
 
 
 if __name__ == "__main__":
