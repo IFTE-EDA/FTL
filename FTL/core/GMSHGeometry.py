@@ -352,6 +352,13 @@ class GMSHGeom2D(AbstractGeom2D):
             else:
                 self._add_list_polygon(polygon, holes, orient)
             return self
+        # TODO: implement tests for ndarray
+        if isinstance(polygon, np.ndarray):
+            if bulge:
+                self._add_list_polygon_bulge(polygon.tolist(), holes, orient)
+            else:
+                self._add_list_polygon(polygon.tolist(), holes, orient)
+            return self
         if isinstance(polygon, sh.Polygon):
             self._add_shapely_polygon(polygon, holes)
             return self
