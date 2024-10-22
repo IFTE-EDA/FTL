@@ -61,6 +61,7 @@ class DXFLayer(Loggable):
         self.layer = layer
         self.name = layer.dxf.name
         self.entities = entities
+        self.open_polys = []
 
     def add_entity(self, entity):
         self.entities.append(entity)
@@ -199,11 +200,101 @@ class DXFLayer(Loggable):
             if pts[0] == pts[-1]:
                 pass  # geom.add_polygon(pts, bulge=True)
             else:
-                geom.add_line(
-                    [(np.round(p[0], 3), np.round(p[1], 3)) for p in pts],
-                    0.1,
-                    bulge=False,
-                )
+                if e.dxf.thickness > 0:
+                    print(f"Adding polyline with width {e.dxf.thickness}")
+                    geom.add_line(
+                        [(np.round(p[0], 3), np.round(p[1], 3)) for p in pts],
+                        0.1,
+                        bulge=False,
+                    )
+                else:
+
+                    def _reverse_poly(poly):
+                        from scipy.ndimage import shift
+
+                        if not isinstance(poly, np.ndarray):
+                            _poly = np.array(poly)
+                        else:
+                            _poly = poly
+                        coords = _poly[:, 0:2]
+                        bulges = _poly[:, 2]
+                        return np.column_stack(
+                            (
+                                coords[::-1],
+                                shift(bulges, 1, cval=bulges[-1])[::-1],
+                            )
+                        )
+
+                    print(
+                        "Line has no width; checking for coincidence with stored polys..."
+                    )
+                    store_poly = True
+                    new_pts = None
+                    for poly in self.open_polys:
+                        if pts[-1] in (poly[0], poly[1]):
+                            print(
+                                "Last point of current poly matched with point of stored poly. Closing..."
+                            )
+                            if pts[-1] == poly[0]:
+                                print("pts[-1] == poly[0]")
+                                # end point of current poly equals starting point of new poly - easy, just chain them
+                                new_pts = np.concatenate((pts[:-1], poly[2]))
+                            else:
+                                # end point of current poly equals end point of new poly - more difficult, turn the latter around to keep orientation
+                                print("pts[-1] == poly[-1]; rev. poly\n")
+
+                                print(pts[:-1])
+                                print("--------------")
+                                print(poly[2])
+                                print("--------------")
+                                print(_reverse_poly(poly[2]))
+                                new_pts = np.concatenate(
+                                    (pts[:-1], _reverse_poly(poly[2]))
+                                )
+                        elif pts[0] in (poly[0], poly[1]):
+                            print(
+                                "First point of current poly matched with point of stored poly. Closing..."
+                            )
+                            # to make things easier, convert the start point to an end point
+                            if pts[0] == poly[0]:
+                                # start point of current poly equals starting point of new poly - easy, just chain them
+                                print("pts[0] == poly[0]; rev. pts")
+                                new_pts = np.concatenate(
+                                    (_reverse_poly(pts[1:]), poly[2])
+                                )
+                            else:
+                                # start point of current poly equals end point of new poly - more difficult, turn the latter around to keep orientation
+                                print("pts[0] == poly[-1]; rev. both")
+                                new_pts = np.concatenate(
+                                    (
+                                        _reverse_poly(pts[1:]),
+                                        _reverse_poly(poly[2]),
+                                    )
+                                )
+                        if new_pts is not None:
+                            # we found something!
+                            store_poly = False
+                            if (
+                                new_pts[0][0] == new_pts[-1][0]
+                                and new_pts[0][1] == new_pts[-1][1]
+                            ):
+                                print(
+                                    "Poly closed successfully, adding as polygon..."
+                                )
+                                geom.add_polygon(new_pts, bulge=True)
+                                del poly
+                                break
+                            else:
+                                print("Poly not closed, storing for later...")
+                                self.open_polys.append(
+                                    [new_pts[0], new_pts[-1], new_pts]
+                                )
+                                del poly
+                                break
+                    if store_poly:
+                        print("Nothing found. Storing poly for later...")
+                        self.open_polys.append([pts[0], pts[-1], pts])
+
                 gmsh.model.occ.synchronize()
                 gmsh.fltk.run()
             # gmsh.model.occ.synchronize()
