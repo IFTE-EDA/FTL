@@ -88,7 +88,7 @@ class DXFLayer(Loggable):
 
     def render_entity(self, e, geom):
         if e.dxftype() == "LINE":
-            pass  # return self.render_line(e, geom)
+            return self.render_line(e, geom)
         elif e.dxftype() == "ARC":
             return self.render_arc(e, geom)
         elif e.dxftype() == "LWPOLYLINE":
@@ -158,19 +158,11 @@ class DXFLayer(Loggable):
         with e.points("xyb") as points:
             reshaped = np.reshape(points, (-1, 3))
             coords = [[round(p[i], 2) for i in [0, 1, 2]] for p in reshaped]
-            if (
+            """if (
                 round(reshaped[0][0], 6) == round(reshaped[-1][0], 6)
                 and round(reshaped[0][1], 6) == round(reshaped[-1][1], 6)
             ) or e.is_closed:
-                return
-            print(
-                "Eval: ",
-                coords[0][0] == coords[-1][0],
-                coords[0][1] == coords[-1][1],
-            )
-            print("Eval: ", coords[0][0:1] == coords[-1][0:1])
-            print(coords[0])
-            print(coords[-1])
+                return"""
             print(f"Rendering LWPolyline: {e.dxf.handle}")
             print(f"Const width: {e.dxf.const_width}")
             print(f"Closed: {e.is_closed}")
@@ -195,16 +187,14 @@ class DXFLayer(Loggable):
             if len(pts) <= 1:
                 print("Not enough points to render polyline")
                 return None
-            # print(pts)
-            # geom.add_line(pts, 5)
             if pts[0] == pts[-1]:
-                pass  # geom.add_polygon(pts, bulge=True)
+                geom.add_polygon(pts, bulge=True)
             else:
-                if e.dxf.thickness > 0:
-                    print(f"Adding polyline with width {e.dxf.thickness}")
+                if e.dxf.const_width > 0:
+                    print(f"Adding polyline with width {e.dxf.const_width}")
                     geom.add_line(
                         [(np.round(p[0], 3), np.round(p[1], 3)) for p in pts],
-                        0.1,
+                        e.dxf.const_width,
                         bulge=False,
                     )
                 else:
@@ -223,13 +213,15 @@ class DXFLayer(Loggable):
                                 coords[::-1],
                                 shift(bulges, 1, cval=bulges[-1])[::-1],
                             )
-                        )
+                        ).tolist()
 
                     print(
                         "Line has no width; checking for coincidence with stored polys..."
                     )
+                    # print(f"{len(self.open_polys)} open polys in list.")
                     store_poly = True
                     new_pts = None
+                    delete_entries = []
                     for poly in self.open_polys:
                         if pts[-1] in (poly[0], poly[1]):
                             print(
@@ -238,19 +230,27 @@ class DXFLayer(Loggable):
                             if pts[-1] == poly[0]:
                                 print("pts[-1] == poly[0]")
                                 # end point of current poly equals starting point of new poly - easy, just chain them
-                                new_pts = np.concatenate((pts[:-1], poly[2]))
+                                # print("--------------------")
+                                # print("Current poly: \n", np.array(pts))
+                                # print("--------------------")
+                                # print("Stored poly: \n", np.array(poly[2]))
+                                # print("--------------------")
+                                new_pts = np.concatenate(
+                                    (pts[:-1], poly[2])
+                                ).tolist()
+                                # print("Result: \n", np.array(new_pts))
                             else:
                                 # end point of current poly equals end point of new poly - more difficult, turn the latter around to keep orientation
                                 print("pts[-1] == poly[-1]; rev. poly\n")
-
-                                print(pts[:-1])
-                                print("--------------")
-                                print(poly[2])
-                                print("--------------")
-                                print(_reverse_poly(poly[2]))
+                                # print("--------------------")
+                                # print("Current poly: \n", np.array(pts))
+                                # print("--------------------")
+                                # print("Stored poly: \n", np.array(poly[2]))
+                                # print("--------------------")
                                 new_pts = np.concatenate(
                                     (pts[:-1], _reverse_poly(poly[2]))
-                                )
+                                ).tolist()
+                                # print("Result: \n", np.array(new_pts))
                         elif pts[0] in (poly[0], poly[1]):
                             print(
                                 "First point of current poly matched with point of stored poly. Closing..."
@@ -259,18 +259,30 @@ class DXFLayer(Loggable):
                             if pts[0] == poly[0]:
                                 # start point of current poly equals starting point of new poly - easy, just chain them
                                 print("pts[0] == poly[0]; rev. pts")
+                                # print("--------------------")
+                                # print("Current poly: \n", np.array(pts))
+                                # print("--------------------")
+                                # print("Stored poly: \n", np.array(poly[2]))
+                                # print("--------------------")
                                 new_pts = np.concatenate(
                                     (_reverse_poly(pts[1:]), poly[2])
-                                )
+                                ).tolist()
+                                # print("Result: \n", np.array(new_pts))
                             else:
                                 # start point of current poly equals end point of new poly - more difficult, turn the latter around to keep orientation
                                 print("pts[0] == poly[-1]; rev. both")
+                                # print("--------------------")
+                                # print("Current poly: \n", np.array(pts))
+                                # print("--------------------")
+                                # print("Stored poly: \n", np.array(poly[2]))
+                                # print("--------------------")
                                 new_pts = np.concatenate(
                                     (
                                         _reverse_poly(pts[1:]),
                                         _reverse_poly(poly[2]),
                                     )
-                                )
+                                ).tolist()
+                                # print("Result: \n", np.array(new_pts))
                         if new_pts is not None:
                             # we found something!
                             store_poly = False
@@ -282,21 +294,44 @@ class DXFLayer(Loggable):
                                     "Poly closed successfully, adding as polygon..."
                                 )
                                 geom.add_polygon(new_pts, bulge=True)
-                                del poly
+                                delete_entries.append((poly[0], poly[1]))
                                 break
                             else:
-                                print("Poly not closed, storing for later...")
-                                self.open_polys.append(
-                                    [new_pts[0], new_pts[-1], new_pts]
+
+                                def np64tofloat(lst):
+                                    return tuple((np.float64(x) for x in lst))
+
+                                print(
+                                    "Poly not closed yet, storing for later..."
                                 )
-                                del poly
+                                self.open_polys.append(
+                                    [
+                                        np64tofloat(new_pts[0]),
+                                        np64tofloat(new_pts[-1]),
+                                        [np64tofloat(p) for p in new_pts],
+                                    ]
+                                )
+                                delete_entries.append(
+                                    (tuple(poly[0]), tuple(poly[1]))
+                                )
                                 break
+
+                    # print("---------------\nDelete: \n", delete_entries)
+                    def _check_keep_poly(poly):
+                        ret = (poly[0], poly[1]) not in delete_entries
+                        return ret
+
+                    self.open_polys[:] = [
+                        p for p in self.open_polys if _check_keep_poly(p)
+                    ]
                     if store_poly:
                         print("Nothing found. Storing poly for later...")
                         self.open_polys.append([pts[0], pts[-1], pts])
+                    # print("---------------\nOpen polys: \n", self.open_polys)
+                    # print(f"{len(self.open_polys)} open polys remaining.")
 
-                gmsh.model.occ.synchronize()
-                gmsh.fltk.run()
+                # gmsh.model.occ.synchronize()
+                # gmsh.fltk.run()
             # gmsh.model.occ.synchronize()
             # gmsh.fltk.run()
 
