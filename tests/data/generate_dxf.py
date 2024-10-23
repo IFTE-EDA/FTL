@@ -14,6 +14,7 @@ def main():
     make_dxf_poly_nobulge()
     make_dxf_poly_bulge()
     make_dxf_poly_open_2parts()
+    make_dxf_poly_open_3parts()
 
 
 def make_dxf_layers():
@@ -94,6 +95,7 @@ def make_dxf_polyline():
     points = [(0, 0), (10, 0)]
     polyline = msp.add_lwpolyline(points, dxfattribs={"layer": "straight_cw3"})
     polyline.dxf.const_width = 3
+    # polyline.dxf.thickness = 6
     polyline.close(False)
     """
     points = [(0, 0, 2), (10, 0, 2)]
@@ -210,6 +212,88 @@ def make_dxf_poly_open_2parts():
     poly4b.dxf.const_width = 0
 
     doc.saveas(data_dir / "poly_open_2parts.dxf")
+
+
+def make_dxf_poly_open_3parts():
+    def _make_layer(msp, pattern: tuple[bool], layer: str):
+        poly1 = msp.add_lwpolyline(
+            pts_first_plain if pattern[0] else pts_first_inverted,
+            format="xyb",
+            dxfattribs={"layer": layer},
+        )
+        poly1.close(False)
+        poly1.dxf.const_width = 0
+        poly2 = msp.add_lwpolyline(
+            pts_second_plain if pattern[1] else pts_second_inverted,
+            format="xyb",
+            dxfattribs={"layer": layer},
+        )
+        poly2.close(False)
+        poly2.dxf.const_width = 0
+        poly2 = msp.add_lwpolyline(
+            pts_third_plain if pattern[2] else pts_third_inverted,
+            format="xyb",
+            dxfattribs={"layer": layer},
+        )
+        poly2.close(False)
+        poly2.dxf.const_width = 0
+
+    doc = ezdxf.new("R2010")
+    doc.layers.add(name="ppp")
+    doc.layers.add(name="ppi")
+    doc.layers.add(name="pip")
+    doc.layers.add(name="pii")
+    doc.layers.add(name="ipp")
+    doc.layers.add(name="ipi")
+    doc.layers.add(name="iip")
+    doc.layers.add(name="iii")
+    msp = doc.modelspace()
+
+    pts_first_plain = [
+        (0, 0, 0),
+        (5, 0, 0),
+        (10, 0, 0),
+        (10, 5, 0),
+        (10, 10, 0),
+    ]
+    pts_second_plain = [
+        (10, 10, 0),
+        (5, 10, 0),
+        (0, 10, 0),
+    ]
+    pts_third_plain = [
+        (0, 10, 0),
+        (0, 5, 0),
+        (0, 0, 0),
+    ]
+    pts_first_inverted = [
+        (10, 10, 0),
+        (10, 5, 0),
+        (10, 0, 0),
+        (5, 0, 0),
+        (0, 0, 0),
+    ]
+    pts_second_inverted = [
+        (0, 10, 0),
+        (5, 10, 0),
+        (10, 10, 0),
+    ]
+    pts_third_inverted = [
+        (0, 0, 0),
+        (0, 5, 0),
+        (0, 10, 0),
+    ]
+
+    _make_layer(msp, (True, True, True), "ppp")
+    _make_layer(msp, (True, True, False), "ppi")
+    _make_layer(msp, (True, False, True), "pip")
+    _make_layer(msp, (True, False, False), "pii")
+    _make_layer(msp, (False, True, True), "ipp")
+    _make_layer(msp, (False, True, False), "ipi")
+    _make_layer(msp, (False, False, True), "iip")
+    _make_layer(msp, (False, False, False), "iii")
+
+    doc.saveas(data_dir / "poly_open_3parts.dxf")
 
 
 if __name__ == "__main__":

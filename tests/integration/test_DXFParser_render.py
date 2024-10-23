@@ -124,7 +124,7 @@ class Test_DXFParser_Render:
         parser = DXFParser(get_file("poly.dxf"))
         layer = parser.get_layer("0")
         render = layer.render(fuse=False)
-        assert len(render) == 1
+        assert len(render.geoms) == 1
         assert render.dimtags() == [(2, 1)]
         assert get_bbox_rounded(2, 1) == [0.0, 0.0, 0.0, 10.0, 10.0, 0.0]
         assert np.round(gmsh.model.occ.getMass(2, 1), 2) == 100.0
