@@ -13,7 +13,7 @@ def main():
     make_dxf_polyline()
     make_dxf_poly_nobulge()
     make_dxf_poly_bulge()
-    make_dxf_poly_open()
+    make_dxf_poly_open_2parts()
 
 
 def make_dxf_layers():
@@ -131,12 +131,12 @@ def make_dxf_poly_bulge():
     doc.saveas(data_dir / "poly_bulge.dxf")
 
 
-def make_dxf_poly_open():
+def make_dxf_poly_open_2parts():
     doc = ezdxf.new("R2010")
     doc.layers.add(name="invert_none")
     doc.layers.add(name="invert_first")
+    doc.layers.add(name="invert_second")
     doc.layers.add(name="invert_first_and_second")
-    doc.layers.add(name="invert_both")
     msp = doc.modelspace()
 
     pts_first_plain = [
@@ -209,7 +209,7 @@ def make_dxf_poly_open():
     poly4b.close(False)
     poly4b.dxf.const_width = 0
 
-    doc.saveas(data_dir / "poly_open.dxf")
+    doc.saveas(data_dir / "poly_open_2parts.dxf")
 
 
 if __name__ == "__main__":

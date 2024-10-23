@@ -6,9 +6,18 @@ import numpy as np
 
 from FTL.parse.DXFParser import DXFParser
 
+PRECISION_DIGITS = 2
+
 
 def get_file(file_name: str):
     return Path(__file__).parent.parent.parent / "data" / file_name
+
+
+def get_bbox_rounded(dim, tag):
+    return [
+        round(i, PRECISION_DIGITS)
+        for i in gmsh.model.occ.getBoundingBox(dim, tag)
+    ]
 
 
 class Test_DXFParser:
@@ -162,3 +171,47 @@ class Test_DXFParser:
             assert bulges == [0.5, 0.5, 0.5, 0.5]
             widths = [(p[2], p[3]) for p in e.get_points()]
             assert widths == [(0.0, 0.0), (0.0, 0.0), (0.0, 0.0), (0.0, 0.0)]
+
+    def test_dxfparser_open_2parts_poly_invert_none(self):
+        gmsh.clear()
+        parser = DXFParser(get_file("poly_open_2parts.dxf"))
+        layer = parser.get_layer("invert_none")
+        assert len(layer.get_entities()) == 2
+        layer.render()
+        assert gmsh.model.get_entities(2) == [(2, 1)]
+        assert gmsh.model.get_entities(1) == [(1, i) for i in range(1, 5)]
+        assert gmsh.model.get_entities(0) == [(0, i) for i in range(1, 5)]
+        assert get_bbox_rounded(2, 1) == [0.0, 0.0, 0.0, 10.0, 10.0, 0.0]
+
+    def test_dxfparser_open_2parts_poly_invert_second(self):
+        gmsh.clear()
+        parser = DXFParser(get_file("poly_open_2parts.dxf"))
+        layer = parser.get_layer("invert_second")
+        assert len(layer.get_entities()) == 2
+        layer.render()
+        assert gmsh.model.get_entities(2) == [(2, 1)]
+        assert gmsh.model.get_entities(1) == [(1, i) for i in range(1, 5)]
+        assert gmsh.model.get_entities(0) == [(0, i) for i in range(1, 5)]
+        assert get_bbox_rounded(2, 1) == [0.0, 0.0, 0.0, 10.0, 10.0, 0.0]
+
+    def test_dxfparser_open_2parts_poly_invert_first(self):
+        gmsh.clear()
+        parser = DXFParser(get_file("poly_open_2parts.dxf"))
+        layer = parser.get_layer("invert_first")
+        assert len(layer.get_entities()) == 2
+        layer.render()
+        assert gmsh.model.get_entities(2) == [(2, 1)]
+        assert gmsh.model.get_entities(1) == [(1, i) for i in range(1, 5)]
+        assert gmsh.model.get_entities(0) == [(0, i) for i in range(1, 5)]
+        assert get_bbox_rounded(2, 1) == [0.0, 0.0, 0.0, 10.0, 10.0, 0.0]
+
+    def test_dxfparser_open_2parts_poly_invert_first_and_second(self):
+        gmsh.clear()
+        parser = DXFParser(get_file("poly_open_2parts.dxf"))
+        layer = parser.get_layer("invert_first_and_second")
+        assert len(layer.get_entities()) == 2
+        layer.render()
+        assert gmsh.model.get_entities(2) == [(2, 1)]
+        assert gmsh.model.get_entities(1) == [(1, i) for i in range(1, 5)]
+        assert gmsh.model.get_entities(0) == [(0, i) for i in range(1, 5)]
+        assert get_bbox_rounded(2, 1) == [0.0, 0.0, 0.0, 10.0, 10.0, 0.0]
