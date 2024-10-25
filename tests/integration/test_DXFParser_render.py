@@ -24,6 +24,17 @@ def get_bbox_rounded(dim, tag):
     ]
 
 
+def get_mass_rounded(dim, tag):
+    return round(gmsh.model.occ.getMass(dim, tag), PRECISION_DIGITS)
+
+
+def get_com_rounded(dim, tag):
+    return [
+        round(i, PRECISION_DIGITS)
+        for i in gmsh.model.occ.getCenterOfMass(dim, tag)
+    ]
+
+
 def round_array(arr):
     def round_list(lst):
         if isinstance(lst[0], (list, tuple, np.ndarray)):
@@ -149,3 +160,84 @@ class Test_DXFParser_Render:
         assert np.round(gmsh.model.occ.getMass(2, 2), 2) == 73.12
 
     # def test_dxfparser_render_poly_bulge_fuse(self):
+
+    def test_dxfparser_open_2parts_poly_invert_none(self):
+        gmsh.clear()
+        parser = DXFParser(get_file("poly_open_2parts.dxf"))
+        layer = parser.get_layer("invert_none")
+        assert len(layer.get_entities()) == 2
+        layer.render()
+        assert gmsh.model.get_entities(2) == [(2, 1)]
+        assert gmsh.model.get_entities(1) == [(1, i) for i in range(1, 5)]
+        assert gmsh.model.get_entities(0) == [(0, i) for i in range(1, 5)]
+        assert get_bbox_rounded(2, 1) == [0.0, 0.0, 0.0, 10.0, 10.0, 0.0]
+
+    def test_dxfparser_open_2parts_poly_invert_second(self):
+        gmsh.clear()
+        parser = DXFParser(get_file("poly_open_2parts.dxf"))
+        layer = parser.get_layer("invert_second")
+        assert len(layer.get_entities()) == 2
+        layer.render()
+        assert gmsh.model.get_entities(2) == [(2, 1)]
+        assert gmsh.model.get_entities(1) == [(1, i) for i in range(1, 5)]
+        assert gmsh.model.get_entities(0) == [(0, i) for i in range(1, 5)]
+        assert get_bbox_rounded(2, 1) == [0.0, 0.0, 0.0, 10.0, 10.0, 0.0]
+
+    def test_dxfparser_open_2parts_poly_invert_first(self):
+        gmsh.clear()
+        parser = DXFParser(get_file("poly_open_2parts.dxf"))
+        layer = parser.get_layer("invert_first")
+        assert len(layer.get_entities()) == 2
+        layer.render()
+        assert gmsh.model.get_entities(2) == [(2, 1)]
+        assert gmsh.model.get_entities(1) == [(1, i) for i in range(1, 5)]
+        assert gmsh.model.get_entities(0) == [(0, i) for i in range(1, 5)]
+        assert get_bbox_rounded(2, 1) == [0.0, 0.0, 0.0, 10.0, 10.0, 0.0]
+
+    def test_dxfparser_open_2parts_poly_invert_first_and_second(self):
+        gmsh.clear()
+        parser = DXFParser(get_file("poly_open_2parts.dxf"))
+        layer = parser.get_layer("invert_first_and_second")
+        assert len(layer.get_entities()) == 2
+        layer.render()
+        assert gmsh.model.get_entities(2) == [(2, 1)]
+        assert gmsh.model.get_entities(1) == [(1, i) for i in range(1, 5)]
+        assert gmsh.model.get_entities(0) == [(0, i) for i in range(1, 5)]
+        assert get_bbox_rounded(2, 1) == [0.0, 0.0, 0.0, 10.0, 10.0, 0.0]
+
+    def _execute_3parts_test(self, pattern: str):
+        gmsh.clear()
+        parser = DXFParser(get_file("poly_open_3parts.dxf"))
+        layer = parser.get_layer(pattern)
+        assert len(layer.get_entities()) == 3
+        layer.render()
+        assert gmsh.model.get_entities(2) == [(2, 1)]
+        assert gmsh.model.get_entities(1) == [(1, i) for i in range(1, 9)]
+        assert gmsh.model.get_entities(0) == [(0, i) for i in range(1, 9)]
+        assert get_bbox_rounded(2, 1) == [0.0, 0.0, 0.0, 10.0, 10.0, 0.0]
+        assert get_mass_rounded(2, 1) == 100.0
+        assert get_com_rounded(2, 1) == [5.0, 5.0, 0.0]
+
+    def test_dxfparser_open_3parts_poly_ppp(self):
+        self._execute_3parts_test("ppp")
+
+    def test_dxfparser_open_3parts_poly_ppi(self):
+        self._execute_3parts_test("ppi")
+
+    def test_dxfparser_open_3parts_poly_pip(self):
+        self._execute_3parts_test("pip")
+
+    def test_dxfparser_open_3parts_poly_pii(self):
+        self._execute_3parts_test("pii")
+
+    def test_dxfparser_open_3parts_poly_ipp(self):
+        self._execute_3parts_test("ipp")
+
+    def test_dxfparser_open_3parts_poly_ipi(self):
+        self._execute_3parts_test("ipi")
+
+    def test_dxfparser_open_3parts_poly_iip(self):
+        self._execute_3parts_test("iip")
+
+    def test_dxfparser_open_3parts_poly_iii(self):
+        self._execute_3parts_test("iii")
