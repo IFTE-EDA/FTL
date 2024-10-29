@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import math
 import numpy as np
-from copy import deepcopy
+from copy import deepcopy, copy
 from matplotlib import pyplot as plt
 from matplotlib.path import Path
 from matplotlib.patches import PathPatch
@@ -242,7 +242,7 @@ class GMSHGeom2D(AbstractGeom2D):
                 p2 = gmsh.model.occ.add_point(pt2[0], pt2[1], 0)
             # print(f"Adding line from {pt1} to {pt2} with bulge {pt1[2]}")
             # no bulge? draw a straight line
-            if pt1[2] == 0:
+            if np.round(pt1[2], 2) == 0:
                 return gmsh.model.occ.add_line(p1, p2)
             # bulged line
             delta_x = pt2[0] - pt1[0]
@@ -543,7 +543,7 @@ class GMSHGeom2D(AbstractGeom2D):
             # TODO: make more compact
             return self._add_line_bulge(coords, width)
         if len(coords) < 3:
-            coords.append(coords[1])
+            coords.append(copy(coords[1]))
             coords[1] = (
                 (coords[0][0] + coords[2][0]) / 2,
                 (coords[0][1] + coords[2][1]) / 2,

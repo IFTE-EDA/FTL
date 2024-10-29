@@ -108,13 +108,14 @@ class DXFLayer(Loggable):
             (e.dxf.start[0] + e.dxf.end[0]) / 2,
             (e.dxf.start[1] + e.dxf.end[1]) / 2,
         )
+        # TODO: handle "0" width, needs to be added to open poly array
         geom.add_line(
             [
                 (e.dxf.start[0], e.dxf.start[1]),
                 p_mid,
                 (e.dxf.end[0], e.dxf.end[1]),
             ],
-            e.dxf.thickness,
+            e.dxf.thickness if e.dxf.thickness != 0 else 1,
         )
 
     def render_arc(self, e, geom):
@@ -207,11 +208,13 @@ class DXFLayer(Loggable):
                         else:
                             _poly = poly
                         coords = _poly[:, 0:2]
-                        bulges = _poly[:, 2]
+                        bulges = _poly[
+                            :, 2
+                        ]  # [np.round(p, 2) for p in _poly[:, 2]]
                         return np.column_stack(
                             (
                                 coords[::-1],
-                                shift(bulges, 1, cval=bulges[-1])[::-1],
+                                -shift(bulges, 1, cval=bulges[-1])[::-1],
                             )
                         ).tolist()
 
@@ -293,6 +296,12 @@ class DXFLayer(Loggable):
                                 print(
                                     "Poly closed successfully, adding as polygon..."
                                 )
+                                # TODO: choose different data type. This is not a good idea and will decrease performance.
+                                new_pts = [
+                                    [x, y, np.round(b, 6)]
+                                    for x, y, b in new_pts
+                                ]
+                                print(np.array(new_pts))
                                 geom.add_polygon(new_pts, bulge=True)
                                 delete_entries.append((poly[0], poly[1]))
                                 break
