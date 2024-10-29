@@ -178,6 +178,7 @@ class DXFLayer(Loggable):
                 x_rounded, y_rounded = round(x, 6), round(y, 6)
                 if x_rounded == old_x and y_rounded == old_y:
                     print(f"Found duplicate point: {x_rounded}, {y_rounded}")
+                    pts[-1] = (x_rounded, y_rounded, b)
                 else:
                     pts.append((x_rounded, y_rounded, b))
                     # print((x_rounded, y_rounded))
@@ -188,7 +189,8 @@ class DXFLayer(Loggable):
             if len(pts) <= 1:
                 print("Not enough points to render polyline")
                 return None
-            if pts[0] == pts[-1]:
+            if pts[0][0] == pts[-1][0] and pts[0][1] == pts[-1][1]:
+                print("Endpoints meet. Making shape...")
                 geom.add_polygon(pts, bulge=True)
             else:
                 if e.dxf.const_width > 0:
