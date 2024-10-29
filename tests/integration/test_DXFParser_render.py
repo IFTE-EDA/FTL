@@ -247,7 +247,7 @@ class Test_DXFParser_Render:
         parser = DXFParser(get_file("poly_open_bulge_orientation.dxf"))
         layer = parser.get_layer(pattern)
         assert len(layer.get_entities()) == 3
-        layer.render().plot(pattern)
+        layer.render()
         assert gmsh.model.get_entities(2) == [(2, 1)]
         assert gmsh.model.get_entities(1) == [(1, i) for i in range(1, 13)]
         assert gmsh.model.get_entities(0) == [(0, i) for i in range(1, 17)]
