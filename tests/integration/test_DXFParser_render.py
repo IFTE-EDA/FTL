@@ -241,3 +241,56 @@ class Test_DXFParser_Render:
 
     def test_dxfparser_open_3parts_poly_iii(self):
         self._execute_3parts_test("iii")
+
+    def _execute_3parts_test_bulge(self, pattern: str):
+        gmsh.clear()
+        parser = DXFParser(get_file("poly_open_bulge_orientation.dxf"))
+        layer = parser.get_layer(pattern)
+        assert len(layer.get_entities()) == 3
+        layer.render().plot(pattern)
+        assert gmsh.model.get_entities(2) == [(2, 1)]
+        assert gmsh.model.get_entities(1) == [(1, i) for i in range(1, 13)]
+        assert gmsh.model.get_entities(0) == [(0, i) for i in range(1, 17)]
+        assert get_bbox_rounded(2, 1) == [-1.6, -0.4, 0.0, 10.8, 11.2, 0.0]
+        assert get_mass_rounded(2, 1) == 111.47
+        assert get_com_rounded(2, 1) == [4.86, 5.12, 0.0]
+        # assert False
+
+    """
+    def test_dxfparser_open_bulge_orientation_plain(self):
+        gmsh.clear()
+        parser = DXFParser(get_file("poly_open_bulge_orientation.dxf"))
+        layer = parser.get_layer("0")
+        # assert len(layer.get_entities()) == 3
+        layer.render().plot()
+        assert gmsh.model.get_entities(2) == [(2, 1)]
+        assert gmsh.model.get_entities(1) == [(1, i) for i in range(1, 13)]
+        assert gmsh.model.get_entities(0) == [(0, i) for i in range(1, 17)]
+        assert get_bbox_rounded(2, 1) == [-2.0, -2.0, 0.0, 12.0, 12.0, 0.0]
+        assert get_mass_rounded(2, 1) == 125.13
+        assert get_com_rounded(2, 1) == [5.0, 5.0, 0.0]
+    """
+
+    def test_dxfparser_open_bulge_orientation_ppp(self):
+        self._execute_3parts_test_bulge("ppp")
+
+    def test_dxfparser_open_bulge_orientation_ppi(self):
+        self._execute_3parts_test_bulge("ppi")
+
+    def test_dxfparser_open_bulge_orientation_pip(self):
+        self._execute_3parts_test_bulge("pip")
+
+    def test_dxfparser_open_bulge_orientation_pii(self):
+        self._execute_3parts_test_bulge("pii")
+
+    def test_dxfparser_open_bulge_orientation_ipp(self):
+        self._execute_3parts_test_bulge("ipp")
+
+    def test_dxfparser_open_bulge_orientation_ipi(self):
+        self._execute_3parts_test_bulge("ipi")
+
+    def test_dxfparser_open_bulge_orientation_iip(self):
+        self._execute_3parts_test_bulge("iip")
+
+    def test_dxfparser_open_bulge_orientation_iii(self):
+        self._execute_3parts_test_bulge("iii")
