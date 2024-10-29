@@ -278,22 +278,27 @@ class GMSHGeom2D(AbstractGeom2D):
             in_outline.reverse()
             print("Re-oriented.")
 
-        if in_outline[0] == in_outline[-1]:
-            print("Rendering closed line...")
+        if (
+            in_outline[0][0] == in_outline[-1][0]
+            and in_outline[0][1] == in_outline[-1][1]
+        ):
+            print("Rendering closed line...: ", in_outline)
             pts = [
                 gmsh.model.occ.add_point(x, y, 0)
                 for x, y, _ in in_outline[:-1]
             ]
+            print(len(pts), len(in_outline))
             lines = [
                 _add_line(
                     in_outline[i], in_outline[i + 1], pids=(pts[i], pts[i + 1])
                 )
-                for i in range(len(in_outline) - 1)
+                for i in range(len(in_outline) - 2)
             ]
+            print("Adding closing segment...")
             lines.append(
                 _add_line(
-                    pts[len(pts) - 1],
-                    pts[0],
+                    in_outline[len(pts) - 1],
+                    in_outline[0],
                     pids=(
                         pts[len(pts) - 1],
                         pts[0],
