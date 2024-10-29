@@ -13,6 +13,7 @@ def main():
     make_dxf_polyline()
     make_dxf_poly_nobulge()
     make_dxf_poly_bulge()
+    make_dxf_poly_duplicated_points()
     make_dxf_poly_open_2parts()
     make_dxf_poly_open_3parts()
     make_dxf_poly_bulge_orientation()
@@ -98,14 +99,6 @@ def make_dxf_polyline():
     polyline.dxf.const_width = 3
     # polyline.dxf.thickness = 6
     polyline.close(False)
-    """
-    points = [(0, 0, 2), (10, 0, 2)]
-    polyline = msp.add_lwpolyline(
-        points, format="xys", dxfattribs={"layer": "straight_w2"}
-    )
-    polyline.dxf.const_width = 0
-    polyline.close(False)
-    """
     doc.saveas(data_dir / "polyline.dxf")
 
 
@@ -132,6 +125,56 @@ def make_dxf_poly_bulge():
     )
     polyline_b_in.close(True)
     doc.saveas(data_dir / "poly_bulge.dxf")
+
+
+def make_dxf_poly_duplicated_points():
+    doc = ezdxf.new("R2010")
+    doc.layers.add(name="straight")
+    msp = doc.modelspace()
+    points_b_out = [
+        (0, 0, 0),
+        (10, 0, 0),
+        (10, 0, 0),
+        (10, 10, 0),
+        (0, 10, 0),
+        (0, 10, 0),
+        (0, 0, 0),
+    ]
+    polyline_b_out = msp.add_lwpolyline(
+        points_b_out, format="xyb", dxfattribs={"layer": "straight"}
+    )
+    polyline_b_out.close(False)
+    doc.layers.add(name="straight_closed")
+    msp = doc.modelspace()
+    points_b_out = [
+        (0, 0, 0),
+        (10, 0, 0),
+        (10, 0, 0),
+        (10, 10, 0),
+        (0, 10, 0),
+        (0, 10, 0),
+        (0, 0, 0),
+    ]
+    polyline_b_out = msp.add_lwpolyline(
+        points_b_out, format="xyb", dxfattribs={"layer": "straight_closed"}
+    )
+    polyline_b_out.close(True)
+    doc.layers.add(name="bulge")
+    msp = doc.modelspace()
+    points_b_out = [
+        (0, 0, 1),
+        (10, 0, 0),
+        (10, 0, 1),
+        (10, 10, 1),
+        (0, 10, 0),
+        (0, 10, 1),
+        (0, 0, 0),
+    ]
+    polyline_b_out = msp.add_lwpolyline(
+        points_b_out, format="xyb", dxfattribs={"layer": "bulge"}
+    )
+    polyline_b_out.close(False)
+    doc.saveas(data_dir / "poly_duplicate_points_bulge.dxf")
 
 
 def make_dxf_poly_open_2parts():
