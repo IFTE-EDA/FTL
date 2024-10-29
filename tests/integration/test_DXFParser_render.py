@@ -159,6 +159,45 @@ class Test_DXFParser_Render:
         assert get_bbox_rounded(2, 2) == [0.0, 0.0, 0.0, 10.0, 10.0, 0.0]
         assert np.round(gmsh.model.occ.getMass(2, 2), 2) == 73.12
 
+    def test_dxfparser_render_poly_duplicated_points_straight(self):
+        gmsh.clear()
+        parser = DXFParser(get_file("poly_duplicate_points_bulge.dxf"))
+        layer = parser.get_layer("straight")
+        render = layer.render(fuse=False)
+        assert len(render) == 1
+        assert render.dimtags() == [(2, 1)]
+        assert get_bbox_rounded(2, 1) == [0, 0, 0.0, 10, 10, 0.0]
+        assert np.round(gmsh.model.occ.getMass(2, 1), 2) == 100.00
+        assert gmsh.model.get_entities(2) == [(2, 1)]
+        assert gmsh.model.get_entities(1) == [(1, i) for i in range(1, 5)]
+        assert gmsh.model.get_entities(0) == [(0, i) for i in range(1, 5)]
+
+    def test_dxfparser_render_poly_duplicated_points_straight_closed(self):
+        gmsh.clear()
+        parser = DXFParser(get_file("poly_duplicate_points_bulge.dxf"))
+        layer = parser.get_layer("straight_closed")
+        render = layer.render(fuse=False)
+        assert len(render) == 1
+        assert render.dimtags() == [(2, 1)]
+        assert get_bbox_rounded(2, 1) == [0, 0, 0.0, 10, 10, 0.0]
+        assert np.round(gmsh.model.occ.getMass(2, 1), 2) == 100.00
+        assert gmsh.model.get_entities(2) == [(2, 1)]
+        assert gmsh.model.get_entities(1) == [(1, i) for i in range(1, 5)]
+        assert gmsh.model.get_entities(0) == [(0, i) for i in range(1, 5)]
+
+    def test_dxfparser_render_poly_duplicated_points_bulge(self):
+        gmsh.clear()
+        parser = DXFParser(get_file("poly_duplicate_points_bulge.dxf"))
+        layer = parser.get_layer("bulge")
+        render = layer.render(fuse=False)
+        assert len(render) == 1
+        assert render.dimtags() == [(2, 1)]
+        assert get_bbox_rounded(2, 1) == [-5, -5, 0.0, 15, 15, 0.0]
+        assert np.round(gmsh.model.occ.getMass(2, 1), 2) == 257.08
+        assert gmsh.model.get_entities(2) == [(2, 1)]
+        assert gmsh.model.get_entities(1) == [(1, i) for i in range(1, 5)]
+        assert gmsh.model.get_entities(0) == [(0, i) for i in range(1, 9)]
+
     # def test_dxfparser_render_poly_bulge_fuse(self):
 
     def test_dxfparser_open_2parts_poly_invert_none(self):
