@@ -232,7 +232,10 @@ class DXFLayer(Loggable):
                             print(
                                 "Last point of current poly matched with point of stored poly. Closing..."
                             )
-                            if pts[-1] == poly[0]:
+                            if (
+                                pts[-1][0] == poly[0][0]
+                                and pts[-1][1] == poly[0][1]
+                            ):
                                 print("pts[-1] == poly[0]")
                                 # end point of current poly equals starting point of new poly - easy, just chain them
                                 # print("--------------------")
@@ -261,7 +264,10 @@ class DXFLayer(Loggable):
                                 "First point of current poly matched with point of stored poly. Closing..."
                             )
                             # to make things easier, convert the start point to an end point
-                            if pts[0] == poly[0]:
+                            if (
+                                pts[0][0] == poly[0][0]
+                                and pts[0][1] == poly[0][1]
+                            ):
                                 # start point of current poly equals starting point of new poly - easy, just chain them
                                 print("pts[0] == poly[0]; rev. pts")
                                 # print("--------------------")
