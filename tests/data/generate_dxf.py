@@ -14,6 +14,7 @@ def main():
     make_dxf_poly_nobulge()
     make_dxf_poly_bulge()
     make_dxf_poly_duplicated_points()
+    make_dxf_poly_snap_endpoints()
     make_dxf_poly_open_2parts()
     make_dxf_poly_open_3parts()
     make_dxf_poly_bulge_orientation()
@@ -175,6 +176,27 @@ def make_dxf_poly_duplicated_points():
     )
     polyline_b_out.close(False)
     doc.saveas(data_dir / "poly_duplicate_points_bulge.dxf")
+
+
+def make_dxf_poly_snap_endpoints():
+    doc = ezdxf.new("R2010")
+    doc.layers.add(name="snap_straight")
+    msp = doc.modelspace()
+
+    pts = [
+        (0, 0, 0),
+        (10, 0, 0),
+        (10, 10, 0),
+        (0, 10, 0),
+        (-0.01, -0.01, 0),
+    ]
+    poly = msp.add_lwpolyline(
+        pts, format="xyb", dxfattribs={"layer": "snap_straight"}
+    )
+    poly.close(False)
+    poly.dxf.const_width = 0
+
+    doc.saveas(data_dir / "poly_snap_endpoints.dxf")
 
 
 def make_dxf_poly_open_2parts():

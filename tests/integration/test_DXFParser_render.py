@@ -200,6 +200,19 @@ class Test_DXFParser_Render:
 
     # def test_dxfparser_render_poly_bulge_fuse(self):
 
+    def test_dxfparser_snap_endpoints_straight(self):
+        gmsh.clear()
+        parser = DXFParser(get_file("poly_snap_endpoints.dxf"))
+        layer = parser.get_layer("snap_straight")
+        render = layer.render(fuse=False)
+        assert len(render) == 1
+        assert render.dimtags() == [(2, 1)]
+        assert get_bbox_rounded(2, 1) == [0, 0, 0.0, 10, 10, 0.0]
+        assert np.round(gmsh.model.occ.getMass(2, 1), 2) == 100.00
+        assert gmsh.model.get_entities(2) == [(2, 1)]
+        assert gmsh.model.get_entities(1) == [(1, i) for i in range(1, 5)]
+        assert gmsh.model.get_entities(0) == [(0, i) for i in range(1, 5)]
+
     def test_dxfparser_open_2parts_poly_invert_none(self):
         gmsh.clear()
         parser = DXFParser(get_file("poly_open_2parts.dxf"))

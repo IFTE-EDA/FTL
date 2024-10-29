@@ -11,6 +11,8 @@ import numpy as np
 from FTL.Util.logging import Logger, Loggable
 from FTL.core.GMSHGeometry import GMSHGeom2D, GMSHGeom3D, dimtags
 
+SNAP_TOLERANCE = 0.02
+
 
 class DXFParser(Loggable):
     def __init__(self, file_path: Path, logger=None):
@@ -192,7 +194,24 @@ class DXFLayer(Loggable):
             if pts[0][0] == pts[-1][0] and pts[0][1] == pts[-1][1]:
                 print("Endpoints meet. Making shape...")
                 geom.add_polygon(pts, bulge=True)
+            elif (
+                np.sqrt(
+                    (pts[0][0] - pts[-1][0]) ** 2
+                    + (pts[0][1] - pts[-1][1]) ** 2
+                )
+                < SNAP_TOLERANCE
+            ):
+                print("Endpoints close enough. Closing shape...")
+                pts[-1] = pts[0]
+                geom.add_polygon(pts, bulge=True)
             else:
+                print(
+                    "Distance: ",
+                    np.sqrt(
+                        (pts[0][0] - pts[-1][0]) ** 2
+                        + (pts[0][1] - pts[-1][1]) ** 2
+                    ),
+                )
                 if e.dxf.const_width > 0:
                     print(f"Adding polyline with width {e.dxf.const_width}")
                     geom.add_line(
