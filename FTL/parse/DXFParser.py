@@ -13,6 +13,8 @@ from FTL.core.GMSHGeometry import GMSHGeom2D, GMSHGeom3D, dimtags
 
 SNAP_TOLERANCE = 0.02
 
+# TODO: "has_layer" method to check if layer exists
+
 
 class DXFParser(Loggable):
     def __init__(self, file_path: Path, logger=None):
@@ -86,6 +88,11 @@ class DXFLayer(Loggable):
                 print("Has width: ", e.has_width)
             self.render_entity(e, geom)
         # geom.plot()
+        return geom
+
+    def extrude(self, height, zpos=0):
+        geom = self.render()
+        geom.extrude(height, zpos=zpos)
         return geom
 
     def render_entity(self, e, geom):
