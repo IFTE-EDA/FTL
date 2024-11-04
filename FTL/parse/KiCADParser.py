@@ -300,11 +300,11 @@ class KiCADStackupManager(Loggable):
             self.log_debug(
                 f"-> Layer '{layer_name}' has zmin {layer.zmin} and zmax {layer.zmax}..."
             )
-            curr_z -= layer_thickness
+            curr_z = round(curr_z - layer_thickness, 4)
             names.append(layer.name)
             layers.append(layer)
             # self.layers.append(layer.name, layer)
-        self.stackup = dict(zip(names, layers))
+        self.stackup = dict(zip(names.__reversed__(), layers.__reversed__()))
         self.log_info(f"Created {len(self.layers)} layers...")
 
     def fill_vias(self):
@@ -374,8 +374,26 @@ class KiCADStackupManager(Loggable):
     def add_zone(self, dest: str, obj: KiCADObject):
         self._dispatch_zone(dest, obj)
 
-    def add_drill(self, dest: str, obj):
-        self._dispatch_drill(dest, obj)
+    def add_drill(self, dest: (str, tuple(str)), obj):
+        if isinstance(dest, str):
+            return self._dispatch_drill(dest, obj)
+        # it's a list of layers
+        print(f"Adding drill from {dest[0]} to {dest[1]}...")
+        lower_layer = self.get_lowest_layer(dest)
+        upper_layer = self.get_highest_layer(dest)
+        if lower_layer is None or upper_layer is None:
+            raise Exception(
+                f"Cannot find layers {dest[0]} and {dest[1]} for drill."
+            )
+        all_layers = list(self.stackup.keys())
+        lower_index = all_layers.index(lower_layer.name)
+        upper_index = all_layers.index(upper_layer.name)
+        print("Layers: ", all_layers)
+        print("Indices: ", lower_index, upper_index)
+        select_layers = all_layers[upper_index : lower_index + 1]
+        print("Selected layers: ", select_layers)
+        for layer in select_layers:
+            self._dispatch_drill(layer, obj)
 
     def add_via_metalization(
         self, dest: tuple(str, str), at: tuple(float, float), obj: GMSHGeom2D
@@ -434,16 +452,16 @@ class KiCADStackupManager(Loggable):
         return [layer.name for layer in self.get_layers_from_pattern(patterns)]
 
     def get_lowest_layer(self, layers: list()):
+        for layer in self.get_stackup_layer_names():
+            if layer in layers:
+                return self.layers[layer]
+
+    def get_highest_layer(self, layers: list()):
         ret = None
         for layer in self.get_stackup_layer_names():
             if layer in layers:
                 ret = self.layers[layer]
         return ret
-
-    def get_highest_layer(self, layers: list()):
-        for layer in self.get_stackup_layer_names():
-            if layer in layers:
-                return self.layers[layer]
 
     def get_layer_names(self):
         return self.layers.keys()
@@ -1152,9 +1170,11 @@ class KiCADPad(KiCADEntity):
             self.log_debug(f"Adding pad to layers {matched_layers}...")
             lowest_layer = layers.get_lowest_layer(matched_layers).name
             highest_layer = layers.get_highest_layer(matched_layers).name
+            print("Adding drill from ", lowest_layer, " to ", highest_layer)
             layers.add_via_metalization(
                 (lowest_layer, highest_layer), self.at, self.get_metalization()
             )
+            layers.add_drill((lowest_layer, highest_layer), self.get_drill())
 
         if self.angle != 0:
             geom.rotate(self.angle, self.at)
