@@ -162,7 +162,7 @@ class Test_KiCadObjects_Render:
         assert get_bbox_rounded(2, 1) == [-0.1, -0.1, 0, 100.1, 100.1, 0]
         assert get_mass_rounded(2, 1) == 10040.03
 
-    def test_kicadpad_render_direct_roundrect(self):
+    def test_kicadpad_render_direct_roundrect_nodrill(self):
         gmsh.clear()
         par = Mock_Layer(self.logger)
         obj = KiCADPad(par, PARAMS_PAD_ROUNDRECT)
@@ -174,23 +174,88 @@ class Test_KiCadObjects_Render:
         assert get_bbox_rounded(2, 1) == [-35.0, -7.0, 0.0, -25.0, 7.0, 0.0]
         assert get_mass_rounded(2, 1) == 134.63
 
-    """
-    def test_kicadpad_render_layers_roundrect(self):
+    def test_kicadpad_render_direct_roundrect_drill(self):
         gmsh.clear()
         par = Mock_Layer(self.logger)
         obj = KiCADPad(par, PARAMS_PAD_ROUNDRECT_DRILLED)
-        obj.render(self.layers)
-        geom = self.layers.get_layer("F.Cu").render()
-        geom.plot()
-        for name, layer in self.layers.layers.items():
-            print(name, self.layers.render_layer(name).geoms)
+        geom = obj.render()
         assert geom.geoms == [1]
+        assert gmsh.model.occ.getEntities(2) == [(2, 1)]
+        assert gmsh.model.occ.getEntities(1) == [(1, i) for i in range(9, 18)]
+        assert gmsh.model.occ.getEntities(0) == [(0, i) for i in range(9, 18)]
+        assert get_bbox_rounded(2, 1) == [-35.0, -7.0, 0.0, -25.0, 7.0, 0.0]
+        assert get_mass_rounded(2, 1) == 133.85
+
+    def test_kicadpad_render_layers_roundrect_nodrill(self):
+        gmsh.clear()
+        par = Mock_Layer(self.logger)
+        obj = KiCADPad(par, PARAMS_PAD_ROUNDRECT)
+        geom = obj.render(self.layers)
+        # layer_render = self.layers.get_layer("F.Cu").render()
+        for name, layer in self.layers.layers.items():
+            print(layer.name, layer.has_objects())
+            if layer.name in ["F.Cu", "B.Cu"]:
+                assert layer.has_objects()
+            else:
+                assert not layer.has_objects()
+            assert len(layer.drills) == 0
+        assert len(self.layers.metalizations) == 0
+        assert geom is None
         assert gmsh.model.occ.getEntities(2) == [(2, 1)]
         assert gmsh.model.occ.getEntities(1) == [(1, i) for i in range(1, 9)]
         assert gmsh.model.occ.getEntities(0) == [(0, i) for i in range(1, 9)]
         assert get_bbox_rounded(2, 1) == [-35.0, -7.0, 0.0, -25.0, 7.0, 0.0]
         assert get_mass_rounded(2, 1) == 134.63
 
+    # TODO: Add drill rendering to unit test
+    def test_kicadpad_render_layers_roundrect_drill(self):
+        gmsh.clear()
+        par = Mock_Layer(self.logger)
+        obj = KiCADPad(par, PARAMS_PAD_ROUNDRECT_DRILLED)
+        for name, layer in self.layers.layers.items():
+            print(layer.name, layer.has_objects())
+            if layer.name in ["F.Cu", "B.Cu"]:
+                assert layer.has_objects()
+            else:
+                assert not layer.has_objects()
+            assert len(layer.drills) == 0
+        geom = obj.render(self.layers)
+        assert len(self.layers.metalizations) == 1
+        obj.make_drills(self.layers)
+        for name, layer in self.layers.layers.items():
+            assert len(layer.drills) == (
+                1 if layer.name in ["F.Cu", "B.Cu", "Edge.Cuts"] else 0
+            )
+        assert (
+            self.layers.get_layer("F.Cu").drills[0]
+            != self.layers.get_layer("B.Cu").drills[0]
+        )
+        assert (
+            self.layers.get_layer("F.Cu").drills[0]
+            != self.layers.get_layer("Edge.Cuts").drills[0]
+        )
+        assert (
+            self.layers.get_layer("B.Cu").drills[0]
+            != self.layers.get_layer("Edge.Cuts").drills[0]
+        )
+        assert geom is None
+        assert gmsh.model.occ.getEntities(2) == [(2, i) for i in range(1, 6)]
+        assert gmsh.model.occ.getEntities(1) == [
+            (1, i) for i in range(1, 15) if i != 9
+        ]
+        assert gmsh.model.occ.getEntities(0) == [
+            (0, i) for i in range(1, 15) if i != 9
+        ]
+        assert get_bbox_rounded(2, 1) == [-35.0, -7.0, 0.0, -25.0, 7.0, 0.0]
+        assert get_mass_rounded(2, 1) == 134.63
+
+        # Render test on F.Cu layer:
+        self.layers.get_layer("F.Cu").render()
+        assert get_bbox_rounded(2, 1) == [-35.0, -7.0, 0.0, -25.0, 7.0, 0.0]
+        assert get_mass_rounded(2, 1) == 133.85
+
+
+"""
     def test_kicadpad_render_drilled(self):
         gmsh.clear()
         par = Mock_Layer(self.logger)
@@ -228,17 +293,14 @@ class Test_KiCadObjects_Render:
         assert obj2.has_drill() is True
 
     # TODO: move to integration test
-    """
 
-    """
+
     def test_kicadpad_get_drill(self):
         par = Mock_Layer(self.logger)
         obj = KiCADPad(par, PARAMS_PART_DRILLED_PADS["pads"][0])
         drill = obj.get_drill()
         self.logger.critical(drill.geoms[0])
         assert False
-    """
-    """
 
     def test_kicadpart_create(self):
         obj = KiCADPart(self.logger, PARAMS_PART)
@@ -258,9 +320,7 @@ class Test_KiCadObjects_Render:
         assert obj.x == PARAMS_PART["at"][0]
         assert obj.y == PARAMS_PART["at"][1]
 
-    """
     # TODO: not working. gotta change the main code.
-    """
     def test_kicadpart_pads(self):
         obj = KiCADPart(self.logger, PARAMS_PART)
         assert len(obj.pads) == 2
@@ -272,8 +332,6 @@ class Test_KiCadObjects_Render:
         assert obj.pads[0].layers == ["Testlayer1", "Testlayer2"]
         assert obj.pads[0].roundrect_rratio == 0.25
         assert obj.pads[0].net == [0, "GND"]
-    """
-    """
 
     def test_kicadpart_move_relative(self):
         obj = KiCADPart(self.logger, PARAMS_PART)
