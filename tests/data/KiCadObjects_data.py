@@ -115,9 +115,9 @@ PARAMS_ZONE = {
 }
 
 PARAMS_VIA = {
-    "at": [0, 0],
-    "size": [3],
-    "drill": [1],
+    "at": [1, 1],
+    "size": 3,
+    "drill": 1,
     "layers": ["F.Cu", "B.Cu"],
     "net": [2],
 }
