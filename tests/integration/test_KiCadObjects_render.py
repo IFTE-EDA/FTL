@@ -207,6 +207,15 @@ class Test_KiCadObjects_Render:
         assert get_bbox_rounded(2, 1) == [-35.0, -7.0, 0.0, -25.0, 7.0, 0.0]
         assert get_mass_rounded(2, 1) == 134.63
 
+        pad = self.layers.get_layer("F.Cu").render()
+        assert get_bbox_rounded(2, 1) == [-35.0, -7.0, 0.0, -25.0, 7.0, 0.0]
+        assert get_mass_rounded(2, 1) == 134.63
+
+        pad.extrude(0.5)
+        assert pad.geoms == [1]
+        assert get_bbox_rounded(3, 1) == [-35.0, -7.0, 0.0, -25.0, 7.0, 0.5]
+        assert get_mass_rounded(3, 1) == 67.32
+
     # TODO: Add drill rendering to unit test
     def test_kicadpad_render_layers_roundrect_drill(self):
         gmsh.clear()
@@ -250,9 +259,14 @@ class Test_KiCadObjects_Render:
         assert get_mass_rounded(2, 1) == 134.63
 
         # Render test on F.Cu layer:
-        self.layers.get_layer("F.Cu").render()
+        pad = self.layers.get_layer("F.Cu").render()
         assert get_bbox_rounded(2, 1) == [-35.0, -7.0, 0.0, -25.0, 7.0, 0.0]
         assert get_mass_rounded(2, 1) == 133.85
+
+        pad.extrude(0.5)
+        assert pad.geoms == [1]
+        assert get_bbox_rounded(3, 1) == [-35.0, -7.0, 0.0, -25.0, 7.0, 0.5]
+        assert get_mass_rounded(3, 1) == 66.92
 
 
 """
