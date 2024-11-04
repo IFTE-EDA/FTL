@@ -284,7 +284,8 @@ class KiCADStackupManager(Loggable):
         curr_z = 0
         names = []
         layers = []
-        for lay in stackup_params["layer"]:
+        layer_params = list(stackup_params["layer"]).__reversed__()
+        for lay in layer_params:
             layer_type = lay["type"].strip('"')
             layer_name = (
                 lay[0].strip('"') if layer_type != "core" else "Edge.Cuts"
@@ -295,16 +296,16 @@ class KiCADStackupManager(Loggable):
             )
             layer = self.get_layer(layer_name)
             layer.thickness = layer_thickness
-            layer.zmax = curr_z
-            layer.zmin = curr_z - layer_thickness
+            layer.zmin = curr_z
+            layer.zmax = round(curr_z + layer_thickness, 4)
             self.log_debug(
                 f"-> Layer '{layer_name}' has zmin {layer.zmin} and zmax {layer.zmax}..."
             )
-            curr_z = round(curr_z - layer_thickness, 4)
+            curr_z = layer.zmax
             names.append(layer.name)
             layers.append(layer)
             # self.layers.append(layer.name, layer)
-        self.stackup = dict(zip(names.__reversed__(), layers.__reversed__()))
+        self.stackup = dict(zip(names, layers))
         self.log_info(f"Created {len(self.layers)} layers...")
 
     def fill_vias(self):
@@ -390,10 +391,10 @@ class KiCADStackupManager(Loggable):
         upper_index = all_layers.index(upper_layer.name)
         print("Layers: ", all_layers)
         print("Indices: ", lower_index, upper_index)
-        select_layers = all_layers[upper_index : lower_index + 1]
+        select_layers = all_layers[lower_index : upper_index + 1]
         print("Selected layers: ", select_layers)
         for layer in select_layers:
-            self._dispatch_drill(layer, obj)
+            self._dispatch_drill(layer, obj.get())
 
     def add_via_metalization(
         self, dest: tuple(str, str), at: tuple(float, float), obj: GMSHGeom2D
@@ -951,7 +952,8 @@ class KiCADPart(KiCADEntity):
             # pad.angle += self.angle
             render = pad.render(layers)
             if pad.has_drill():
-                drill = pad.get_drill()
+                pad.make_drills(layers)
+                """drill = pad.get_drill()
                 drill.rotate(self.angle, self.at[0:2])
                 for layer in pad.layers:
                     if layer != self.layer:
@@ -964,7 +966,9 @@ class KiCADPart(KiCADEntity):
                             )
                     else:
                         self.log_critical(f"layer {layer} skipped...")
-                layers.add_drill("Edge.Cuts", drill)
+                    """
+                # layers.add_drill("Edge.Cuts", drill)
+
             render.rotate(self.angle, self.at[0:2])
             grp = gmsh.model.add_physical_group(2, render.geoms, name=pad.name)
             self.log_critical(
@@ -1154,7 +1158,27 @@ class KiCADPad(KiCADEntity):
         else:
             raise Exception(f"Unsupported pad shape: <{self.shape}>")
 
+        if layers is None:
+            # quick rendering of just the pad surface
+            if self.drill is not None:
+                if len(self.drill) > 1:
+                    raise Exception("Multiple Arguments for drill.")
+                geom.cutout(GMSHGeom2D.get_circle(self.at, self.drill[0] / 2))
+            return geom
+
+        # 'layers'  is set. Render into StackupManager...
+
+        matched_layers = layers.get_layer_names_from_pattern(self.layers)
+        self.log_debug(f"Adding pad to layers {matched_layers}...")
+        lowest_layer = layers.get_lowest_layer(matched_layers).name
+        highest_layer = layers.get_highest_layer(matched_layers).name
+
+        for layer_name in matched_layers:
+            layers.get_layer(layer_name).add_footprint(geom)
+
         if self.drill is not None:
+            if len(self.drill) > 1:
+                raise Exception("Multiple Arguments for drill.")
             self.log_debug(
                 f"Drilling hole at {self.at} with drill size {self.drill[0]}"
             )
@@ -1163,23 +1187,14 @@ class KiCADPad(KiCADEntity):
             #    if not self.drill[1] in ("oval", "circle"):
             #        raise Exception(f"Unsupported drill shape: <{self.drill[1]}>")
             # geom.cutout(GMSHGeom2D.get_circle(self.at, self.drill))
-            # for layer in self.layers:
-            #    layers.add_drill(layer, self.get_drill())
-            # layers.add_drill("Edge.Cuts", self.get_drill())
-            matched_layers = layers.get_layer_names_from_pattern(self.layers)
-            self.log_debug(f"Adding pad to layers {matched_layers}...")
-            lowest_layer = layers.get_lowest_layer(matched_layers).name
-            highest_layer = layers.get_highest_layer(matched_layers).name
             print("Adding drill from ", lowest_layer, " to ", highest_layer)
             layers.add_via_metalization(
                 (lowest_layer, highest_layer), self.at, self.get_metalization()
             )
-            layers.add_drill((lowest_layer, highest_layer), self.get_drill())
+            # self.make_drills(layers)
 
         if self.angle != 0:
             geom.rotate(self.angle, self.at)
-
-        return geom
 
     def has_drill(self):
         return self.drill is not None
@@ -1191,12 +1206,12 @@ class KiCADPad(KiCADEntity):
             raise Exception("No drill size specified.")
 
     def make_drills(self, layers: KiCADLayer):
-        self.log_debug(f"Making drills for via at {self.at}...")
+        self.log_debug(f"Making drills for pad at {self.at}...")
         if layers is not None:
-            for layer in self.layers:
-                layers.add_drill(layer, self.get_drill())
-            layers.add_drill("Edge.Cuts", self.get_drill())
-            # geom.cutout(sh.Point(self.at).buffer(float(self.drill / 2)))
+            matched_layers = layers.get_layer_names_from_pattern(self.layers)
+            lowest_layer = layers.get_lowest_layer(matched_layers).name
+            highest_layer = layers.get_highest_layer(matched_layers).name
+            layers.add_drill((lowest_layer, highest_layer), self.get_drill())
 
     def get_metalization(self):
         ret = self.get_drill()
@@ -1228,10 +1243,11 @@ class KiCADVia(KiCADEntity):
     def make_drills(self, layers: KiCADLayer):
         self.log_debug(f"Making drills for via at {self.at}...")
         if layers is not None:
-            for layer in self.layers:
-                layers.add_drill(layer, self.get_drill())
-            layers.add_drill("Edge.Cuts", self.get_drill())
-            # geom.cutout(sh.Point(self.at).buffer(float(self.drill / 2)))
+            self.log_debug(f"Making drills for via at {self.at}...")
+            matched_layers = layers.get_layer_names_from_pattern(self.layers)
+            lowest_layer = layers.get_lowest_layer(matched_layers).name
+            highest_layer = layers.get_highest_layer(matched_layers).name
+            layers.add_drill((lowest_layer, highest_layer), self.get_drill())
 
     def get_metalization(self):
         ret = self.get_drill()

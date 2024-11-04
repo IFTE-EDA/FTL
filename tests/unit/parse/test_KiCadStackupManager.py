@@ -119,7 +119,7 @@ class Test_KiCadStackupManager:
     def test_kicadstackupmanager_build_stackup(self):
         num_layers = len(list(self.layers.get_layer_names()))
         assert num_layers == 29
-        last_h = -0.7
+        last_h = 0
         for name, layer in self.layers.stackup.items():
             layer = self.layers.get_layer(name)
             print(
@@ -138,9 +138,9 @@ class Test_KiCadStackupManager:
                 assert layer.zmin == last_h
             else:
                 assert layer.thickness == 0.1
-                assert layer.zmax == last_h + 0.1
+                assert layer.zmax == round(last_h + 0.1, 4)
                 assert layer.zmin == last_h
-                last_h += 0.1
+                last_h = layer.zmax
 
         for name, layer in self.layers.layers.items():
             if name in self.layers.stackup.keys():
