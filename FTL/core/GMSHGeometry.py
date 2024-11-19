@@ -158,8 +158,7 @@ class GMSHGeom2D(AbstractGeom2D):
 
     def get(self):
         if self._used:
-            # TODO: Remove this
-            return self  # .copy()
+            return self.copy()
         else:
             self._used = True
             return self

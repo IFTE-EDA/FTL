@@ -119,13 +119,13 @@ class Test_StackupManager:
 
     def test_stackupmanager_get_stackup_layer_names(self):
         assert list(self.stackup.get_stackup_layer_names()) == [
-            "F.SilkS",
-            "F.Paste",
-            "F.Mask",
-            "F.Cu",
-            "Edge.Cuts",
-            "B.Cu",
-            "B.Mask",
-            "B.Paste",
             "B.SilkS",
+            "B.Paste",
+            "B.Mask",
+            "B.Cu",
+            "Edge.Cuts",
+            "F.Cu",
+            "F.Mask",
+            "F.Paste",
+            "F.SilkS",
         ]

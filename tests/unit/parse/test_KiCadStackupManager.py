@@ -91,15 +91,15 @@ class Test_KiCadStackupManager:
         layers = list(self.layers.get_stackup_layer_names())
         print("Stackup layers: ", "\n".join(layers))
         cmp = [
-            "F.SilkS",
-            "F.Paste",
-            "F.Mask",
-            "F.Cu",
-            "Edge.Cuts",
-            "B.Cu",
-            "B.Mask",
-            "B.Paste",
             "B.SilkS",
+            "B.Paste",
+            "B.Mask",
+            "B.Cu",
+            "Edge.Cuts",
+            "F.Cu",
+            "F.Mask",
+            "F.Paste",
+            "F.SilkS",
         ]
         print("Comp: ", "\n".join(cmp))
         assert len(layers) == len(cmp)
@@ -138,9 +138,9 @@ class Test_KiCadStackupManager:
                 assert layer.zmin == last_h
             else:
                 assert layer.thickness == 0.1
-                assert layer.zmax == last_h
-                assert layer.zmin == last_h - 0.1
-                last_h -= 0.1
+                assert layer.zmax == round(last_h + 0.1, 4)
+                assert layer.zmin == last_h
+                last_h = layer.zmax
 
         for name, layer in self.layers.layers.items():
             if name in self.layers.stackup.keys():
