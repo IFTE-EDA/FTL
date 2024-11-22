@@ -989,6 +989,23 @@ class Test_GMSHGeom3D:
         ]
         assert get_mutual_points(part1, part2) == []
 
+    def test_gmshgeom3d_fragment_two_parts_touching(self):
+        gmsh.clear()
+        board = GMSHGeom2D.get_rectangle((0, 0), (10, 5)).extrude(0.1)
+        part1 = GMSHGeom2D.get_rectangle((1, 1), (5, 4)).extrude(0.1, zpos=0.1)
+        part2 = GMSHGeom2D.get_rectangle((5, 1), (9, 4)).extrude(0.1, zpos=0.1)
+        board.fragment(part1.dimtags() + part2.dimtags())
+        gmsh.model.occ.synchronize()
+        assert get_mutual_points(board, part1) == [
+            (0, i) for i in [9, 10, 13, 14]
+        ]
+        assert get_mutual_points(board, part2) == [
+            (0, i) for i in [10, 11, 12, 13]
+        ]
+        assert get_mutual_points(part1, part2) == [
+            (0, i) for i in [10, 13, 16, 17]
+        ]
+
     """
     def test_gmshgeom2d_fix_list(self):
         geom = GMSHGeom2D()
