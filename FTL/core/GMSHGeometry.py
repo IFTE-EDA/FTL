@@ -629,6 +629,7 @@ class GMSHGeom2D(AbstractGeom2D):
             geoms = [geoms]
         if geoms == []:
             return self
+        # TODO: is that necessary?
         self._fuse_all()
         gmsh.model.occ.cut(
             self.dimtags(),
@@ -771,6 +772,33 @@ class GMSHGeom3D(AbstractGeom3D):
     @geom2d.setter
     def geom2d(self, geom2d: GMSHGeom2D):
         self._geom2d = geom2d
+
+    def fragment(self, geoms: (GMSHGeom2D, GMSHGeom3D)) -> GMSHGeom3D:
+        if isinstance(geoms, GMSHGeom3D):
+            geoms = geoms.dimtags()
+        if (
+            isinstance(geoms, list)
+            and len(geoms)
+            and isinstance(geoms[0], (GMSHGeom2D, GMSHGeom2D))
+        ):
+            ret = []
+            for g in geoms:
+                ret.extend(g.dimtags())
+            geoms = ret
+        if not isinstance(geoms, list):
+            geoms = [geoms]
+        if geoms == []:
+            return self
+        # self._fuse_all()
+        objlist = self.dimtags() + geoms
+        print("Fragmenting List: ", objlist)
+        gmsh.model.occ.fragment(
+            objlist,
+            objlist,
+            removeObject=True,
+            removeTool=True,
+        )
+        return self
 
     def plot(self, title: str = ""):
         gmsh.model.occ.synchronize()
