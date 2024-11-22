@@ -667,9 +667,18 @@ class GMSHGeom2D(AbstractGeom2D):
             zpos = self.z
         if zpos != 0:
             gmsh.model.occ.translate(self.dimtags(), 0, 0, zpos)
-        extr = gmsh.model.occ.extrude(self.dimtags(), 0, 0, thickness)
-        extr = [e[1] for e in extr if e[0] == 3]
-        return GMSHGeom3D(extr, self)
+        extr_all = gmsh.model.occ.extrude(self.dimtags(), 0, 0, thickness)
+        print("Extrude: ", extr_all)
+        extr_bodies = [e[1] for e in extr_all if e[0] == 3]
+        print("Generated bodies: ", extr_bodies)
+        extr_tops = []
+        for part in extr_bodies:
+            index = extr_all.index((3, part))
+            print("Index: ", index)
+            print("Index list: ", extr_all[index - 1])
+            extr_tops.append(extr_all[index - 1][1])
+        print("Generated tops: ", extr_tops)
+        return GMSHGeom3D(extr_bodies, self, extr_tops)
 
     def to_3D(self, thickness: float, zpos: float = None) -> GMSHGeom3D:
         ret = GMSHGeom3D(self.extrude(thickness, zpos, fuse=False))
@@ -693,6 +702,7 @@ class GMSHGeom3D(AbstractGeom3D):
         self,
         geoms: list[int] = [],
         geom2d: GMSHGeom2D = None,
+        surface: GMSHGeom2D = None,
         name: str = "Unnamed",
     ):
         if len(geoms):
@@ -701,6 +711,7 @@ class GMSHGeom3D(AbstractGeom3D):
             self.geoms = []
         self._geom2d = geom2d
         self.name = name
+        self.surface = surface
 
     def __len__(self):
         return len(self.geoms)

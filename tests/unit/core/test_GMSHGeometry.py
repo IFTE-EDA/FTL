@@ -1006,6 +1006,47 @@ class Test_GMSHGeom3D:
             (0, i) for i in [10, 13, 16, 17]
         ]
 
+    def test_gmshgeom3d_extrude_tops_single(self):
+        gmsh.clear()
+        geom = GMSHGeom2D.get_rectangle((0, 0), (1, 1))
+        extrusion = geom.extrude(0.1)
+        assert extrusion.geoms == [1]
+        assert extrusion.surface == [6]
+        assert get_bbox_rounded(2, 6) == [0, 0, 0.1, 1, 1, 0.1]
+
+    def test_gmshgeom3d_extrude_tops_double_disjunct(self):
+        gmsh.clear()
+        geom = GMSHGeom2D.get_rectangle((0, 0), (1, 1))
+        geom.add_rectangle((2, 2), (3, 3))
+        extrusion = geom.extrude(0.1)
+        gmsh.model.occ.synchronize()
+        assert extrusion.geoms == [1, 2]
+        assert extrusion.surface == [7, 12]
+        assert get_bbox_rounded(2, 7) == [0, 0, 0.1, 1, 1, 0.1]
+        assert get_bbox_rounded(2, 12) == [2, 2, 0.1, 3, 3, 0.1]
+
+    def test_gmshgeom3d_extrude_tops_double_touching_point(self):
+        gmsh.clear()
+        geom = GMSHGeom2D.get_rectangle((0, 0), (1, 1))
+        geom.add_rectangle((1, 1), (2, 2))
+        extrusion = geom.extrude(0.1, fuse=False)
+        gmsh.model.occ.synchronize()
+        assert extrusion.geoms == [1, 2]
+        assert extrusion.surface == [7, 12]
+        assert get_bbox_rounded(2, 7) == [0, 0, 0.1, 1, 1, 0.1]
+        assert get_bbox_rounded(2, 12) == [1, 1, 0.1, 2, 2, 0.1]
+
+    def test_gmshgeom3d_extrude_tops_double_touching_edge(self):
+        gmsh.clear()
+        geom = GMSHGeom2D.get_rectangle((0, 0), (1, 1))
+        geom.add_rectangle((1, 0), (2, 1))
+        extrusion = geom.extrude(0.1, fuse=False)
+        gmsh.model.occ.synchronize()
+        assert extrusion.geoms == [1, 2]
+        assert extrusion.surface == [7, 12]
+        assert get_bbox_rounded(2, 7) == [0, 0, 0.1, 1, 1, 0.1]
+        assert get_bbox_rounded(2, 12) == [1, 0, 0.1, 2, 1, 0.1]
+
     """
     def test_gmshgeom2d_fix_list(self):
         geom = GMSHGeom2D()
