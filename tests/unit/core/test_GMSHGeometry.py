@@ -36,6 +36,16 @@ def round_array(arr):
     return round_list(arr)
 
 
+def get_mutual_points(geoms1, geoms2):
+    elms1 = gmsh.model.get_boundary(
+        geoms1.dimtags(), oriented=False, recursive=True
+    )
+    elms2 = gmsh.model.get_boundary(
+        geoms2.dimtags(), oriented=False, recursive=True
+    )
+    return [x for x in elms1 if x in elms2]
+
+
 class Test_GMSHGeometry_Utilities:
     def setup_class(self):
         pass
@@ -952,6 +962,32 @@ class Test_GMSHGeom3D:
             round(i, 2) for i in gmsh.model.occ.getBoundingBox(3, 2)
         ]
         assert bbox_rounded == [2, 2, 0, 3, 3, 0.1]
+
+    def test_gmshgeom3d_fragment_single_part(self):
+        gmsh.clear()
+        board = GMSHGeom2D.get_rectangle((0, 0), (10, 10)).extrude(0.1)
+        part = GMSHGeom2D.get_rectangle((2, 2), (8, 8)).extrude(0.1, zpos=0.1)
+        board.fragment(part)
+        gmsh.model.occ.synchronize()
+        assert get_mutual_points(board, part) == [
+            (0, i) for i in [9, 10, 11, 12]
+        ]
+
+    def test_gmshgeom3d_fragment_two_parts_disjunct(self):
+        gmsh.clear()
+        board = GMSHGeom2D.get_rectangle((0, 0), (10, 5)).extrude(0.1)
+        part1 = GMSHGeom2D.get_rectangle((2, 2), (4, 4)).extrude(0.1, zpos=0.1)
+        part2 = GMSHGeom2D.get_rectangle((6, 2), (8, 4)).extrude(0.1, zpos=0.1)
+        board.fragment(part1)
+        board.fragment(part2)
+        gmsh.model.occ.synchronize()
+        assert get_mutual_points(board, part1) == [
+            (0, i) for i in [9, 10, 11, 12]
+        ]
+        assert get_mutual_points(board, part2) == [
+            (0, i) for i in [17, 18, 19, 20]
+        ]
+        assert get_mutual_points(part1, part2) == []
 
     """
     def test_gmshgeom2d_fix_list(self):
