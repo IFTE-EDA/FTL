@@ -811,6 +811,12 @@ class GMSHGeom3D(AbstractGeom3D):
         )
         return self
 
+    def physical_group(self, geoms: list[int], name: str) -> GMSHGeom3D:
+        gmsh.model.addPhysicalGroup(
+            3, geoms, tag=gmsh.model.getPhysicalGroup(3, name)
+        )
+        return self
+
     def plot(self, title: str = ""):
         gmsh.model.occ.synchronize()
         all_entities = gmsh.model.occ.getEntities(-1)
@@ -818,3 +824,78 @@ class GMSHGeom3D(AbstractGeom3D):
         gmsh.model.setVisibility(self.dimtags(), 1, True)
         gmsh.fltk.setStatusMessage(title)
         gmsh.fltk.run()
+
+
+class GMSHGeomGroup3D:
+    def __init__(self, geoms: list[GMSHGeom3D] = []):
+        self.geoms = geoms
+
+    def add(self, geom: GMSHGeom2D):
+        self.geoms.append(geom)
+        return self
+
+    def fuse(self):
+        if len(self.geoms) == 0:
+            return self
+        if len(self.geoms) == 1:
+            return self.geoms[0]
+        fused = GMSHGeom2D.make_compound(self.geoms)
+        self.geoms = fused.geoms
+        return self
+
+    def cutout(self, geoms: (GMSHGeom2D, sh.Polygon)) -> GMSHGeomGroup3D:
+        if isinstance(geoms, GMSHGeom2D):
+            geoms = geoms.geoms
+        if (
+            isinstance(geoms, list)
+            and len(geoms)
+            and isinstance(geoms[0], GMSHGeom2D)
+        ):
+            ret = []
+            for g in geoms:
+                ret.extend(g.geoms)
+            geoms = ret
+        if not isinstance(geoms, list):
+            geoms = [geoms]
+        if geoms == []:
+            return self
+        for g in self.geoms:
+            g.cutout(geoms)
+        return self
+
+    def translate(self, x: float = 0, y: float = 0) -> GMSHGeomGroup3D:
+        for g in self.geoms:
+            g.translate(x, y)
+        return self
+
+    def rotate(
+        self, angle: float = 0, center: tuple(float, float) = (0, 0)
+    ) -> GMSHGeomGroup3D:
+        for g in self.geoms:
+            g.rotate(angle, center)
+        return self
+
+    def plot(self, title: str = ""):
+        for g in self.geoms:
+            g.plot(title)
+        return self
+
+    def set_visible(self, visible: bool = True):
+        for g in self.geoms:
+            g.set_visible(visible)
+        return self
+
+    def fragment(self, geoms: (GMSHGeom2D, GMSHGeom3D)) -> GMSHGeomGroup3D:
+        pass
+
+
+class GMSHGeomContainer:
+    def __init__(self, geoms: list[GMSHGeom3D] = []):
+        self.geoms = geoms
+
+    def add(self, geom: GMSHGeom3D):
+        self.geoms.append(geom)
+        return self
+
+    def fuse(self):
+        pass
