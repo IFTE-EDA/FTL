@@ -24,7 +24,7 @@ class FTLGeom2D(AbstractGeom2D):
         self.z = z
 
     @classmethod
-    def make_compound(cls, geoms: FTLGeom2D) -> FTLGeom2D:
+    def make_fusion(cls, geoms: FTLGeom2D) -> FTLGeom2D:
         # if isinstance(geoms, FTLGeom2D):
         #    return geoms
 

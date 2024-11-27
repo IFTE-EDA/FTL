@@ -12,7 +12,7 @@ class FTLGeom:
 class AbstractGeom2D(ABC, FTLGeom):
     @classmethod
     @abstractmethod
-    def make_compound(cls, geoms: AbstractGeom2D) -> AbstractGeom2D:
+    def make_fusion(cls, geoms: AbstractGeom2D) -> AbstractGeom2D:
         pass
 
     @classmethod

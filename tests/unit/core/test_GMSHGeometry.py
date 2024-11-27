@@ -737,7 +737,7 @@ class Test_GMSHGeom2D:
         assert get_bbox_rounded(3, 1) == [0, 0, 0.2, 1, 1, 0.3]
         assert extrusion.geoms == [1]
 
-    def test_gmshgeom2d_make_compound_disjunct(self):
+    def test_gmshgeom2d_make_fusion_disjunct(self):
         gmsh.clear()
         geom1 = GMSHGeom2D().get_rectangle((0, 0), (1, 1))
         geom2 = GMSHGeom2D().get_rectangle((2, 2), (3, 3))
@@ -750,21 +750,21 @@ class Test_GMSHGeom2D:
         assert get_mass_rounded(2, 2) == 1
         assert get_bbox_rounded(2, 1) == [0, 0, 0, 1, 1, 0]
         assert get_bbox_rounded(2, 2) == [2, 2, 0, 3, 3, 0]
-        compound = GMSHGeom2D.make_compound([geom1, geom2])
-        assert isinstance(compound, GMSHGeom2D)
+        fusion = GMSHGeom2D.make_fusion([geom1, geom2])
+        assert isinstance(fusion, GMSHGeom2D)
         assert gmsh.model.occ.getEntities(0) == [(0, i) for i in range(1, 9)]
         assert gmsh.model.occ.getEntities(1) == [(1, i) for i in range(1, 9)]
         assert gmsh.model.occ.getEntities(2) == [(2, i) for i in range(1, 3)]
-        assert compound.geoms == [1, 2]
+        assert fusion.geoms == [1, 2]
 
-    def test_gmshgeom2d_make_compound_touching_point(self):
+    def test_gmshgeom2d_make_fusion_touching_point(self):
         gmsh.clear()
         geom1 = GMSHGeom2D().get_rectangle((0, 0), (1, 1))
         geom2 = GMSHGeom2D().get_rectangle((1, 1), (2, 2))
         assert geom1.geoms == [1]
         assert geom2.geoms == [2]
-        compound = GMSHGeom2D.make_compound([geom1, geom2])
-        assert isinstance(compound, GMSHGeom2D)
+        fusion = GMSHGeom2D.make_fusion([geom1, geom2])
+        assert isinstance(fusion, GMSHGeom2D)
         assert gmsh.model.occ.getEntities(0) == [(0, i) for i in range(1, 8)]
         assert gmsh.model.occ.getEntities(1) == [(1, i) for i in range(1, 9)]
         assert gmsh.model.occ.getEntities(2) == [(2, i) for i in range(1, 3)]
@@ -773,16 +773,16 @@ class Test_GMSHGeom2D:
         assert get_bbox_rounded(2, 1) == [0, 0, 0, 1, 1, 0]
         assert get_bbox_rounded(2, 2) == [1, 1, 0, 2, 2, 0]
 
-    def test_gmshgeom2d_make_compound_overlapping(self):
+    def test_gmshgeom2d_make_fusion_overlapping(self):
         gmsh.clear()
         geom1 = GMSHGeom2D().get_rectangle((0, 0), (2, 2))
         geom2 = GMSHGeom2D().get_rectangle((1, 1), (3, 3))
         assert geom1.geoms == [1]
         assert geom2.geoms == [2]
         # geom1.plot()
-        compound = GMSHGeom2D.make_compound([geom1, geom2])
+        fusion = GMSHGeom2D.make_fusion([geom1, geom2])
         # compound.plot()
-        assert isinstance(compound, GMSHGeom2D)
+        assert isinstance(fusion, GMSHGeom2D)
         print(gmsh.model.occ.getEntities())
         assert gmsh.model.occ.getEntities(0) == [(0, i) for i in range(6, 14)]
         assert gmsh.model.occ.getEntities(1) == [(1, i) for i in range(6, 14)]
@@ -841,7 +841,7 @@ class Test_GMSHGeom2D:
         assert get_mass_rounded(3, 1) == 0.7
         assert get_bbox_rounded(3, 1) == [0, 0, 0, 3, 3, 0.1]
 
-    # TODO: test for empty objects/lists in make_compound
+    # TODO: test for empty objects/lists in make_fusion
 
 
 class Test_GMSHGeom3D:
@@ -930,14 +930,14 @@ class Test_GMSHGeom3D:
         geom3d = geom2d_1.to_3D(0.1)
         assert geom3d.geom2d != geom2d_2
 
-    def test_gmshgeom3d_make_compound_touching(self):
+    def test_gmshgeom3d_make_fusion_touching(self):
         gmsh.clear()
         geom1 = GMSHGeom2D.get_rectangle((0, 0), (1, 1)).extrude(0.1)
         geom2 = GMSHGeom2D.get_rectangle((0, 1), (1, 2)).extrude(0.1)
-        compound = GMSHGeom3D.make_compound([geom1, geom2])
+        fusion = GMSHGeom3D.make_fusion([geom1, geom2])
         gmsh.model.occ.synchronize()
         print(gmsh.model.occ.getEntities())
-        assert compound.geoms == [1]
+        assert fusion.geoms == [1]
         assert (3, 1) in gmsh.model.occ.getEntities() and not (
             3,
             2,
@@ -948,14 +948,14 @@ class Test_GMSHGeom3D:
         ]
         assert bbox_rounded == [0, 0, 0, 1, 2, 0.1]
 
-    def test_gmshgeom3d_make_compound_disjunct(self):
+    def test_gmshgeom3d_make_fusion_disjunct(self):
         gmsh.clear()
         geom1 = GMSHGeom2D.get_rectangle((0, 0), (1, 1)).extrude(0.1)
         geom2 = GMSHGeom2D.get_rectangle((2, 2), (3, 3)).extrude(0.1)
-        compound = GMSHGeom3D.make_compound([geom1, geom2])
+        fusion = GMSHGeom3D.make_fusion([geom1, geom2])
         gmsh.model.occ.synchronize()
         print(gmsh.model.occ.getEntities())
-        assert compound.geoms == [1, 2]
+        assert fusion.geoms == [1, 2]
         assert (3, 1) in gmsh.model.occ.getEntities() and (
             3,
             2,

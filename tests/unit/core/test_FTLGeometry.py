@@ -259,7 +259,7 @@ class Test_FTLGeom2D:
         geom1.add_polygon(sh.geometry.box(0, 0, 1, 1))
         geom2 = FTLGeom2D()
         geom2.add_polygon(sh.geometry.box(2, 2, 3, 3))
-        compound = FTLGeom2D.make_compound([geom1, geom2])
+        compound = FTLGeom2D.make_fusion([geom1, geom2])
         assert isinstance(compound, FTLGeom2D)
         assert len(compound.polygons.geoms) == 2
         assert compound.polygons.equals(

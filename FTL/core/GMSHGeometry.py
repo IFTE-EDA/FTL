@@ -45,7 +45,7 @@ class GMSHGeom2D(AbstractGeom2D):
             print("GMSH was started.")
 
     @classmethod
-    def make_compound(cls, geoms: GMSHGeom2D) -> GMSHGeom2D:
+    def make_fusion(cls, geoms: GMSHGeom2D) -> GMSHGeom2D:
         def _flatten(lst):
             for el in lst:
                 if isinstance(el, (list, tuple)):
@@ -724,7 +724,7 @@ class GMSHGeom3D(AbstractGeom3D):
         return dimtags(self.geoms, 3)
 
     @classmethod
-    def make_compound(cls, geoms: GMSHGeom3D) -> GMSHGeom3D:
+    def make_fusion(cls, geoms: GMSHGeom3D) -> GMSHGeom3D:
         def _flatten(lst):
             for el in lst:
                 if isinstance(el, (list, tuple)):
@@ -845,7 +845,7 @@ class GMSHGeomGroup3D:
             return self
         if len(self.geoms) == 1:
             return self.geoms[0]
-        fused = GMSHGeom2D.make_compound(self.geoms)
+        fused = GMSHGeom2D.make_fusion(self.geoms)
         self.geoms = fused.geoms
         return self
 

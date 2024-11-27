@@ -321,7 +321,7 @@ class KiCADStackupManager(Loggable):
             zmin = min(layer1.zmin, layer2.zmin)
             zmax = max(layer1.zmax, layer2.zmax)
             renders.append(shape.extrude(zmax - zmin, zpos=zmin))
-        return GMSHGeom3D.make_compound(renders)
+        return GMSHGeom3D.make_fusion(renders)
 
     def _dispatch(self, dest: str, obj: KiCADObject, func):
         dest = dest.strip('"')
@@ -557,7 +557,7 @@ class KiCADLayer(Loggable):
         segments = self.render_segments()
         arcs = self.render_arcs()
         zones = self.render_zones()
-        ret = GMSHGeom2D.make_compound(
+        ret = GMSHGeom2D.make_fusion(
             (self.footprints, shapes, segments, arcs, zones)
         )
         if self.name == "Edge.Cuts":
@@ -592,7 +592,7 @@ class KiCADLayer(Loggable):
             gmsh.model.occ.synchronize()
             gmsh.fltk.run()
         # ret.plot()
-        drills_rendered = GMSHGeom2D.make_compound(self.drills)
+        drills_rendered = GMSHGeom2D.make_fusion(self.drills)
         print(f"Plotting rendered layer {self.name}...")
         ret.cutout(drills_rendered)
         return ret
@@ -607,14 +607,14 @@ class KiCADLayer(Loggable):
             else:
                 for geom in self.geoms:
                     renders.append(geom.render())
-        return GMSHGeom2D.make_compound(renders)
+        return GMSHGeom2D.make_fusion(renders)
 
     def render_vias(self):
         renders = []
         if len(self.geoms["via"]) > 0:
             self.log_info(f"Rendering {len(self.geoms['via'])} vias...")
             renders = [via.render() for via in self.geoms["via"]]
-        return GMSHGeom2D.make_compound(renders)
+        return GMSHGeom2D.make_fusion(renders)
 
     def render_segments(self):
         renders = []
@@ -626,7 +626,7 @@ class KiCADLayer(Loggable):
                         (segment["start"], segment["end"]), segment["width"]
                     )
                 )
-        return GMSHGeom2D.make_compound(renders)
+        return GMSHGeom2D.make_fusion(renders)
 
     def render_arcs(self):
         renders = []
@@ -641,7 +641,7 @@ class KiCADLayer(Loggable):
                         arc["width"],
                     )
                 )
-        return GMSHGeom2D.make_compound(renders)
+        return GMSHGeom2D.make_fusion(renders)
 
     def render_zones(self):
         renders = []
@@ -653,7 +653,7 @@ class KiCADLayer(Loggable):
                 self.log_critical(f"Zone layer: {zone.layer}")
                 # render.plot()
                 renders.append(render)
-        return GMSHGeom2D.make_compound(renders)
+        return GMSHGeom2D.make_fusion(renders)
 
 
 class KiCADObject(ABC, Loggable):
@@ -733,7 +733,7 @@ class KiCADZone(KiCADObject):
 
     def render(self, layers: KiCADStackupManager = None):
         geom = [poly.render(layers) for poly in self.filled_polygon]
-        return GMSHGeom2D.make_compound(geom)
+        return GMSHGeom2D.make_fusion(geom)
 
 
 class KiCADPolygon(KiCADObject):
@@ -858,7 +858,7 @@ class KiCADFilledPolygon(KiCADObject):
             geom.add_polygon(self.exterior, self.holes, orient=False)
         # geom.extrude(1).wireframe().show().close()
         # vis = [sh.geometry.polygon.orient(sh.Polygon(p)) for p in self.exterior]
-        # GMSHGeom2D.make_compound(vis).plot()
+        # GMSHGeom2D.make_fusion(vis).plot()
         return geom
 
 
@@ -942,7 +942,7 @@ class KiCADPart(KiCADEntity):
         self.log_info("->Rendering shapes...")
         # TODO: undo
         shapes = []  # self.render_shapes(layers)
-        return GMSHGeom2D.make_compound((pads, shapes))
+        return GMSHGeom2D.make_fusion((pads, shapes))
 
     def render_pads(self, layers: KiCADStackupManager = None) -> GMSHGeom2D:
         rendered_pads = []
@@ -984,7 +984,7 @@ class KiCADPart(KiCADEntity):
                         )
                         layers.add_footprint(layer, render.get())
                     # print(f"Render: {render.geoms}")
-        return GMSHGeom2D.make_compound(rendered_pads)
+        return GMSHGeom2D.make_fusion(rendered_pads)
 
     def render_shapes(self, layers: KiCADStackupManager = None) -> GMSHGeom2D:
         geom = []
@@ -1082,7 +1082,7 @@ class KiCADPart(KiCADEntity):
         if len(self.geoms["fp_curve"]) > 0:
             self.log_info(f"Rendering {len(self.geoms['fp_curve'])} curves...")
             raise Exception("Curves not supported yet.")
-        ret = GMSHGeom2D.make_compound(geom)
+        ret = GMSHGeom2D.make_fusion(geom)
         ret.translate(self.at[0], self.at[1])
         return ret
 
