@@ -26,6 +26,8 @@ def dimtags2int(geoms: list[tuple[int, int]]) -> list[int]:
 
 
 class GMSHGeom2D(AbstractGeom2D):
+    dim = 2
+
     def __init__(
         self, z: float = 0, geoms: list[int] = None, name: str = "Unnamed"
     ):
@@ -698,6 +700,8 @@ class GMSHGeom2D(AbstractGeom2D):
 
 
 class GMSHGeom3D(AbstractGeom3D):
+    dim = 3
+
     def __init__(
         self,
         geoms: list[int] = [],
@@ -803,12 +807,14 @@ class GMSHGeom3D(AbstractGeom3D):
         # self._fuse_all()
         objlist = self.dimtags() + geoms
         print("Fragmenting List: ", objlist)
-        gmsh.model.occ.fragment(
+        frag = gmsh.model.occ.fragment(
             objlist,
             objlist,
             removeObject=True,
             removeTool=True,
         )
+        print("New Fragment: ", frag[1])
+        print("Whole Fragment: ", frag)
         return self
 
     def physical_group(self, geoms: list[int], name: str) -> GMSHGeom3D:
@@ -889,13 +895,94 @@ class GMSHGeomGroup3D:
         pass
 
 
-class GMSHGeomContainer:
-    def __init__(self, geoms: list[GMSHGeom3D] = []):
-        self.geoms = geoms
+class GMSHPhysicalGroup:
+    def __init__(
+        self, geoms: (GMSHGeom3D, list[GMSHGeom3D]) = None, name="", dim=None
+    ):
+        self.geoms = [] if geoms is None else geoms
+        self.name = name
+        self.dim = dim
+        if dim is None and len(self.geoms):
+            self.dim = geoms[0].dim
+        self.dimtag = None
 
     def add(self, geom: GMSHGeom3D):
-        self.geoms.append(geom)
+        if isinstance(geom, GMSHGeom3D):
+            return self._add(geom)
+        if isinstance(geom, (list, tuple)):
+            for g in geom:
+                self._add(g)
+            return self
+        raise TypeError(
+            f"Invalid type for adding to physical group: {type(geom)}"
+        )
+
+    def _add(self, geom: GMSHGeom3D):
+        if geom.dim == self.dim:
+            self.geoms.append(geom)
+        else:
+            # dimension mismatch or dim == None
+            if self.dim is None:
+                # okay, we just didn't initialize the dimension yet
+                self.dim = geom.dim
+                self.geoms.append(geom)
+            else:
+                # TODO: add own exception class
+                raise Exception(
+                    f"Dimension mismatch: {self.dim} != {geom.dim}"
+                )
         return self
 
-    def fuse(self):
-        pass
+    def remove(self, geom: GMSHGeom3D):
+        if isinstance(geom, (list, tuple)):
+            for g in geom:
+                self._remove(g)
+            return self
+        else:
+            return self._remove(geom)
+
+    def _remove(self, geom: GMSHGeom3D):
+        if isinstance(geom, tuple):
+            # remove plain dimtag
+            self._remove_dimtag(geom)
+        elif isinstance(geom, GMSHGeom3D):
+            self.geoms.remove(geom)
+        else:
+            raise TypeError(
+                "Invalid type for removing from physical group: ", type(geom)
+            )
+        return self
+
+    # TODO: use this carefully. Removes the complete object right now where the dimtag is found in.
+    def remove_dimtags(self, dimtags: tuple[int, int]):
+        print("Removing from dimtags: ", dimtags)
+        for dimtag in dimtags:
+            self._remove_dimtag(dimtag)
+
+    def _remove_dimtag(self, dimtag: tuple[int, int]):
+        print("Removing from dimtag: ", dimtag)
+        for g in self.geoms:
+            print("Checking: ", g.dimtags())
+            if dimtag in g.dimtags():
+                self.geoms.remove(g)
+                print("Removed: ", g)
+                return self
+
+    def dimtags(self):
+        ret = []
+        for g in self.geoms:
+            ret.extend(g.dimtags())
+        return ret
+
+    def _tags(self):
+        return [dimtag[1] for dimtag in self.dimtags()]
+
+    def commit(self):
+        print("Committing physical group: ", self.name)
+        print("Dim: ", self.dim)
+        print("Geoms: ", self.geoms)
+        print("Dimtags: ", self.dimtags())
+        self.dimtag = gmsh.model.add_physical_group(
+            self.dim, self._tags(), name=self.name
+        )
+        return self
