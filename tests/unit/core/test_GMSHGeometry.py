@@ -16,7 +16,9 @@ from FTL.core.GMSHGeometry import (
     GMSHPhysicalGroup,
     dimtags,
     dimtags2int,
+    DimensionError,
 )
+import pytest
 
 PRECISION_DIGITS = 2
 
@@ -1082,17 +1084,50 @@ class Test_GMSHGeom3D:
         assert group.name == ""
         assert group.dimtag is None
 
-    def test_gmshphysicalgroup_create_geoms(self):
+    def test_gmshphysicalgroup_create_2d(self):
+        gmsh.clear()
+        group = GMSHPhysicalGroup(dim=2)
+        assert group.dim == 2
+        assert group.geoms == []
+        assert group.dimtags() == []
+        assert group.name == ""
+        assert group.dimtag is None
+
+    def test_gmshphysicalgroup_create_geoms_2d(self):
+        gmsh.clear()
+        geom1 = GMSHGeom2D.get_rectangle((0, 0), (1, 1))
+        geom2 = GMSHGeom2D.get_rectangle((2, 2), (3, 3))
+        group = GMSHPhysicalGroup([geom1, geom2])
+        assert group.dim == 2
+        assert group.geoms == [geom1, geom2]
+        assert group.dimtags() == [(2, 1), (2, 2)]
+
+    def test_gmshphysicalgroup_create_geoms_3d(self):
         gmsh.clear()
         geom1 = GMSHGeom2D.get_rectangle((0, 0), (1, 1))
         geom2 = GMSHGeom2D.get_rectangle((2, 2), (3, 3))
         extrusion1 = geom1.extrude(0.1)
         extrusion2 = geom2.extrude(0.1)
         group = GMSHPhysicalGroup([extrusion1, extrusion2])
+        assert group.dim == 3
         assert group.geoms == [extrusion1, extrusion2]
         assert group.dimtags() == [(3, 1), (3, 2)]
 
-    def test_gmshgeomphysicalgroup_add_single_elements(self):
+    def test_gmshphysicalgroup_add_single_elements_2d(self):
+        gmsh.clear()
+        geom1 = GMSHGeom2D.get_rectangle((0, 0), (1, 1))
+        geom2 = GMSHGeom2D.get_rectangle((2, 2), (3, 3))
+        group = GMSHPhysicalGroup()
+        assert group.geoms == []
+        assert group.dimtags() == []
+        group.add(geom1)
+        assert group.geoms == [geom1]
+        assert group.dimtags() == [(2, 1)]
+        group.add(geom2)
+        assert group.geoms == [geom1, geom2]
+        assert group.dimtags() == [(2, 1), (2, 2)]
+
+    def test_gmshphysicalgroup_add_single_elements_3d(self):
         gmsh.clear()
         geom1 = GMSHGeom2D.get_rectangle((0, 0), (1, 1))
         geom2 = GMSHGeom2D.get_rectangle((2, 2), (3, 3))
@@ -1108,7 +1143,19 @@ class Test_GMSHGeom3D:
         assert group.geoms == [extrusion1, extrusion2]
         assert group.dimtags() == [(3, 1), (3, 2)]
 
-    def test_gmshgeomphysicalgroup_add_element_list(self):
+    def test_gmshphysicalgroup_add_element_list_2d(self):
+        gmsh.clear()
+        geom1 = GMSHGeom2D.get_rectangle((0, 0), (1, 1))
+        geom2 = GMSHGeom2D.get_rectangle((2, 2), (3, 3))
+        group = GMSHPhysicalGroup()
+        print("Groups: ", group.geoms)
+        assert group.geoms == []
+        assert group.dimtags() == []
+        group.add([geom1, geom2])
+        assert group.geoms == [geom1, geom2]
+        assert group.dimtags() == [(2, 1), (2, 2)]
+
+    def test_gmshphysicalgroup_add_element_list_3d(self):
         gmsh.clear()
         geom1 = GMSHGeom2D.get_rectangle((0, 0), (1, 1))
         geom2 = GMSHGeom2D.get_rectangle((2, 2), (3, 3))
@@ -1122,7 +1169,41 @@ class Test_GMSHGeom3D:
         assert group.geoms == [extrusion1, extrusion2]
         assert group.dimtags() == [(3, 1), (3, 2)]
 
-    def test_gmshgeomphysicalgroup_remove_element_from_geom(self):
+    def test_gmshphysicalgroup_add_2d_element_to_3d_group(self):
+        gmsh.clear()
+        geom1 = GMSHGeom2D.get_rectangle((0, 0), (1, 1))
+        extrusion1 = geom1.extrude(0.1)
+        group = GMSHPhysicalGroup()
+        group.add(extrusion1)
+        try:
+            group.add(geom1)
+        except DimensionError:
+            return
+        assert False
+
+    def test_gmshphysicalgroup_add_3d_element_to_2d_group(self):
+        gmsh.clear()
+        geom1 = GMSHGeom2D.get_rectangle((0, 0), (1, 1))
+        extrusion1 = geom1.extrude(0.1)
+        group = GMSHPhysicalGroup()
+        group.add(geom1)
+        try:
+            group.add(extrusion1)
+        except DimensionError:
+            return
+        assert False
+
+    def test_gmshphysicalgroup_remove_element_from_geom_2d(self):
+        gmsh.clear()
+        geom1 = GMSHGeom2D.get_rectangle((0, 0), (1, 1))
+        geom2 = GMSHGeom2D.get_rectangle((2, 2), (3, 3))
+        gmsh.model.occ.synchronize()
+        group = GMSHPhysicalGroup([geom1, geom2])
+        group.remove(geom1)
+        assert group.geoms == [geom2]
+        assert group.dimtags() == [(2, 2)]
+
+    def test_gmshphysicalgroup_remove_element_from_geom_3d(self):
         gmsh.clear()
         geom1 = GMSHGeom2D.get_rectangle((0, 0), (1, 1))
         geom2 = GMSHGeom2D.get_rectangle((2, 2), (3, 3))
@@ -1134,7 +1215,18 @@ class Test_GMSHGeom3D:
         assert group.geoms == [extrusion2]
         assert group.dimtags() == [(3, 2)]
 
-    def test_gmshgeomphysicalgroup_remove_element_from_geoms(self):
+    def test_gmshphysicalgroup_remove_element_from_geoms_2d(self):
+        gmsh.clear()
+        geom1 = GMSHGeom2D.get_rectangle((0, 0), (1, 1))
+        geom2 = GMSHGeom2D.get_rectangle((2, 2), (3, 3))
+        geom3 = GMSHGeom2D.get_rectangle((4, 4), (5, 5))
+        gmsh.model.occ.synchronize()
+        group = GMSHPhysicalGroup([geom1, geom2, geom3])
+        group.remove((geom1, geom2))
+        assert group.geoms == [geom3]
+        assert group.dimtags() == [(2, 3)]
+
+    def test_gmshphysicalgroup_remove_element_from_geoms_3d(self):
         gmsh.clear()
         geom1 = GMSHGeom2D.get_rectangle((0, 0), (1, 1))
         geom2 = GMSHGeom2D.get_rectangle((2, 2), (3, 3))
@@ -1148,7 +1240,17 @@ class Test_GMSHGeom3D:
         assert group.geoms == [extrusion3]
         assert group.dimtags() == [(3, 3)]
 
-    def test_gmshgeomphysicalgroup_remove_element_from_dimtag(self):
+    def test_gmshphysicalgroup_remove_element_from_dimtag_2d(self):
+        gmsh.clear()
+        geom1 = GMSHGeom2D.get_rectangle((0, 0), (1, 1))
+        geom2 = GMSHGeom2D.get_rectangle((2, 2), (3, 3))
+        gmsh.model.occ.synchronize()
+        group = GMSHPhysicalGroup([geom1, geom2])
+        group.remove_dimtags(geom1.dimtags())
+        assert group.geoms == [geom2]
+        assert group.dimtags() == [(2, 2)]
+
+    def test_gmshphysicalgroup_remove_element_from_dimtag_3d(self):
         gmsh.clear()
         geom1 = GMSHGeom2D.get_rectangle((0, 0), (1, 1))
         geom2 = GMSHGeom2D.get_rectangle((2, 2), (3, 3))
@@ -1160,7 +1262,18 @@ class Test_GMSHGeom3D:
         assert group.geoms == [extrusion2]
         assert group.dimtags() == [(3, 2)]
 
-    def test_gmshgeomphysicalgroup_commit(self):
+    def test_gmshphysicalgroup_commit_2d(self):
+        gmsh.clear()
+        geom1 = GMSHGeom2D.get_rectangle((0, 0), (1, 1))
+        geom2 = GMSHGeom2D.get_rectangle((2, 2), (3, 3))
+        gmsh.model.occ.synchronize()
+        group = GMSHPhysicalGroup([geom1, geom2], name="Test")
+        assert gmsh.model.get_physical_groups() == []
+        group.commit()
+        assert gmsh.model.get_physical_groups() == [(2, 1)]
+        assert gmsh.model.get_physical_name(2, 1) == "Test"
+
+    def test_gmshphysicalgroup_commit_3d(self):
         gmsh.clear()
         geom1 = GMSHGeom2D.get_rectangle((0, 0), (1, 1))
         geom2 = GMSHGeom2D.get_rectangle((2, 2), (3, 3))

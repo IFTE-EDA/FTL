@@ -895,6 +895,10 @@ class GMSHGeomGroup3D:
         pass
 
 
+class DimensionError(Exception):
+    pass
+
+
 class GMSHPhysicalGroup:
     def __init__(
         self, geoms: (GMSHGeom3D, list[GMSHGeom3D]) = None, name="", dim=None
@@ -906,8 +910,8 @@ class GMSHPhysicalGroup:
             self.dim = geoms[0].dim
         self.dimtag = None
 
-    def add(self, geom: GMSHGeom3D):
-        if isinstance(geom, GMSHGeom3D):
+    def add(self, geom: (GMSHGeom2D, GMSHGeom3D)):
+        if isinstance(geom, (GMSHGeom2D, GMSHGeom3D)):
             return self._add(geom)
         if isinstance(geom, (list, tuple)):
             for g in geom:
@@ -928,7 +932,7 @@ class GMSHPhysicalGroup:
                 self.geoms.append(geom)
             else:
                 # TODO: add own exception class
-                raise Exception(
+                raise DimensionError(
                     f"Dimension mismatch: {self.dim} != {geom.dim}"
                 )
         return self
@@ -941,11 +945,11 @@ class GMSHPhysicalGroup:
         else:
             return self._remove(geom)
 
-    def _remove(self, geom: GMSHGeom3D):
+    def _remove(self, geom: (GMSHGeom2D, GMSHGeom3D)):
         if isinstance(geom, tuple):
             # remove plain dimtag
             self._remove_dimtag(geom)
-        elif isinstance(geom, GMSHGeom3D):
+        elif isinstance(geom, (GMSHGeom2D, GMSHGeom3D)):
             self.geoms.remove(geom)
         else:
             raise TypeError(
