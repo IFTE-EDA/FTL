@@ -755,6 +755,47 @@ class GMSHGeom3D(AbstractGeom3D):
             return cls(geoms)
         return cls()
 
+    @classmethod
+    def make_compound(cls, geoms: GMSHGeom3D) -> GMSHGeom3D:
+        # TODO: keep this in a single place inside the class
+        def _flatten(lst):
+            for el in lst:
+                if isinstance(el, (list, tuple)):
+                    yield from _flatten(el)
+                else:
+                    yield el
+                    """
+                    if isinstance(el, GMSHGeom3D):
+                        yield from el.geoms
+                    else:
+                        yield el
+                    """
+
+        # it's a list of GMSHGeom2D (or list of lists)
+        if isinstance(geoms, (list, tuple)):
+            # geoms = reduce(operator.concat, geoms)
+            geoms = list(_flatten(geoms))
+        if len(geoms) > 1:
+            # objects = [(2, geoms[0])]
+            # TODO: Maybe switch over to a 1/n instead of n/n version?
+            objects = dimtags([g for geom in geoms for g in geom.geoms], 3)
+            # tools = [(2, tag) for tag in geoms[1:]]
+            print("Objects: ", objects)
+            ret = gmsh.model.occ.fragment(objects, objects)
+            new_geoms, map = ret
+            print("Map: ", map)
+            for i, e in enumerate(zip(objects, map)):
+                print(i, ") parent " + str(e[0]) + " -> child " + str(e[1]))
+                print("Old geoms: ", geoms[i].geoms)
+                geoms[i].geoms = dimtags2int(e[1])
+                print("New geoms: ", geoms[i].geoms)
+            print("Fragmented objects: ", new_geoms)
+            print("Ret: ", ret)
+            return cls(dimtags2int(new_geoms))
+        if len(geoms) == 1:
+            return cls(geoms)
+        return cls()
+
     def is_empty(self) -> bool:
         return not len(self.geoms)
 
@@ -987,6 +1028,6 @@ class GMSHPhysicalGroup:
         print("Geoms: ", self.geoms)
         print("Dimtags: ", self.dimtags())
         self.dimtag = gmsh.model.add_physical_group(
-            self.dim, self._tags(), name=self.name
+            self.dim, dimtags2int(self.dimtags()), name=self.name
         )
         return self

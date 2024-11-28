@@ -930,6 +930,8 @@ class Test_GMSHGeom3D:
         geom3d = geom2d_1.to_3D(0.1)
         assert geom3d.geom2d != geom2d_2
 
+    # TODO: make test for fusion of disjunct objects
+
     def test_gmshgeom3d_make_fusion_touching(self):
         gmsh.clear()
         geom1 = GMSHGeom2D.get_rectangle((0, 0), (1, 1)).extrude(0.1)
@@ -1336,6 +1338,120 @@ class Test_GMSHGeom3D:
         assert gmsh.model.get_physical_groups() == [(2, 1), (3, 2)]
         assert gmsh.model.get_physical_name(2, 1) == ""
         assert gmsh.model.get_physical_name(3, 2) == ""
+
+    def test_gmshgeom3d_make_compound_disjunct(self):
+        gmsh.clear()
+        geom1 = GMSHGeom2D.get_rectangle((0, 0), (1, 1)).extrude(0.1)
+        geom2 = GMSHGeom2D.get_rectangle((0, 2), (1, 3)).extrude(0.1)
+        geom3 = GMSHGeom2D.get_rectangle((0, 4), (1, 5)).extrude(0.1)
+        compound = GMSHGeom3D.make_compound([geom1, geom2, geom3])
+        gmsh.model.occ.synchronize()
+        assert compound.geoms == [1, 2, 3]
+        assert gmsh.model.occ.getEntities(3) == [(3, i) for i in range(1, 4)]
+        assert geom1.geoms == [1]
+        assert geom2.geoms == [2]
+        assert geom3.geoms == [3]
+        assert get_mass_rounded(3, 1) == 0.1
+        assert get_mass_rounded(3, 2) == 0.1
+        assert get_mass_rounded(3, 3) == 0.1
+        assert get_bbox_rounded(3, 1) == [0, 0, 0, 1, 1, 0.1]
+        assert get_bbox_rounded(3, 2) == [0, 2, 0, 1, 3, 0.1]
+        assert get_bbox_rounded(3, 3) == [0, 4, 0, 1, 5, 0.1]
+
+    def test_gmshgeom3d_make_compound_touching(self):
+        gmsh.clear()
+        geom1 = GMSHGeom2D.get_rectangle((0, 0), (1, 1)).extrude(0.1)
+        geom2 = GMSHGeom2D.get_rectangle((0, 1), (1, 2)).extrude(0.1)
+        geom3 = GMSHGeom2D.get_rectangle((0, 2), (1, 3)).extrude(0.1)
+        compound = GMSHGeom3D.make_compound([geom1, geom2, geom3])
+        gmsh.model.occ.synchronize()
+        assert compound.geoms == [1, 2, 3]
+        assert gmsh.model.occ.getEntities(3) == [(3, i) for i in range(1, 4)]
+        assert geom1.geoms == [1]
+        assert geom2.geoms == [2]
+        assert geom3.geoms == [3]
+        assert get_mass_rounded(3, 1) == 0.1
+        assert get_mass_rounded(3, 2) == 0.1
+        assert get_mass_rounded(3, 3) == 0.1
+        assert get_bbox_rounded(3, 1) == [0, 0, 0, 1, 1, 0.1]
+        assert get_bbox_rounded(3, 2) == [0, 1, 0, 1, 2, 0.1]
+        assert get_bbox_rounded(3, 3) == [0, 2, 0, 1, 3, 0.1]
+
+    def test_gmshgeom3d_make_compound_overlapping_2_parts(self):
+        gmsh.clear()
+        geom1 = GMSHGeom2D.get_rectangle((0, 0), (1, 1.5)).extrude(0.1)
+        geom2 = GMSHGeom2D.get_rectangle((0, 1), (1, 2)).extrude(0.1)
+        geom3 = GMSHGeom2D.get_rectangle((0, 2), (1, 3)).extrude(0.1)
+        compound = GMSHGeom3D.make_compound([geom1, geom2, geom3])
+        gmsh.model.occ.synchronize()
+        assert compound.geoms == [3, 4, 5, 6]
+        assert gmsh.model.occ.getEntities(3) == [(3, i) for i in range(3, 7)]
+        assert geom1.geoms == [4, 5]
+        assert geom2.geoms == [5, 6]
+        assert geom3.geoms == [3]
+        assert get_mass_rounded(3, 3) == 0.1
+        assert get_mass_rounded(3, 4) == 0.1
+        assert get_mass_rounded(3, 5) == 0.05
+        assert get_mass_rounded(3, 6) == 0.05
+        assert get_bbox_rounded(3, 3) == [0, 2, 0, 1, 3, 0.1]
+        assert get_bbox_rounded(3, 4) == [0, 0, 0, 1, 1, 0.1]
+        assert get_bbox_rounded(3, 5) == [0, 1, 0, 1, 1.5, 0.1]
+        assert get_bbox_rounded(3, 6) == [0, 1.5, 0, 1, 2, 0.1]
+
+    def test_gmshgeom3d_make_compound_overlapping_3_parts(self):
+        gmsh.clear()
+        geom1 = GMSHGeom2D.get_rectangle((0, 0), (2, 2)).extrude(0.1)
+        geom2 = GMSHGeom2D.get_rectangle((0, 1), (2, 3)).extrude(0.1)
+        geom3 = GMSHGeom2D.get_rectangle((1, 0.5), (3, 2.5)).extrude(0.1)
+        compound = GMSHGeom3D.make_compound([geom1, geom2, geom3])
+        gmsh.model.occ.synchronize()
+
+        assert compound.geoms == [1, 2, 3, 4, 5, 6, 7]
+        assert gmsh.model.occ.getEntities(3) == [(3, i) for i in range(1, 8)]
+        assert sorted(geom1.geoms) == [1, 2, 3, 4]
+        assert sorted(geom2.geoms) == [2, 4, 5, 6]
+        assert sorted(geom3.geoms) == [3, 4, 6, 7]
+
+        assert get_mass_rounded(3, 1) == 0.15
+        assert get_mass_rounded(3, 2) == 0.1
+        assert get_mass_rounded(3, 3) == 0.05
+        assert get_mass_rounded(3, 4) == 0.1
+        assert get_mass_rounded(3, 5) == 0.15
+        assert get_mass_rounded(3, 6) == 0.05
+        assert get_mass_rounded(3, 7) == 0.2
+
+        assert get_bbox_rounded(3, 1) == [0, 0, 0, 2, 1, 0.1]
+        assert get_bbox_rounded(3, 2) == [0, 1, 0, 1, 2, 0.1]
+        assert get_bbox_rounded(3, 3) == [1, 0.5, 0, 2, 1, 0.1]
+        assert get_bbox_rounded(3, 4) == [1, 1, 0, 2, 2, 0.1]
+        assert get_bbox_rounded(3, 5) == [0, 2, 0, 2, 3, 0.1]
+        assert get_bbox_rounded(3, 6) == [1, 2, 0, 2, 2.5, 0.1]
+        assert get_bbox_rounded(3, 7) == [2, 0.5, 0, 3, 2.5, 0.1]
+
+    """
+    def test_gmshgeom3d_make_fusion_disjunct(self):
+        gmsh.clear()
+        geom1 = GMSHGeom2D.get_rectangle((0, 0), (1, 1)).extrude(0.1)
+        geom2 = GMSHGeom2D.get_rectangle((2, 2), (3, 3)).extrude(0.1)
+        fusion = GMSHGeom3D.make_fusion([geom1, geom2])
+        gmsh.model.occ.synchronize()
+        print(gmsh.model.occ.getEntities())
+        assert fusion.geoms == [1, 2]
+        assert (3, 1) in gmsh.model.occ.getEntities() and (
+            3,
+            2,
+        ) in gmsh.model.occ.getEntities()
+        assert round(gmsh.model.occ.getMass(3, 1), 5) == 0.1
+        assert round(gmsh.model.occ.getMass(3, 2), 5) == 0.1
+        bbox_rounded = [
+            round(i, 2) for i in gmsh.model.occ.getBoundingBox(3, 1)
+        ]
+        assert bbox_rounded == [0, 0, 0, 1, 1, 0.1]
+        bbox_rounded = [
+            round(i, 2) for i in gmsh.model.occ.getBoundingBox(3, 2)
+        ]
+        assert bbox_rounded == [2, 2, 0, 3, 3, 0.1]
+        """
 
     """
     def test_gmshgeom2d_fix_list(self):
