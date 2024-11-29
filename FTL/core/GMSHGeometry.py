@@ -791,10 +791,10 @@ class GMSHGeom3D(AbstractGeom3D):
                 print("New geoms: ", geoms[i].geoms)
             print("Fragmented objects: ", new_geoms)
             print("Ret: ", ret)
-            return cls(dimtags2int(new_geoms))
+            return GMSHCompound3D(geoms)
         if len(geoms) == 1:
-            return cls(geoms)
-        return cls()
+            return GMSHCompound3D(geoms)
+        return GMSHCompound3D()
 
     def is_empty(self) -> bool:
         return not len(self.geoms)
@@ -828,6 +828,12 @@ class GMSHGeom3D(AbstractGeom3D):
     @geom2d.setter
     def geom2d(self, geom2d: GMSHGeom2D):
         self._geom2d = geom2d
+
+    def translate(
+        self, x: float = 0, y: float = 0, z: float = 0
+    ) -> GMSHGeom3D:
+        gmsh.model.occ.translate(self.dimtags(), x, y, z)
+        return self
 
     def fragment(self, geoms: (GMSHGeom2D, GMSHGeom3D)) -> GMSHGeom3D:
         if isinstance(geoms, GMSHGeom3D):
@@ -873,16 +879,36 @@ class GMSHGeom3D(AbstractGeom3D):
         gmsh.fltk.run()
 
 
-class GMSHGeomGroup3D:
-    def __init__(self, geoms: list[GMSHGeom3D] = []):
-        self.geoms = geoms
+class GMSHCompound3D:
+    def __init__(self, parts: list[GMSHGeom3D] = []):
+        self.parts = parts
 
-    def add(self, geom: GMSHGeom2D):
-        self.geoms.append(geom)
+    @property
+    def geoms(self):
+        return list(
+            set([dimtag for part in self.parts for dimtag in part.geoms])
+        )
+
+    def add(self, geom: GMSHGeom3D):
+        if isinstance(geom, GMSHGeom3D):
+            self.parts.append(geom)
+        elif isinstance(geom, GMSHCompound3D):
+            self.parts.extend(geom.parts)
+        elif isinstance(geom, (list, tuple)):
+            for g in geom:
+                self.add(g)
+        return self
+
+    def remove(self, geom: GMSHGeom3D):
+        if isinstance(geom, (list, tuple)):
+            for g in geom:
+                self.remove(g)
+        if isinstance(geom, GMSHGeom3D):
+            self.parts.remove(geom)
         return self
 
     def fuse(self):
-        if len(self.geoms) == 0:
+        if len(self.parts) == 0:
             return self
         if len(self.geoms) == 1:
             return self.geoms[0]
@@ -890,7 +916,7 @@ class GMSHGeomGroup3D:
         self.geoms = fused.geoms
         return self
 
-    def cutout(self, geoms: (GMSHGeom2D, sh.Polygon)) -> GMSHGeomGroup3D:
+    def cutout(self, geoms: (GMSHGeom2D, sh.Polygon)) -> GMSHCompound3D:
         if isinstance(geoms, GMSHGeom2D):
             geoms = geoms.geoms
         if (
@@ -910,21 +936,36 @@ class GMSHGeomGroup3D:
             g.cutout(geoms)
         return self
 
-    def translate(self, x: float = 0, y: float = 0) -> GMSHGeomGroup3D:
-        for g in self.geoms:
-            g.translate(x, y)
+    def dimtags(self) -> list[tuple[int, int]]:
+        return dimtags(self.geoms, 3)
+
+    def translate(
+        self, x: float = 0, y: float = 0, z: float = 0
+    ) -> GMSHCompound3D:
+        gmsh.model.occ.translate(self.dimtags(), x, y, z)
         return self
 
     def rotate(
-        self, angle: float = 0, center: tuple(float, float) = (0, 0)
-    ) -> GMSHGeomGroup3D:
-        for g in self.geoms:
-            g.rotate(angle, center)
+        self,
+        angle: float = 0,
+        center: tuple(float, float, float) = (0, 0, 0),
+        axis: tuple(float, float, float) = (0, 0, 1),
+    ) -> GMSHCompound3D:
+        gmsh.model.occ.rotate(
+            self.dimtags(),
+            x=center[0],
+            y=center[1],
+            z=center[2],
+            angle=math.radians(angle),
+            ax=axis[0],
+            ay=axis[1],
+            az=axis[2],
+        )
         return self
 
     def plot(self, title: str = ""):
-        for g in self.geoms:
-            g.plot(title)
+        for p in self.parts:
+            p.plot(title)
         return self
 
     def set_visible(self, visible: bool = True):
@@ -932,7 +973,7 @@ class GMSHGeomGroup3D:
             g.set_visible(visible)
         return self
 
-    def fragment(self, geoms: (GMSHGeom2D, GMSHGeom3D)) -> GMSHGeomGroup3D:
+    def fragment(self, geoms: (GMSHGeom2D, GMSHGeom3D)) -> GMSHCompound3D:
         pass
 
 
