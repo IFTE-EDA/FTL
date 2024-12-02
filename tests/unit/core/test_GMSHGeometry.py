@@ -1615,6 +1615,45 @@ class Test_GMSHGeom3D:
         compound.rotate(90)
         assert get_bbox_rounded(3, 1) == [0, 0, 0, 1, 1, 0.1]
 
+    def test_gmshcompound3d_keep_physical_groups(self):
+        gmsh.clear()
+        pad1 = GMSHGeom2D.get_rectangle((-5, -2), (-1, 2)).extrude(0.1)
+        pad2 = GMSHGeom2D.get_rectangle((1, -2), (5, 2)).extrude(0.1)
+        trace = GMSHGeom2D.get_rectangle((-3, -0.5), (3, 0.5)).extrude(0.1)
+        gPad1 = GMSHPhysicalGroup([pad1], name="Pad1")
+        gPad2 = GMSHPhysicalGroup([pad2], name="Pad2")
+        gTrace = GMSHPhysicalGroup([trace], name="Trace")
+        GMSHGeom3D.make_compound([pad1, pad2, trace])
+        gmsh.model.occ.synchronize()
+        gPad1.commit()
+        gPad2.commit()
+        gTrace.commit()
+        gmsh.model.occ.synchronize()
+        print(gTrace.geoms[0].dimtags())
+        print(gTrace.dimtags())
+        assert gmsh.model.get_physical_groups() == [(3, 1), (3, 2), (3, 3)]
+        assert gmsh.model.get_physical_name(3, 1) == "Pad1"
+        assert gmsh.model.get_physical_name(3, 2) == "Pad2"
+        assert gmsh.model.get_physical_name(3, 3) == "Trace"
+
+        assert sorted(gmsh.model.get_entities_for_physical_group(3, 1)) == [
+            1,
+            2,
+        ]
+        assert sorted(gmsh.model.get_entities_for_physical_group(3, 2)) == [
+            3,
+            4,
+        ]
+        assert sorted(gmsh.model.get_entities_for_physical_group(3, 3)) == [
+            2,
+            4,
+            5,
+        ]
+
+        assert sorted(gPad1.dimtags()) == [(3, 1), (3, 2)]
+        assert sorted(gPad2.dimtags()) == [(3, 3), (3, 4)]
+        assert sorted(gTrace.dimtags()) == [(3, 2), (3, 4), (3, 5)]
+
     """
     def test_gmshgeom2d_fix_list(self):
         geom = GMSHGeom2D()
