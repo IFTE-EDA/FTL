@@ -1039,7 +1039,7 @@ class GMSHPhysicalGroup:
             )
         return self
 
-    # TODO: use this carefully. Removes the complete object right now where the dimtag is found in.
+    # TODO: use this carefully. Removes the complete object right now where the dimtag is found in. Maybe add "force" argument?
     def remove_dimtags(self, dimtags: tuple[int, int]):
         print("Removing from dimtags: ", dimtags)
         for dimtag in dimtags:
@@ -1060,15 +1060,24 @@ class GMSHPhysicalGroup:
             ret.extend(g.dimtags())
         return ret
 
+    def fetch_dimtags(self):
+        return dimtags(
+            list(
+                gmsh.model.get_entities_for_physical_group(self.dim, self.tag)
+            ),
+            self.dim,
+        )
+
     def _tags(self):
         return [dimtag[1] for dimtag in self.dimtags()]
 
     def commit(self):
-        print("Committing physical group: ", self.name)
-        print("Dim: ", self.dim)
-        print("Geoms: ", self.geoms)
-        print("Dimtags: ", self.dimtags())
-        self.dimtag = gmsh.model.add_physical_group(
+        # print("Committing physical group: ", self.name)
+        # print("Dim: ", self.dim)
+        # print("Geoms: ", self.geoms)
+        # print("Dimtags: ", self.dimtags())
+        self.tag = gmsh.model.add_physical_group(
             self.dim, dimtags2int(self.dimtags()), name=self.name
         )
+        self.dimtag = (self.dim, self.tag)
         return self

@@ -1340,6 +1340,21 @@ class Test_GMSHGeom3D:
         assert gmsh.model.get_physical_name(2, 1) == ""
         assert gmsh.model.get_physical_name(3, 2) == ""
 
+    def test_gmshphysicalgroup_fetch_dimtags(self):
+        gmsh.clear()
+        geom1 = GMSHGeom2D.get_rectangle((0, 0), (1, 1))
+        geom2 = GMSHGeom2D.get_rectangle((2, 2), (3, 3))
+        geom3 = GMSHGeom2D.get_rectangle((4, 4), (5, 5))
+        extrusion1 = geom1.extrude(0.1)
+        extrusion2 = geom2.extrude(0.1)
+        extrusion3 = geom3.extrude(0.1)
+        gmsh.model.occ.synchronize()
+        group = GMSHPhysicalGroup([extrusion1, extrusion2, extrusion3])
+        gmsh.model.occ.synchronize()
+        group.commit()
+        assert group.dimtags() == [(3, 1), (3, 2), (3, 3)]
+        assert group.fetch_dimtags() == [(3, 1), (3, 2), (3, 3)]
+
     def test_gmshgeom3d_make_compound_disjunct(self):
         gmsh.clear()
         geom1 = GMSHGeom2D.get_rectangle((0, 0), (1, 1)).extrude(0.1)
