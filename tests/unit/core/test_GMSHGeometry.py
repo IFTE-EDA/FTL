@@ -917,6 +917,17 @@ class Test_GMSHGeom3D:
 
     # TODO: fuse_all() is not implemented in GMSHGeom3D
 
+    def test_gmshgeom3d_renumber_from_map(self):
+        gmsh.clear()
+        geom = (
+            GMSHGeom2D.get_rectangle((0, 0), (1, 1))
+            .add_rectangle((2, 2), (3, 3))
+            .extrude(0.1)
+        )
+        assert geom.geoms == [1, 2]
+        geom._renumber_from_map({1: 2, 2: 3})
+        assert geom.geoms == [2, 3]
+
     def test_gmshgeom3d_geom2d_equal(self):
         gmsh.clear()
         geom2d = GMSHGeom2D()
@@ -1036,6 +1047,33 @@ class Test_GMSHGeom3D:
             (0, i) for i in [10, 13, 16, 17]
         ]
     """
+
+    def test_gmshgeom3d_fragment_two_parts_with_multiple_geoms(self):
+        gmsh.clear()
+        board = GMSHGeom2D.get_rectangle((0, 0), (5, 5)).extrude(0.1)
+        part1 = (
+            GMSHGeom2D.get_rectangle((1, 1), (2, 2))
+            .add_rectangle((3, 1), (4, 2))
+            .extrude(0.1, zpos=0.1)
+        )
+        part2 = (
+            GMSHGeom2D.get_rectangle((1, 3), (2, 4))
+            .add_rectangle((3, 3), (4, 4))
+            .extrude(0.1, zpos=0.1)
+        )
+        part_mid = GMSHGeom2D.get_rectangle((1.5, 1.5), (3.5, 3.5)).extrude(
+            0.1, zpos=0.1
+        )
+        assert part1.geoms == [2, 3]
+        assert part2.geoms == [4, 5]
+        assert part_mid.geoms == [6]
+        # TODO: make it possible to use plain objects here
+        # board.fragment(part1.dimtags() + part2.dimtags() + part_mid.dimtags())
+        GMSHGeom3D.make_compound([board, part1, part2, part_mid])
+        gmsh.model.occ.synchronize()
+        assert sorted(part1.geoms) == [2, 3, 4, 5]
+        assert sorted(part2.geoms) == [6, 7, 8, 9]
+        assert sorted(part_mid.geoms) == [3, 5, 7, 8, 10]
 
     def test_gmshgeom3d_extrude_tops_single(self):
         gmsh.clear()

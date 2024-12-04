@@ -783,12 +783,19 @@ class GMSHGeom3D(AbstractGeom3D):
             print("Objects: ", objects)
             ret = gmsh.model.occ.fragment(objects, objects)
             new_geoms, map = ret
-            print("Map: ", map)
-            for i, e in enumerate(zip(objects, map)):
+            src_map = [e[1] for e in objects]
+            print("Src Map: ", src_map)
+            dst_map = [[e[1] for e in element] for element in map]
+            print("Dst Map: ", dst_map)
+            """for i, e in enumerate(zip(objects, map)):
                 print(i, ") parent " + str(e[0]) + " -> child " + str(e[1]))
                 print("Old geoms: ", geoms[i].geoms)
                 geoms[i].geoms = dimtags2int(e[1])
-                print("New geoms: ", geoms[i].geoms)
+                print("New geoms: ", geoms[i].geoms)"""
+            renumbering_map = dict(zip(src_map, dst_map))
+            print("Renumbering Map: ", renumbering_map)
+            for geom in geoms:
+                geom._renumber_from_map(renumbering_map)
             print("Fragmented objects: ", new_geoms)
             print("Ret: ", ret)
             return GMSHCompound3D(geoms)
@@ -804,6 +811,20 @@ class GMSHGeom3D(AbstractGeom3D):
 
     def _dimtags(self) -> list[tuple[int, int]]:
         return dimtags(self.geoms, 3)
+
+    def _renumber_from_map(self, entity_map: dict[int, int]):
+        def _flatten(lst):
+            for el in lst:
+                if isinstance(el, (list, tuple)):
+                    yield from _flatten(el)
+                else:
+                    yield el
+
+        for i in range(len(self.geoms)):
+            geom = self.geoms[i]
+            if geom in entity_map:
+                self.geoms[i] = entity_map[geom]
+        self.geoms = list(_flatten(self.geoms))
 
     # TODO: Support adding list of integers?
     def add_object(self, obj: int) -> None:
@@ -1039,12 +1060,12 @@ class GMSHPhysicalGroup:
             )
         return self
 
-    # TODO: use this carefully. Removes the complete object right now where the dimtag is found in. Maybe add "force" argument?
     def remove_dimtags(self, dimtags: tuple[int, int]):
         print("Removing from dimtags: ", dimtags)
         for dimtag in dimtags:
             self._remove_dimtag(dimtag)
 
+    # TODO: use this carefully. Removes the complete object right now where the dimtag is found in. Maybe add "force" argument?
     def _remove_dimtag(self, dimtag: tuple[int, int]):
         print("Removing from dimtag: ", dimtag)
         for g in self.geoms:
