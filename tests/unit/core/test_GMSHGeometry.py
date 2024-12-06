@@ -533,6 +533,24 @@ class Test_GMSHGeom2D:
         assert get_bbox_rounded(2, 1) == [-1.05, -0.05, 0, 1.05, 1.05, 0]
         assert geom.geoms == [1]
 
+    def test_gmshgeom2d_ripup(self):
+        gmsh.clear()
+        geom = GMSHGeom2D.get_rectangle((0, 0), (1, 1))
+        geom.add_rectangle((0, 2), (1, 3))
+        geom.add_rectangle((2, 0), (3, 1))
+        geom.add_rectangle((2, 2), (3, 3))
+        gmsh.model.occ.synchronize()
+        parts = geom.ripup()
+        assert len(parts) == 4
+        assert parts[0].geoms == [1]
+        assert parts[1].geoms == [2]
+        assert parts[2].geoms == [3]
+        assert parts[3].geoms == [4]
+        assert parts[0].name == "Unnamed_1"
+        assert parts[1].name == "Unnamed_2"
+        assert parts[2].name == "Unnamed_3"
+        assert parts[3].name == "Unnamed_4"
+
     def test_gmshgeom2d_fuse_all_overlapping(self):
         gmsh.clear()
         geom = GMSHGeom2D()
@@ -916,6 +934,24 @@ class Test_GMSHGeom3D:
         assert extrusion._dimtags() == [(3, 1), (3, 2)]
 
     # TODO: fuse_all() is not implemented in GMSHGeom3D
+
+    def test_gmshgeom3d_ripup(self):
+        gmsh.clear()
+        geom = GMSHGeom2D.get_rectangle((0, 0), (1, 1))
+        geom.add_rectangle((0, 2), (1, 3))
+        geom.add_rectangle((2, 0), (3, 1))
+        geom.add_rectangle((2, 2), (3, 3))
+        gmsh.model.occ.synchronize()
+        parts = geom.extrude(0.1).ripup()
+        assert len(parts) == 4
+        assert parts[0].geoms == [1]
+        assert parts[1].geoms == [2]
+        assert parts[2].geoms == [3]
+        assert parts[3].geoms == [4]
+        assert parts[0].name == "Unnamed_1"
+        assert parts[1].name == "Unnamed_2"
+        assert parts[2].name == "Unnamed_3"
+        assert parts[3].name == "Unnamed_4"
 
     def test_gmshgeom3d_renumber_from_map(self):
         gmsh.clear()

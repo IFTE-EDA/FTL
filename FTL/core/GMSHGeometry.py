@@ -28,6 +28,7 @@ def dimtags2int(geoms: list[tuple[int, int]]) -> list[int]:
 class GMSHGeom2D(AbstractGeom2D):
     dim = 2
 
+    # TODO: why is "z" at the first place?!?!
     def __init__(
         self, z: float = 0, geoms: list[int] = None, name: str = "Unnamed"
     ):
@@ -601,6 +602,12 @@ class GMSHGeom2D(AbstractGeom2D):
         self.geoms.append(surface)
         return self
 
+    def ripup(self) -> GMSHGeom2D:
+        return [
+            GMSHGeom2D(geoms=[g], name=f"{self.name}_{i+1}")
+            for i, g in enumerate(self.geoms)
+        ]
+
     def dimtags(self) -> list[tuple[int, int]]:
         return dimtags(self.geoms)
 
@@ -836,6 +843,12 @@ class GMSHGeom3D(AbstractGeom3D):
                 self.geoms.extend(obj.geoms)
                 return self
             raise TypeError("Object must be an integer or GMSHGeom3D.")
+
+    def ripup(self) -> GMSHGeom3D:
+        return [
+            GMSHGeom3D([g], name=f"{self.name}_{i+1}")
+            for i, g in enumerate(self.geoms)
+        ]
 
     @property
     def geom2d(self) -> GMSHGeom2D:
