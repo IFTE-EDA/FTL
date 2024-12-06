@@ -1016,6 +1016,8 @@ class DimensionError(Exception):
 
 
 class GMSHPhysicalGroup:
+    _groups = []
+
     def __init__(
         self, geoms: (GMSHGeom3D, list[GMSHGeom3D]) = None, name="", dim=None
     ):
@@ -1025,6 +1027,32 @@ class GMSHPhysicalGroup:
         if dim is None and len(self.geoms):
             self.dim = geoms[0].dim
         self.dimtag = None
+        self.tag = None
+        GMSHPhysicalGroup._groups.append(self)
+
+    @staticmethod
+    def commit_all():
+        for group in GMSHPhysicalGroup._groups:
+            group.commit()
+
+    @staticmethod
+    def delete_all():
+        for group in GMSHPhysicalGroup._groups.copy():
+            group.delete()
+
+    # TODO: implement "uncommit_all()"
+    def uncommit(self):
+        gmsh.model.remove_physical_groups([self.dimtag])
+        self.dimtag = None
+        self.tag = None
+
+    def delete(self):
+        if self.dimtag is not None:
+            self.uncommit()
+        GMSHPhysicalGroup._groups.remove(self)
+
+    def __len__(self):
+        return len(self.geoms)
 
     def add(self, geom: (GMSHGeom2D, GMSHGeom3D)):
         if isinstance(geom, (GMSHGeom2D, GMSHGeom3D)):

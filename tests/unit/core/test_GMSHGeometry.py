@@ -1190,6 +1190,42 @@ class Test_GMSHGeom3D:
         assert group.geoms == [extrusion1, extrusion2]
         assert group.dimtags() == [(3, 1), (3, 2)]
 
+    def test_gmshphysicalgroup_delete_uncommited(self):
+        gmsh.clear()
+        GMSHPhysicalGroup.delete_all()
+        assert GMSHPhysicalGroup._groups == []
+        geom = GMSHGeom2D.get_rectangle((0, 0), (1, 1))
+        group = GMSHPhysicalGroup([geom])
+        assert GMSHPhysicalGroup._groups == [group]
+        group.delete()
+        assert GMSHPhysicalGroup._groups == []
+
+    def test_gmshphysicalgroup_delete_commited(self):
+        gmsh.clear()
+        GMSHPhysicalGroup.delete_all()
+        geom = GMSHGeom2D.get_rectangle((0, 0), (1, 1))
+        group = GMSHPhysicalGroup([geom])
+        GMSHPhysicalGroup.commit_all()
+        assert GMSHPhysicalGroup._groups == [group]
+        group.delete()
+        assert GMSHPhysicalGroup._groups == []
+
+    def test_gmshphysicalgroup_delete_all(self):
+        gmsh.clear()
+        GMSHPhysicalGroup.delete_all()
+        assert GMSHPhysicalGroup._groups == []
+        assert gmsh.model.get_physical_groups() == []
+        geom1 = GMSHGeom2D.get_rectangle((0, 0), (1, 1))
+        geom2 = GMSHGeom2D.get_rectangle((2, 2), (3, 3))
+        GMSHPhysicalGroup([geom1])
+        GMSHPhysicalGroup([geom2])
+        assert gmsh.model.get_physical_groups() == []
+        GMSHPhysicalGroup.commit_all()
+        assert gmsh.model.get_physical_groups() == [(2, 1), (2, 2)]
+        GMSHPhysicalGroup.delete_all()
+        assert gmsh.model.get_physical_groups() == []
+        assert GMSHPhysicalGroup._groups == []
+
     def test_gmshphysicalgroup_add_single_elements_2d(self):
         gmsh.clear()
         geom1 = GMSHGeom2D.get_rectangle((0, 0), (1, 1))
@@ -1341,6 +1377,7 @@ class Test_GMSHGeom3D:
 
     def test_gmshphysicalgroup_commit_2d(self):
         gmsh.clear()
+        GMSHPhysicalGroup.delete_all()
         geom1 = GMSHGeom2D.get_rectangle((0, 0), (1, 1))
         geom2 = GMSHGeom2D.get_rectangle((2, 2), (3, 3))
         gmsh.model.occ.synchronize()
@@ -1352,6 +1389,7 @@ class Test_GMSHGeom3D:
 
     def test_gmshphysicalgroup_commit_3d(self):
         gmsh.clear()
+        GMSHPhysicalGroup.delete_all()
         geom1 = GMSHGeom2D.get_rectangle((0, 0), (1, 1))
         geom2 = GMSHGeom2D.get_rectangle((2, 2), (3, 3))
         extrusion1 = geom1.extrude(0.1)
@@ -1365,6 +1403,7 @@ class Test_GMSHGeom3D:
 
     def test_gmshphysicalgroup_commit_coexistence_different_names(self):
         gmsh.clear()
+        GMSHPhysicalGroup.delete_all()
         geom1 = GMSHGeom2D.get_rectangle((0, 0), (1, 1))
         geom2 = GMSHGeom2D.get_rectangle((2, 2), (3, 3))
         extrusion1 = geom1.extrude(0.1)
@@ -1382,6 +1421,7 @@ class Test_GMSHGeom3D:
 
     def test_gmshphysicalgroup_commit_coexistence_same_names(self):
         gmsh.clear()
+        GMSHPhysicalGroup.delete_all()
         geom1 = GMSHGeom2D.get_rectangle((0, 0), (1, 1))
         geom2 = GMSHGeom2D.get_rectangle((2, 2), (3, 3))
         extrusion1 = geom1.extrude(0.1)
@@ -1399,6 +1439,7 @@ class Test_GMSHGeom3D:
 
     def test_gmshphysicalgroup_commit_coexistence_no_names(self):
         gmsh.clear()
+        GMSHPhysicalGroup.delete_all()
         geom1 = GMSHGeom2D.get_rectangle((0, 0), (1, 1))
         geom2 = GMSHGeom2D.get_rectangle((2, 2), (3, 3))
         extrusion1 = geom1.extrude(0.1)
@@ -1413,6 +1454,33 @@ class Test_GMSHGeom3D:
         assert gmsh.model.get_physical_groups() == [(2, 1), (3, 2)]
         assert gmsh.model.get_physical_name(2, 1) == ""
         assert gmsh.model.get_physical_name(3, 2) == ""
+
+    def test_gmshphysicalgroup_commit_all(self):
+        gmsh.clear()
+        GMSHPhysicalGroup.delete_all()
+        geom1 = GMSHGeom2D.get_rectangle((0, 0), (1, 1))
+        geom2 = GMSHGeom2D.get_rectangle((2, 2), (3, 3))
+        extrusion1 = geom1.extrude(0.1)
+        extrusion2 = geom2.extrude(0.1)
+        gmsh.model.occ.synchronize()
+        GMSHPhysicalGroup([geom1, geom2], name="Test1")
+        GMSHPhysicalGroup([extrusion1, extrusion2], name="Test2")
+        assert gmsh.model.get_physical_groups() == []
+        GMSHPhysicalGroup.commit_all()
+        assert gmsh.model.get_physical_groups() == [(2, 1), (3, 2)]
+        assert gmsh.model.get_physical_name(2, 1) == "Test1"
+        assert gmsh.model.get_physical_name(3, 2) == "Test2"
+        gmsh.model.occ.synchronize()
+
+    def test_gmshphysicalgroup_uncommit(self):
+        gmsh.clear()
+        GMSHPhysicalGroup.delete_all()
+        geom = GMSHGeom2D.get_rectangle((0, 0), (1, 1))
+        group = GMSHPhysicalGroup([geom], name="Test")
+        group.commit()
+        assert gmsh.model.get_physical_groups() == [(2, 1)]
+        group.uncommit()
+        assert gmsh.model.get_physical_groups() == []
 
     def test_gmshphysicalgroup_fetch_dimtags(self):
         gmsh.clear()
