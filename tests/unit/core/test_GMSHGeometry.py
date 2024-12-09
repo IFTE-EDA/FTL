@@ -1207,8 +1207,10 @@ class Test_GMSHGeom3D:
         group = GMSHPhysicalGroup([geom])
         GMSHPhysicalGroup.commit_all()
         assert GMSHPhysicalGroup._groups == [group]
+        assert gmsh.model.get_physical_groups() == [(2, 1)]
         group.delete()
         assert GMSHPhysicalGroup._groups == []
+        assert gmsh.model.get_physical_groups() == []
 
     def test_gmshphysicalgroup_delete_all(self):
         gmsh.clear()
