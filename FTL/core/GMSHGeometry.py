@@ -1036,11 +1036,15 @@ class GMSHPhysicalGroup:
             group.commit()
 
     @staticmethod
+    def uncommit_all():
+        for group in GMSHPhysicalGroup._groups:
+            group.uncommit()
+
+    @staticmethod
     def delete_all():
         for group in GMSHPhysicalGroup._groups.copy():
             group.delete()
 
-    # TODO: implement "uncommit_all()"
     def uncommit(self):
         gmsh.model.remove_physical_groups([self.dimtag])
         self.dimtag = None

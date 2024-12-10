@@ -1484,6 +1484,23 @@ class Test_GMSHGeom3D:
         group.uncommit()
         assert gmsh.model.get_physical_groups() == []
 
+    def test_gmshphysicalgroup_uncommit_all(self):
+        gmsh.clear()
+        GMSHPhysicalGroup.delete_all()
+        geom1 = GMSHGeom2D.get_rectangle((0, 0), (1, 1))
+        geom2 = GMSHGeom2D.get_rectangle((2, 2), (3, 3))
+        group1 = GMSHPhysicalGroup([geom1], name="Test")
+        group2 = GMSHPhysicalGroup([geom2], name="Test2")
+        assert gmsh.model.get_physical_groups() == []
+        assert GMSHPhysicalGroup._groups == [group1, group2]
+        group1.commit()
+        group2.commit()
+        assert gmsh.model.get_physical_groups() == [(2, 1), (2, 2)]
+        assert GMSHPhysicalGroup._groups == [group1, group2]
+        GMSHPhysicalGroup.uncommit_all()
+        assert gmsh.model.get_physical_groups() == []
+        assert GMSHPhysicalGroup._groups == [group1, group2]
+
     def test_gmshphysicalgroup_fetch_dimtags(self):
         gmsh.clear()
         geom1 = GMSHGeom2D.get_rectangle((0, 0), (1, 1))
