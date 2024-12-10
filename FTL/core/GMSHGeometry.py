@@ -677,16 +677,16 @@ class GMSHGeom2D(AbstractGeom2D):
         if zpos != 0:
             gmsh.model.occ.translate(self.dimtags(), 0, 0, zpos)
         extr_all = gmsh.model.occ.extrude(self.dimtags(), 0, 0, thickness)
-        print("Extrude: ", extr_all)
+        # print("Extrude: ", extr_all)
         extr_bodies = [e[1] for e in extr_all if e[0] == 3]
-        print("Generated bodies: ", extr_bodies)
+        # print("Generated bodies: ", extr_bodies)
         extr_tops = []
         for part in extr_bodies:
             index = extr_all.index((3, part))
-            print("Index: ", index)
-            print("Index list: ", extr_all[index - 1])
+            # print("Index: ", index)
+            # print("Index list: ", extr_all[index - 1])
             extr_tops.append(extr_all[index - 1][1])
-        print("Generated tops: ", extr_tops)
+        # print("Generated tops: ", extr_tops)
         return GMSHGeom3D(extr_bodies, self, extr_tops)
 
     def to_3D(self, thickness: float, zpos: float = None) -> GMSHGeom3D:
@@ -844,7 +844,7 @@ class GMSHGeom3D(AbstractGeom3D):
                 return self
             raise TypeError("Object must be an integer or GMSHGeom3D.")
 
-    def ripup(self) -> GMSHGeom3D:
+    def ripup(self) -> list[GMSHGeom3D]:
         return [
             GMSHGeom3D([g], name=f"{self.name}_{i+1}")
             for i, g in enumerate(self.geoms)
@@ -903,6 +903,11 @@ class GMSHGeom3D(AbstractGeom3D):
             3, geoms, tag=gmsh.model.getPhysicalGroup(3, name)
         )
         return self
+
+    def create_group_solid(self, name: str):
+        group = GMSHPhysicalGroup(geoms=[self], name=name)
+        # gmsh.model.addPhysicalGroup(3, dimtags2int(self.dimtags()), tag=gmsh.model.getPhysicalGroup(3, name))
+        return group
 
     def plot(self, title: str = ""):
         gmsh.model.occ.synchronize()
@@ -1079,7 +1084,6 @@ class GMSHPhysicalGroup:
                 self.dim = geom.dim
                 self.geoms.append(geom)
             else:
-                # TODO: add own exception class
                 raise DimensionError(
                     f"Dimension mismatch: {self.dim} != {geom.dim}"
                 )
