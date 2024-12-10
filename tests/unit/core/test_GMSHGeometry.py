@@ -1516,6 +1516,24 @@ class Test_GMSHGeom3D:
         assert group.dimtags() == [(3, 1), (3, 2), (3, 3)]
         assert group.fetch_dimtags() == [(3, 1), (3, 2), (3, 3)]
 
+    def test_gmshgeom3d_create_group_solid(self):
+        gmsh.clear()
+        GMSHPhysicalGroup.delete_all()
+        geom = GMSHGeom2D.get_rectangle((0, 0), (1, 1))
+        geom.add_rectangle((2, 2), (3, 3))
+        geom.add_rectangle((4, 4), (5, 5))
+        extrusion = geom.extrude(0.1)
+        gmsh.model.occ.synchronize()
+        group = extrusion.create_group_solid("Test")
+        assert group.geoms == [extrusion]
+        assert gmsh.model.getEntities(3) == [(3, 1), (3, 2), (3, 3)]
+        assert group.dimtags() == [(3, 1), (3, 2), (3, 3)]
+        group.commit()
+        assert group.dimtag == (3, 1)
+        assert gmsh.model.get_physical_groups() == [(3, 1)]
+        assert gmsh.model.get_physical_name(3, 1) == "Test"
+        print(gmsh.model.get_entities_for_physical_group(3, 1)) == [1, 2, 3]
+
     def test_gmshgeom3d_make_compound_disjunct(self):
         gmsh.clear()
         geom1 = GMSHGeom2D.get_rectangle((0, 0), (1, 1)).extrude(0.1)
