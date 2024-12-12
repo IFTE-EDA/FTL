@@ -12,7 +12,7 @@ from shapely.geometry.polygon import orient
 import vedo as v
 import gmsh
 
-from FTL.core.ABCGeometry import AbstractGeom2D, AbstractGeom3D
+from FTL.core.ABCGeometry import FTLGeom, AbstractGeom2D, AbstractGeom3D
 
 
 def dimtags(geoms: list[int], dim: int = 2) -> list[tuple[int, int]]:
@@ -898,16 +898,28 @@ class GMSHGeom3D(AbstractGeom3D):
         print("Whole Fragment: ", frag)
         return self
 
-    def physical_group(self, geoms: list[int], name: str) -> GMSHGeom3D:
-        gmsh.model.addPhysicalGroup(
-            3, geoms, tag=gmsh.model.getPhysicalGroup(3, name)
-        )
-        return self
-
+    # TODO: assign standard names here
     def create_group_solid(self, name: str):
         group = GMSHPhysicalGroup(geoms=[self], name=name)
         # gmsh.model.addPhysicalGroup(3, dimtags2int(self.dimtags()), tag=gmsh.model.getPhysicalGroup(3, name))
         return group
+
+    def create_group_surface(self, name: str):
+        geoms = [
+            b[1]
+            for b in gmsh.model.get_boundary(
+                self.dimtags(), combined=True, oriented=False
+            )
+        ]
+        geom = GMSHGeom2D(geoms=geoms)
+        group = GMSHPhysicalGroup([geom], name=name)
+        # gmsh.model.addPhysicalGroup(2, dimtags2int(self.dimtags()), tag=gmsh.model.getPhysicalGroup(2, name))
+        return group
+
+    def create_elmer_body(self, name: str):
+        solid_group = self.create_group_solid(name + ".solid")
+        surface_group = self.create_group_surface(name + ".surface")
+        return (solid_group, surface_group)
 
     def plot(self, title: str = ""):
         gmsh.model.occ.synchronize()
@@ -1027,6 +1039,8 @@ class GMSHPhysicalGroup:
         self, geoms: (GMSHGeom3D, list[GMSHGeom3D]) = None, name="", dim=None
     ):
         self.geoms = [] if geoms is None else geoms
+        if isinstance(geoms, FTLGeom):
+            self.geoms = [geoms]
         self.name = name
         self.dim = dim
         if dim is None and len(self.geoms):

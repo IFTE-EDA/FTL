@@ -1170,6 +1170,8 @@ class Test_GMSHGeom3D:
         assert group.name == ""
         assert group.dimtag is None
 
+    # TODO: create test for single geometry input
+
     def test_gmshphysicalgroup_create_geoms_2d(self):
         gmsh.clear()
         geom1 = GMSHGeom2D.get_rectangle((0, 0), (1, 1))
@@ -1516,7 +1518,7 @@ class Test_GMSHGeom3D:
         assert group.dimtags() == [(3, 1), (3, 2), (3, 3)]
         assert group.fetch_dimtags() == [(3, 1), (3, 2), (3, 3)]
 
-    def test_gmshgeom3d_create_group_solid(self):
+    def test_gmshgeom3d_create_group_solid_multi(self):
         gmsh.clear()
         GMSHPhysicalGroup.delete_all()
         geom = GMSHGeom2D.get_rectangle((0, 0), (1, 1))
@@ -1532,7 +1534,151 @@ class Test_GMSHGeom3D:
         assert group.dimtag == (3, 1)
         assert gmsh.model.get_physical_groups() == [(3, 1)]
         assert gmsh.model.get_physical_name(3, 1) == "Test"
-        print(gmsh.model.get_entities_for_physical_group(3, 1)) == [1, 2, 3]
+        assert list(gmsh.model.get_entities_for_physical_group(3, 1)) == [
+            1,
+            2,
+            3,
+        ]
+
+    def test_gmshgeom3d_create_group_solid_with_other_geom(self):
+        gmsh.clear()
+        GMSHPhysicalGroup.delete_all()
+        geom = GMSHGeom2D.get_rectangle((0, 0), (1, 1))
+        geom.add_rectangle((2, 2), (3, 3))
+        geom.add_rectangle((4, 4), (5, 5))
+        GMSHGeom2D.get_rectangle((6, 6), (7, 7)).extrude(0.1)
+        extrusion = geom.extrude(0.1)
+        gmsh.model.occ.synchronize()
+        group = extrusion.create_group_solid("Test")
+        assert group.geoms == [extrusion]
+        assert gmsh.model.getEntities(3) == [(3, 1), (3, 2), (3, 3), (3, 4)]
+        assert group.dimtags() == [(3, 2), (3, 3), (3, 4)]
+        group.commit()
+        assert group.dimtag == (3, 1)
+        assert gmsh.model.get_physical_groups() == [(3, 1)]
+        assert gmsh.model.get_physical_name(3, 1) == "Test"
+        assert list(gmsh.model.get_entities_for_physical_group(3, 1)) == [
+            2,
+            3,
+            4,
+        ]
+
+    def test_gmshgeom3d_create_group_surface(self):
+        gmsh.clear()
+        GMSHPhysicalGroup.delete_all()
+        geom = GMSHGeom2D.get_rectangle((0, 0), (1, 1))
+        # geom.add_rectangle((2, 2), (3, 3))
+        extrusion = geom.extrude(0.1)
+        gmsh.model.occ.synchronize()
+        group = extrusion.create_group_surface("Test")
+        # assert group.geoms == [extrusion]
+        assert group.dimtags() == [(2, i) for i in range(1, 7)]
+        group.commit()
+        # gmsh.fltk.run()
+        assert group.dimtag == (2, 1)
+        assert gmsh.model.get_physical_groups() == [(2, 1)]
+        assert gmsh.model.get_physical_name(2, 1) == "Test"
+        assert list(gmsh.model.get_entities_for_physical_group(2, 1)) == list(
+            range(1, 7)
+        )
+
+    def test_gmshgeom3d_create_group_surface_multi(self):
+        gmsh.clear()
+        GMSHPhysicalGroup.delete_all()
+        geom = GMSHGeom2D.get_rectangle((0, 0), (1, 1))
+        geom.add_rectangle((2, 2), (3, 3))
+        GMSHGeom2D.get_rectangle((4, 4), (5, 5)).extrude(0.1)
+        extrusion = geom.extrude(0.1)
+        gmsh.model.occ.synchronize()
+        group = extrusion.create_group_surface("Test")
+        assert group.dimtags() == [
+            (2, i) for i in [1, 2, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]
+        ]
+        group.commit()
+        assert group.dimtag == (2, 1)
+        assert gmsh.model.get_physical_groups() == [(2, 1)]
+        assert gmsh.model.get_physical_name(2, 1) == "Test"
+        assert list(gmsh.model.get_entities_for_physical_group(2, 1)) == [
+            1,
+            2,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+        ]
+
+    def test_gmshgeom3d_create_elmer_body(self):
+        gmsh.clear()
+        GMSHPhysicalGroup.delete_all()
+        geom = GMSHGeom2D.get_rectangle((0, 0), (1, 1))
+        extrusion = geom.extrude(0.1)
+        gmsh.model.occ.synchronize()
+        solid_group, surface_group = extrusion.create_elmer_body("Test")
+        assert solid_group.geoms == [extrusion]
+        assert solid_group.dimtags() == [(3, 1)]
+        assert surface_group.geoms[0].geoms == list(
+            range(1, 7)
+        )  # [(2, i) for i in range(1, 7)]
+        solid_group.commit()
+        surface_group.commit()
+        gmsh.model.occ.synchronize()
+        assert solid_group.dimtag == (3, 1)
+        assert gmsh.model.get_physical_groups() == [(2, 2), (3, 1)]
+        assert gmsh.model.get_physical_name(3, 1) == "Test.solid"
+        assert gmsh.model.get_physical_name(2, 2) == "Test.surface"
+        assert list(gmsh.model.get_entities_for_physical_group(3, 1)) == [1]
+        assert list(gmsh.model.get_entities_for_physical_group(2, 2)) == list(
+            range(1, 7)
+        )
+
+    def test_gmshgeom3d_create_elmer_bodies(self):
+        gmsh.clear()
+        GMSHPhysicalGroup.delete_all()
+        extrusion1 = GMSHGeom2D.get_rectangle((0, 0), (1, 1)).extrude(0.1)
+        extrusion2 = GMSHGeom2D.get_rectangle((2, 2), (3, 3)).extrude(0.1)
+        gmsh.model.occ.synchronize()
+        solid_group1, surface_group1 = extrusion1.create_elmer_body("Test1")
+        solid_group2, surface_group2 = extrusion2.create_elmer_body("Test2")
+        assert solid_group1.geoms == [extrusion1]
+        assert solid_group1.dimtags() == [(3, 1)]
+        assert surface_group1.geoms[0].geoms == list(
+            range(1, 7)
+        )  # [(2, i) for i in range(1, 7)]
+        assert solid_group2.geoms == [extrusion2]
+        assert solid_group2.dimtags() == [(3, 2)]
+        assert surface_group2.geoms[0].geoms == list(
+            range(7, 13)
+        )  # [(2, i) for i in range(1, 7)]
+
+        GMSHPhysicalGroup.commit_all()
+        gmsh.model.occ.synchronize()
+        assert gmsh.model.get_physical_groups() == [
+            (2, 2),
+            (2, 4),
+            (3, 1),
+            (3, 3),
+        ]
+
+        assert solid_group1.dimtag == (3, 1)
+        assert gmsh.model.get_physical_name(3, 1) == "Test1.solid"
+        assert gmsh.model.get_physical_name(2, 2) == "Test1.surface"
+        assert list(gmsh.model.get_entities_for_physical_group(3, 1)) == [1]
+        assert list(gmsh.model.get_entities_for_physical_group(2, 2)) == list(
+            range(1, 7)
+        )
+        assert solid_group2.dimtag == (3, 3)
+        assert gmsh.model.get_physical_name(3, 3) == "Test2.solid"
+        assert gmsh.model.get_physical_name(2, 4) == "Test2.surface"
+        assert list(gmsh.model.get_entities_for_physical_group(3, 3)) == [2]
+        assert list(gmsh.model.get_entities_for_physical_group(2, 4)) == list(
+            range(7, 13)
+        )
 
     def test_gmshgeom3d_make_compound_disjunct(self):
         gmsh.clear()
