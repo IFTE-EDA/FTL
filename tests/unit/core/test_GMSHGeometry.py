@@ -1310,6 +1310,8 @@ class Test_GMSHGeom3D:
             return
         assert False
 
+    # TODO: test if element added to an array given to the function does not change group content
+
     def test_gmshphysicalgroup_remove_element_from_geom_2d(self):
         gmsh.clear()
         geom1 = GMSHGeom2D.get_rectangle((0, 0), (1, 1))
@@ -1563,14 +1565,14 @@ class Test_GMSHGeom3D:
             4,
         ]
 
-    def test_gmshgeom3d_create_group_surface(self):
+    def test_gmshgeom3d_create_group_boundary(self):
         gmsh.clear()
         GMSHPhysicalGroup.delete_all()
         geom = GMSHGeom2D.get_rectangle((0, 0), (1, 1))
         # geom.add_rectangle((2, 2), (3, 3))
         extrusion = geom.extrude(0.1)
         gmsh.model.occ.synchronize()
-        group = extrusion.create_group_surface("Test")
+        group = extrusion.create_group_boundary("Test")
         # assert group.geoms == [extrusion]
         assert group.dimtags() == [(2, i) for i in range(1, 7)]
         group.commit()
@@ -1582,7 +1584,7 @@ class Test_GMSHGeom3D:
             range(1, 7)
         )
 
-    def test_gmshgeom3d_create_group_surface_multi(self):
+    def test_gmshgeom3d_create_group_boundary_multi(self):
         gmsh.clear()
         GMSHPhysicalGroup.delete_all()
         geom = GMSHGeom2D.get_rectangle((0, 0), (1, 1))
@@ -1590,7 +1592,7 @@ class Test_GMSHGeom3D:
         GMSHGeom2D.get_rectangle((4, 4), (5, 5)).extrude(0.1)
         extrusion = geom.extrude(0.1)
         gmsh.model.occ.synchronize()
-        group = extrusion.create_group_surface("Test")
+        group = extrusion.create_group_boundary("Test")
         assert group.dimtags() == [
             (2, i) for i in [1, 2, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]
         ]

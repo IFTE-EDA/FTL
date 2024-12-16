@@ -66,12 +66,12 @@ class GMSHGeom2D(AbstractGeom2D):
             objects = dimtags(geoms[0])
             tools = dimtags(geoms[1:])
             # tools = [(2, tag) for tag in geoms[1:]]
-            print("Objects: ", objects)
-            print("Tools: ", tools)
+            # print("Objects: ", objects)
+            # print("Tools: ", tools)
             if not isinstance(tools, list):
                 tools = [tools]
             geoms = dimtags2int(gmsh.model.occ.fuse(objects, tools)[0])
-            print("Fused: ", geoms)
+            # print("Fused: ", geoms)
             return cls(0, geoms)
         if len(geoms) == 1:
             return cls(0, geoms)
@@ -751,12 +751,12 @@ class GMSHGeom3D(AbstractGeom3D):
             objects = dimtags(geoms[0], 3)
             tools = dimtags(geoms[1:], 3)
             # tools = [(2, tag) for tag in geoms[1:]]
-            print("Objects: ", objects)
-            print("Tools: ", tools)
+            # print("Objects: ", objects)
+            # print("Tools: ", tools)
             if not isinstance(tools, list):
                 tools = [tools]
             geoms = dimtags2int(gmsh.model.occ.fuse(objects, tools)[0])
-            print("Fused: ", geoms)
+            # print("Fused: ", geoms)
             return cls(geoms)
         if len(geoms) == 1:
             return cls(geoms)
@@ -787,24 +787,24 @@ class GMSHGeom3D(AbstractGeom3D):
             # TODO: Maybe switch over to a 1/n instead of n/n version?
             objects = dimtags([g for geom in geoms for g in geom.geoms], 3)
             # tools = [(2, tag) for tag in geoms[1:]]
-            print("Objects: ", objects)
+            # print("Objects: ", objects)
             ret = gmsh.model.occ.fragment(objects, objects)
             new_geoms, map = ret
             src_map = [e[1] for e in objects]
-            print("Src Map: ", src_map)
+            # print("Src Map: ", src_map)
             dst_map = [[e[1] for e in element] for element in map]
-            print("Dst Map: ", dst_map)
+            # print("Dst Map: ", dst_map)
             """for i, e in enumerate(zip(objects, map)):
                 print(i, ") parent " + str(e[0]) + " -> child " + str(e[1]))
                 print("Old geoms: ", geoms[i].geoms)
                 geoms[i].geoms = dimtags2int(e[1])
                 print("New geoms: ", geoms[i].geoms)"""
             renumbering_map = dict(zip(src_map, dst_map))
-            print("Renumbering Map: ", renumbering_map)
+            # print("Renumbering Map: ", renumbering_map)
             for geom in geoms:
                 geom._renumber_from_map(renumbering_map)
-            print("Fragmented objects: ", new_geoms)
-            print("Ret: ", ret)
+            # print("Fragmented objects: ", new_geoms)
+            # print("Ret: ", ret)
             return GMSHCompound3D(geoms)
         if len(geoms) == 1:
             return GMSHCompound3D(geoms)
@@ -904,7 +904,7 @@ class GMSHGeom3D(AbstractGeom3D):
         # gmsh.model.addPhysicalGroup(3, dimtags2int(self.dimtags()), tag=gmsh.model.getPhysicalGroup(3, name))
         return group
 
-    def create_group_surface(self, name: str):
+    def create_group_boundary(self, name: str):
         geoms = [
             b[1]
             for b in gmsh.model.get_boundary(
@@ -916,9 +916,20 @@ class GMSHGeom3D(AbstractGeom3D):
         # gmsh.model.addPhysicalGroup(2, dimtags2int(self.dimtags()), tag=gmsh.model.getPhysicalGroup(2, name))
         return group
 
+    def create_group_surface(self, name: str):
+        # geoms = [
+        #    e[1] for e in self.surface.dimtags()
+        # ]
+        # geom = GMSHGeom2D(geoms=geoms)
+        print("Creating group for surface: ", self.surface)
+        geom = GMSHGeom2D(geoms=self.surface)
+        group = GMSHPhysicalGroup([geom], name=name)
+        # gmsh.model.addPhysicalGroup(2, dimtags2int(self.dimtags()), tag=gmsh.model.getPhysicalGroup(2, name))
+        return group
+
     def create_elmer_body(self, name: str):
         solid_group = self.create_group_solid(name + ".solid")
-        surface_group = self.create_group_surface(name + ".surface")
+        surface_group = self.create_group_boundary(name + ".surface")
         return (solid_group, surface_group)
 
     def plot(self, title: str = ""):
@@ -1038,13 +1049,15 @@ class GMSHPhysicalGroup:
     def __init__(
         self, geoms: (GMSHGeom3D, list[GMSHGeom3D]) = None, name="", dim=None
     ):
-        self.geoms = [] if geoms is None else geoms
         if isinstance(geoms, FTLGeom):
             self.geoms = [geoms]
+        else:
+            # it's a list of GMSHGeom2D
+            self.geoms = [] if geoms is None else geoms.copy()
         self.name = name
         self.dim = dim
         if dim is None and len(self.geoms):
-            self.dim = geoms[0].dim
+            self.dim = self.geoms[0].dim
         self.dimtag = None
         self.tag = None
         GMSHPhysicalGroup._groups.append(self)
