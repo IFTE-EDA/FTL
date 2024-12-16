@@ -1615,6 +1615,20 @@ class Test_GMSHGeom3D:
             18,
         ]
 
+    def test_gmshgeom3d_create_group_surface(self):
+        gmsh.clear()
+        GMSHPhysicalGroup.delete_all()
+        geom = GMSHGeom2D.get_rectangle((0, 0), (1, 1))
+        extrusion = geom.extrude(0.1)
+        gmsh.model.occ.synchronize()
+        group = extrusion.create_group_surface("Test")
+        assert group.dimtags() == [(2, 6)]
+        group.commit()
+        assert group.dimtag == (2, 1)
+        assert gmsh.model.get_physical_groups() == [(2, 1)]
+        assert gmsh.model.get_physical_name(2, 1) == "Test"
+        assert list(gmsh.model.get_entities_for_physical_group(2, 1)) == [6]
+
     def test_gmshgeom3d_create_elmer_body(self):
         gmsh.clear()
         GMSHPhysicalGroup.delete_all()
