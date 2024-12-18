@@ -609,7 +609,7 @@ class GMSHGeom2D(AbstractGeom2D):
         self.geoms.append(surface)
         return self
 
-    def ripup(self) -> GMSHGeom2D:
+    def ripup(self) -> list[GMSHGeom2D]:
         return [
             GMSHGeom2D(geoms=[g], name=f"{self.name}_{i+1}")
             for i, g in enumerate(self.geoms)
