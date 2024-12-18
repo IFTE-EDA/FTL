@@ -1,6 +1,8 @@
 import gmsh
 import sys
 import numpy as np
+import time
+import subprocess
 
 sys.path.append(r"../..")
 from FTL.core.GMSHGeometry import (
@@ -9,7 +11,6 @@ from FTL.core.GMSHGeometry import (
     GMSHPhysicalGroup,
     dimtags,
 )
-
 
 lcar = 2
 gmsh.initialize()
@@ -57,6 +58,8 @@ print("Board: ", board.dimtags())
 # pad1 = GMSHGeom2D.get_rectangle((1, 1), (4, 4)).extrude(0.1, zpos=0.1)
 # pad2 = GMSHGeom2D.get_rectangle((5, 1), (8, 4)).extrude(0.1, zpos=0.1)
 parts = []
+start_global = time.time()
+start_creation = time.time()
 for y in range(2, 101, 5):
     for x in range(2, 101, 5):
         pad = GMSHGeom2D.get_rectangle((x - 1, y - 1), (x, y))
@@ -64,17 +67,22 @@ for y in range(2, 101, 5):
         parts.append(ext)
 pads = GMSHGeom3D.make_fusion(parts)
 gmsh.model.occ.synchronize()
+end_creation = time.time()
 group_board = board.create_elmer_body("Board")
 # group_parts = GMSHPhysicalGroup(parts, "Pads")
 group_parts = pads.create_elmer_body("Pads")
 group_pads = pads.create_group_surface("Pads_top")
+start_frag = time.time()
 board.fragment([dimtag for part in parts for dimtag in part.dimtags()])
+end_frag = time.time()
 
 gmsh.model.occ.synchronize()
 GMSHPhysicalGroup.commit_all()
 gmsh.model.occ.synchronize()
-gmsh.fltk.run()
+# gmsh.fltk.run()
+start_gen = time.time()
 gmsh.model.mesh.generate(3)
+end_gen = time.time()
 # print("Group_Board entities: ", group_board.fetch_dimtags())
 # gmsh.fltk.run()
 # gmsh.model.mesh.refine()
@@ -116,5 +124,16 @@ print("Points: ", points[0:10])
 gmsh.mesh.addNodes(1, points)
 """
 gmsh.write("model.msh")
+end_global = time.time()
+print("\n\n-----------------------------")
+process = subprocess.Popen(
+    ["git", "branch", "--show-current"], stdout=subprocess.PIPE
+)
+branch_name, branch_error = process.communicate()
+print(str(branch_name)[2:-3])
+print("\nCreation Time: ", end_creation - start_creation)
+print("Fragmentation Time: ", end_frag - start_frag)
+print("Mesh Generation Time: ", end_gen - start_gen)
+print("\nTotal Time: ", end_global - start_global)
 # gmsh.fltk.run()
 gmsh.finalize()
