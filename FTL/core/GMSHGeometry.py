@@ -16,10 +16,9 @@ from FTL.core.ABCGeometry import FTLGeom, AbstractGeom2D, AbstractGeom3D
 
 
 class GMSHConfig:
-    def __init__(self):
-        self.lcar = 1
-        self.lcar_min = 0.1
-        self.lcar_max = 1
+    lcar = 50
+    lcar_min = 2
+    lcar_max = 1000
 
 
 def dimtags(geoms: list[int], dim: int = 2) -> list[tuple[int, int]]:
@@ -901,15 +900,16 @@ class GMSHGeom3D(AbstractGeom3D):
             return self
         # self._fuse_all()
         objlist = self.dimtags() + geoms
-        print("Fragmenting List: ", objlist)
-        frag = gmsh.model.occ.fragment(
+        # print("Fragmenting List: ", objlist)
+        # frag = gmsh.model.occ.fragment(
+        gmsh.model.occ.fragment(
             objlist,
             objlist,
             removeObject=True,
             removeTool=True,
         )
-        print("New Fragment: ", frag[1])
-        print("Whole Fragment: ", frag)
+        # print("New Fragment: ", frag[1])
+        # print("Whole Fragment: ", frag)
         return self
 
     # TODO: assign standard names here
@@ -935,8 +935,23 @@ class GMSHGeom3D(AbstractGeom3D):
         #    e[1] for e in self.surface.dimtags()
         # ]
         # geom = GMSHGeom2D(geoms=geoms)
-        print("Creating group for surface: ", self.surface)
-        geom = GMSHGeom2D(geoms=self.surface)
+        surface_entities = []
+        for dim, tag in self.dimtags():
+            x1, y1, z1, x2, y2, z2 = gmsh.model.occ.getBoundingBox(dim, tag)
+            se = gmsh.model.getEntitiesInBoundingBox(
+                x1,
+                y1,
+                z2 - GMSHConfig.lcar,
+                x2,
+                y2,
+                z2 + GMSHConfig.lcar,
+                dim=2,
+            )
+            print(f"{dim}, {tag} -> {se}")
+            surface_entities.extend(se)
+        print("Creating group for surface entities: ", surface_entities)
+        geom = GMSHGeom2D(geoms=[e[1] for e in surface_entities])
+        print("Geom: ", geom.geoms)
         group = GMSHPhysicalGroup([geom], name=name)
         # gmsh.model.addPhysicalGroup(2, dimtags2int(self.dimtags()), tag=gmsh.model.getPhysicalGroup(2, name))
         return group
