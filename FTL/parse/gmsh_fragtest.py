@@ -56,13 +56,13 @@ def extrude_return_tops(geoms):
     return ret, tops
 
 
-board = gmsh.model.occ.add_rectangle(-1, -1, 0, 52, 52)
+board = gmsh.model.occ.add_rectangle(-1, -1, 0, 33, 14)
 
 pads_geom = []
 pad_tops = []
-pad1 = gmsh.model.occ.add_rectangle(1, 1, 1, 10, 10)
-pad2 = gmsh.model.occ.add_rectangle(11, 1, 1, 10, 10)
-pad3 = gmsh.model.occ.add_rectangle(21, 1, 1, 10, 10)
+pad1 = gmsh.model.occ.add_rectangle(1, 1, 1, 9, 10)
+pad2 = gmsh.model.occ.add_rectangle(11, 1, 1, 9, 10)
+pad3 = gmsh.model.occ.add_rectangle(21, 1, 1, 9, 10)
 
 pads_geom = [pad1, pad2, pad3]
 gmsh.model.occ.synchronize()
@@ -155,8 +155,6 @@ gmsh.model.add_physical_group(2, pad_tops_filtered, name="Pads.tops")
 """
 # print("\nFragments[1]: ", filter_volumes(fragments)[1])
 gmsh.model.occ.synchronize()
-gmsh.fltk.run()
-
 gmsh.model.mesh.generate(3)
 # gmsh.model.mesh.refine()
 gmsh.write("model.msh")
