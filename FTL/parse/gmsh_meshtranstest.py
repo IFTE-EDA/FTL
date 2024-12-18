@@ -6,6 +6,7 @@ import subprocess
 
 sys.path.append(r"../..")
 from FTL.core.GMSHGeometry import (
+    GMSHConfig,
     GMSHGeom2D,
     GMSHGeom3D,
     GMSHPhysicalGroup,
@@ -21,6 +22,8 @@ gmsh.option.setNumber("Mesh.CharacteristicLengthMax", 1)
 gmsh.option.setNumber("Mesh.CharacteristicLengthMin", 0.4)
 gmsh.option.setNumber("Mesh.Optimize", 0)
 gmsh.option.setNumber("General.NumThreads", 8)
+
+GMSHConfig.lcar = 0.1
 
 
 def filter_volumes(elems):
@@ -68,14 +71,16 @@ for y in range(2, 101, 5):
 pads = GMSHGeom3D.make_fusion(parts)
 gmsh.model.occ.synchronize()
 end_creation = time.time()
-group_board = board.create_elmer_body("Board")
-# group_parts = GMSHPhysicalGroup(parts, "Pads")
-group_parts = pads.create_elmer_body("Pads")
-group_pads = pads.create_group_surface("Pads_top")
+# gmsh.fltk.run()
 start_frag = time.time()
 board.fragment([dimtag for part in parts for dimtag in part.dimtags()])
 end_frag = time.time()
 
+gmsh.model.occ.synchronize()
+group_board = board.create_elmer_body("Board")
+# group_parts = GMSHPhysicalGroup(parts, "Pads")
+group_parts = pads.create_elmer_body("Pads")
+group_pads = pads.create_group_surface("Pads_top")
 gmsh.model.occ.synchronize()
 GMSHPhysicalGroup.commit_all()
 gmsh.model.occ.synchronize()
