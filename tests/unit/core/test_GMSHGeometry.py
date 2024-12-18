@@ -1630,29 +1630,42 @@ class Test_GMSHGeom3D:
         assert gmsh.model.get_physical_name(2, 1) == "Test"
         assert list(gmsh.model.get_entities_for_physical_group(2, 1)) == [6]
 
-    @pytest.mark.xfail
     def test_gmshgeom3d_create_group_surface_on_fragmented_part(self):
         gmsh.clear()
         GMSHPhysicalGroup.delete_all()
         base = GMSHGeom2D.get_rectangle((0, 0), (3, 3)).extrude(0.1)
         geom = GMSHGeom2D.get_rectangle((1, 1), (2, 2)).extrude(0.1, zpos=0.1)
+        gmsh.model.occ.synchronize()
         print("Base Surface: ", base.surface)
         print("Geom Surface: ", geom.surface)
         gmsh.model.occ.synchronize()
-        # gmsh.fltk.run()
         # base.fragment(geom)
-        GMSHGeom3D.make_compound([base, geom, GMSHGeom2D(base.surface)])
+        GMSHGeom3D.make_compound([base, geom])
         gmsh.model.occ.synchronize()
-        gmsh.fltk.run()
+        GMSHPhysicalGroup.commit_all()
+        gmsh.model.occ.synchronize()
+        group_bot = base.create_group_surface("Test_Bot")
+        group_top = geom.create_group_surface("Test_Top")
+        gmsh.model.occ.synchronize()
+        # gmsh.fltk.run()
         print("Base Surface: ", base.surface)
         print("Geom Surface: ", geom.surface)
-        # gmsh.fltk.run()
-        # assert group.dimtags() == [(2, 6), (2, 7)]
-        # group.commit()
-        # assert group.dimtag == (2, 1)
-        assert gmsh.model.get_physical_groups() == [(2, 1)]
-        assert gmsh.model.get_physical_name(2, 1) == "Test"
-        assert list(gmsh.model.get_entities_for_physical_group(2, 1)) == [6, 7]
+        assert group_bot.dimtags() == [(2, 7), (2, 18)]
+        assert group_top.dimtags() == [(2, 12)]
+        group_bot.commit()
+        group_top.commit()
+        assert group_bot.dimtag == (2, 1)
+        assert group_top.dimtag == (2, 2)
+        assert gmsh.model.get_physical_groups() == [(2, 1), (2, 2)]
+        assert gmsh.model.get_physical_name(2, 1) == "Test_Bot"
+        assert gmsh.model.get_physical_name(2, 2) == "Test_Top"
+        assert list(gmsh.model.get_entities_for_physical_group(2, 1)) == [
+            7,
+            18,
+        ]
+        assert list(gmsh.model.get_entities_for_physical_group(2, 2)) == [12]
+
+    # TODO: test for "o" shaped geometry so that it won't include a cube stacked into the middle of the shape on top
 
     def test_gmshgeom3d_create_elmer_body(self):
         gmsh.clear()
