@@ -16,10 +16,10 @@ from FTL.core.ABCGeometry import FTLGeom, AbstractGeom2D, AbstractGeom3D
 
 
 class GMSHConfig:
-    def __init__(self):
-        self.lcar = 1
-        self.lcar_min = 0.1
-        self.lcar_max = 1
+    surface_tolerance = 0.000001
+    lcar = 50
+    lcar_min = 2
+    lcar_max = 1000
 
 
 def dimtags(geoms: list[int], dim: int = 2) -> list[tuple[int, int]]:
@@ -687,14 +687,14 @@ class GMSHGeom2D(AbstractGeom2D):
         # print("Extrude: ", extr_all)
         extr_bodies = [e[1] for e in extr_all if e[0] == 3]
         # print("Generated bodies: ", extr_bodies)
-        extr_tops = []
+        """extr_tops = []
         for part in extr_bodies:
             index = extr_all.index((3, part))
             # print("Index: ", index)
             # print("Index list: ", extr_all[index - 1])
             extr_tops.append(extr_all[index - 1][1])
-        # print("Generated tops: ", extr_tops)
-        return GMSHGeom3D(extr_bodies, self, extr_tops)
+        # print("Generated tops: ", extr_tops)"""
+        return GMSHGeom3D(extr_bodies, self)  # , extr_tops)
 
     def to_3D(self, thickness: float, zpos: float = None) -> GMSHGeom3D:
         ret = GMSHGeom3D(self.extrude(thickness, zpos, fuse=False))
@@ -720,7 +720,7 @@ class GMSHGeom3D(AbstractGeom3D):
         self,
         geoms: list[int] = [],
         geom2d: GMSHGeom2D = None,
-        surface: GMSHGeom2D = None,
+        # surface: GMSHGeom2D = None,
         name: str = "Unnamed",
     ):
         if len(geoms):
@@ -729,7 +729,7 @@ class GMSHGeom3D(AbstractGeom3D):
             self.geoms = []
         self._geom2d = geom2d
         self.name = name
-        self.surface = surface
+        # self.surface = surface
 
     def __len__(self):
         return len(self.geoms)
@@ -883,6 +883,25 @@ class GMSHGeom3D(AbstractGeom3D):
         gmsh.model.occ.translate(self.dimtags(), x, y, z)
         return self
 
+    @property
+    def surface(self):
+        surface_entities = []
+        for dim, tag in self.dimtags():
+            x1, y1, z1, x2, y2, z2 = gmsh.model.occ.getBoundingBox(dim, tag)
+            se = gmsh.model.getEntitiesInBoundingBox(
+                x1,
+                y1,
+                z2 - GMSHConfig.surface_tolerance,
+                x2,
+                y2,
+                z2 + GMSHConfig.surface_tolerance,
+                dim=2,
+            )
+            print(f"{dim}, {tag} -> {se}")
+            surface_entities.extend(se)
+        print("Creating group for surface entities: ", surface_entities)
+        return [e[1] for e in surface_entities]
+
     def fragment(self, geoms: (GMSHGeom2D, GMSHGeom3D)) -> GMSHGeom3D:
         if isinstance(geoms, GMSHGeom3D):
             geoms = geoms.dimtags()
@@ -901,15 +920,16 @@ class GMSHGeom3D(AbstractGeom3D):
             return self
         # self._fuse_all()
         objlist = self.dimtags() + geoms
-        print("Fragmenting List: ", objlist)
-        frag = gmsh.model.occ.fragment(
+        # print("Fragmenting List: ", objlist)
+        # frag = gmsh.model.occ.fragment(
+        gmsh.model.occ.fragment(
             objlist,
             objlist,
             removeObject=True,
             removeTool=True,
         )
-        print("New Fragment: ", frag[1])
-        print("Whole Fragment: ", frag)
+        # print("New Fragment: ", frag[1])
+        # print("Whole Fragment: ", frag)
         return self
 
     # TODO: assign standard names here
@@ -935,8 +955,8 @@ class GMSHGeom3D(AbstractGeom3D):
         #    e[1] for e in self.surface.dimtags()
         # ]
         # geom = GMSHGeom2D(geoms=geoms)
-        print("Creating group for surface: ", self.surface)
         geom = GMSHGeom2D(geoms=self.surface)
+        print("Geom: ", geom.geoms)
         group = GMSHPhysicalGroup([geom], name=name)
         # gmsh.model.addPhysicalGroup(2, dimtags2int(self.dimtags()), tag=gmsh.model.getPhysicalGroup(2, name))
         return group
