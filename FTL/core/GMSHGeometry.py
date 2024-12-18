@@ -686,14 +686,14 @@ class GMSHGeom2D(AbstractGeom2D):
         # print("Extrude: ", extr_all)
         extr_bodies = [e[1] for e in extr_all if e[0] == 3]
         # print("Generated bodies: ", extr_bodies)
-        extr_tops = []
+        """extr_tops = []
         for part in extr_bodies:
             index = extr_all.index((3, part))
             # print("Index: ", index)
             # print("Index list: ", extr_all[index - 1])
             extr_tops.append(extr_all[index - 1][1])
-        # print("Generated tops: ", extr_tops)
-        return GMSHGeom3D(extr_bodies, self, extr_tops)
+        # print("Generated tops: ", extr_tops)"""
+        return GMSHGeom3D(extr_bodies, self)  # , extr_tops)
 
     def to_3D(self, thickness: float, zpos: float = None) -> GMSHGeom3D:
         ret = GMSHGeom3D(self.extrude(thickness, zpos, fuse=False))
