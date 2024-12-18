@@ -15,6 +15,13 @@ import gmsh
 from FTL.core.ABCGeometry import FTLGeom, AbstractGeom2D, AbstractGeom3D
 
 
+class GMSHConfig:
+    def __init__(self):
+        self.lcar = 1
+        self.lcar_min = 0.1
+        self.lcar_max = 1
+
+
 def dimtags(geoms: list[int], dim: int = 2) -> list[tuple[int, int]]:
     if not isinstance(geoms, list):
         return [(dim, geoms)]
@@ -831,7 +838,14 @@ class GMSHGeom3D(AbstractGeom3D):
             geom = self.geoms[i]
             if geom in entity_map:
                 self.geoms[i] = entity_map[geom]
+                print(f"Mapping part {self.geoms[i]} to {entity_map[geom]}")
         self.geoms = list(_flatten(self.geoms))
+        """if self.surface is not None:
+            for i in range(len(self.geoms)):
+                geom = self.surface[i]
+                if geom in entity_map:
+                    self.surface[i] = entity_map[geom]
+                    print(f"Mapping surface {self.surface[i]} to {entity_map[geom]}")"""
 
     # TODO: Support adding list of integers?
     def add_object(self, obj: int) -> None:
