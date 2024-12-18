@@ -16,6 +16,7 @@ from FTL.core.ABCGeometry import FTLGeom, AbstractGeom2D, AbstractGeom3D
 
 
 class GMSHConfig:
+    surface_tolerance = 0.000001
     lcar = 50
     lcar_min = 2
     lcar_max = 1000
@@ -719,7 +720,7 @@ class GMSHGeom3D(AbstractGeom3D):
         self,
         geoms: list[int] = [],
         geom2d: GMSHGeom2D = None,
-        surface: GMSHGeom2D = None,
+        # surface: GMSHGeom2D = None,
         name: str = "Unnamed",
     ):
         if len(geoms):
@@ -728,7 +729,7 @@ class GMSHGeom3D(AbstractGeom3D):
             self.geoms = []
         self._geom2d = geom2d
         self.name = name
-        self.surface = surface
+        # self.surface = surface
 
     def __len__(self):
         return len(self.geoms)
@@ -882,6 +883,25 @@ class GMSHGeom3D(AbstractGeom3D):
         gmsh.model.occ.translate(self.dimtags(), x, y, z)
         return self
 
+    @property
+    def surface(self):
+        surface_entities = []
+        for dim, tag in self.dimtags():
+            x1, y1, z1, x2, y2, z2 = gmsh.model.occ.getBoundingBox(dim, tag)
+            se = gmsh.model.getEntitiesInBoundingBox(
+                x1,
+                y1,
+                z2 - GMSHConfig.surface_tolerance,
+                x2,
+                y2,
+                z2 + GMSHConfig.surface_tolerance,
+                dim=2,
+            )
+            print(f"{dim}, {tag} -> {se}")
+            surface_entities.extend(se)
+        print("Creating group for surface entities: ", surface_entities)
+        return [e[1] for e in surface_entities]
+
     def fragment(self, geoms: (GMSHGeom2D, GMSHGeom3D)) -> GMSHGeom3D:
         if isinstance(geoms, GMSHGeom3D):
             geoms = geoms.dimtags()
@@ -935,22 +955,7 @@ class GMSHGeom3D(AbstractGeom3D):
         #    e[1] for e in self.surface.dimtags()
         # ]
         # geom = GMSHGeom2D(geoms=geoms)
-        surface_entities = []
-        for dim, tag in self.dimtags():
-            x1, y1, z1, x2, y2, z2 = gmsh.model.occ.getBoundingBox(dim, tag)
-            se = gmsh.model.getEntitiesInBoundingBox(
-                x1,
-                y1,
-                z2 - GMSHConfig.lcar,
-                x2,
-                y2,
-                z2 + GMSHConfig.lcar,
-                dim=2,
-            )
-            print(f"{dim}, {tag} -> {se}")
-            surface_entities.extend(se)
-        print("Creating group for surface entities: ", surface_entities)
-        geom = GMSHGeom2D(geoms=[e[1] for e in surface_entities])
+        geom = GMSHGeom2D(geoms=self.surface)
         print("Geom: ", geom.geoms)
         group = GMSHPhysicalGroup([geom], name=name)
         # gmsh.model.addPhysicalGroup(2, dimtags2int(self.dimtags()), tag=gmsh.model.getPhysicalGroup(2, name))

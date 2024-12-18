@@ -1115,6 +1115,7 @@ class Test_GMSHGeom3D:
         gmsh.clear()
         geom = GMSHGeom2D.get_rectangle((0, 0), (1, 1))
         extrusion = geom.extrude(0.1)
+        gmsh.model.occ.synchronize()
         assert extrusion.geoms == [1]
         assert extrusion.surface == [6]
         assert get_bbox_rounded(2, 6) == [0, 0, 0.1, 1, 1, 0.1]
