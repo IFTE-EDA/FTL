@@ -2,7 +2,6 @@ from __future__ import annotations
 from typing import Tuple
 
 import numpy as np
-import shapely as sh
 from .Transformation import Transformation
 
 
@@ -10,7 +9,7 @@ class LinearTransformation(Transformation):
     def __init__(
         self,
         mat: np.array,
-        bounds: sh.Polygon,
+        bounds: tuple[tuple[float, float], tuple[float, float]],
         prio: int = 0,
         residual: bool = False,
         name: str = None,
@@ -42,22 +41,24 @@ class LinearTransformation(Transformation):
         )
 
     def is_in_scope(self, point):
-        pt = sh.Point(point[0], point[1])
-        if not pt.disjoint(self.boundaries):
+        if (
+            self.boundaries[0][0] <= point[0] <= self.boundaries[0][1]
+            and self.boundaries[1][0] <= point[1] <= self.boundaries[1][1]
+        ):
             return True
 
-    def transformMesh(self, mesh):
-        mesh.rotate_z(self.z_angle, rad=True, around=self.pivot)
-        points = mesh.points()
+    def transformPoints(self, points):
+        # mesh.rotate_z(self.z_angle, rad=True, around=self.pivot)
+        # points = mesh.points()
         for pid, pt in enumerate(points):
             vec = np.array([pt[0], pt[1], pt[2], 1])
             vec = np.dot(self.mat, vec)
             points[pid][0] = vec[0]
             points[pid][1] = vec[1]
             points[pid][2] = vec[2]
-        mesh.points(points)
-        mesh.rotate_z(-self.z_angle, rad=True, around=self.pivot)
-        return mesh
+        # mesh.points(points)
+        # mesh.rotate_z(-self.z_angle, rad=True, around=self.pivot)
+        return points
 
     def get_matrix_at(self, pt):
         return self.mat

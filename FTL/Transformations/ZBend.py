@@ -77,77 +77,11 @@ class ZBend(Transformation):
         )
 
     def is_in_scope(self, point):
-        pt = sh.Point(point[0], point[1])
-        if not pt.disjoint(self.boundaries):
+        if (
+            self.xmin <= point[0] <= self.xmax
+            and self.ymin <= point[1] <= self.ymax
+        ):
             return True
-        # else:
-        #    debug(pt.__str__() + " out of scope")
-
-    def getScope(self):
-        if self.dir == DIR.NEGY or self.dir == DIR.POSY:
-            return (
-                v.Rectangle(
-                    (self.xmin - self.parent.mel, self.ymin - self.parent.mel),
-                    (self.xmax + self.parent.mel, self.ymin + self.parent.mel),
-                )
-                .extrude(
-                    self.parent.zmax - self.parent.zmin + 2 * self.parent.mel
-                )
-                .z(self.parent.zmin - self.parent.mel)
-            )
-        elif self.dir == DIR.NEGX or self.dir == DIR.POSX:
-            return (
-                v.Rectangle(
-                    (self.xmin - self.parent.mel, self.ymin - self.parent.mel),
-                    (self.xmin + self.parent.mel, self.ymax + self.parent.mel),
-                )
-                .extrude(
-                    self.parent.zmax - self.parent.zmin + 2 * self.parent.mel
-                )
-                .z(self.parent.zmin - self.parent.mel)
-            )
-
-    def getBorderScope(self, delta=None):
-        if delta is None:
-            delta = self.parent.mel
-
-        if self.dir == DIR.NEGY:
-            return [
-                min(self.xmin, self.xmax) - delta,
-                self.ymin + delta,
-                max(self.xmin, self.xmax) + delta,
-                self.ymin - delta,
-            ]
-        elif self.dir == DIR.POSY:
-            return [
-                min(self.xmin, self.xmax) - delta,
-                self.ymin - delta,
-                max(self.xmin, self.xmax) + delta,
-                self.ymin + delta,
-            ]
-        elif self.dir == DIR.NEGX:
-            return [
-                self.xmin - delta,
-                min(self.ymin, self.ymax) - delta,
-                self.xmin + delta,
-                max(self.ymin, self.ymax) + delta,
-            ]
-        elif self.dir == DIR.POSX:
-            return [
-                self.xmin + delta,
-                min(self.ymin, self.ymax) - delta,
-                self.xmin - delta,
-                max(self.ymin, self.ymax) + delta,
-            ]
-
-    def getOutlinePts(self):
-        poly = sh.polygon.orient(self.boundaries)
-        x = poly.exterior.coords.xy[0][:-1]
-        y = poly.exterior.coords.xy[1][:-1]
-        z = [0] * len(x)
-        pts = list(zip(x, y, z))
-
-        return pts
 
     def get_outline_points(self):
         return v.Line(self.getOutlinePts(), closed=True)
@@ -163,9 +97,6 @@ class ZBend(Transformation):
         elif self.dir == DIR.POSX:
             pts = [(self.xmin, self.ymin, 0), (self.xmin, self.ymax, 0)]
         return pts
-
-    def get_borderline(self):
-        return v.Line(self.getBorderlinePts())
 
     def get_residual_transformation(self):
         logging.debug("Getting resiual; my dir is {}".format(self.dir))
@@ -312,3 +243,13 @@ class ZBend(Transformation):
             mat[1] = 0, 1, 0, 0
             mat[2] = 0, 0, cos(a), (1 - cos(a)) * r
         return mat
+
+    def transformPoints(self, points):
+        for pid, pt in enumerate(points):
+            if self.is_in_scope(pt):
+                vec = np.array([pt[0], pt[1], pt[2], 1])
+                vec = np.dot(self.get_matrix_at(pt), vec)
+                points[pid][0] = vec[0]
+                points[pid][1] = vec[1]
+                points[pid][2] = vec[2]
+        return points
