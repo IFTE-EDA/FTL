@@ -3,6 +3,8 @@ import sys
 import numpy as np
 import time
 import subprocess
+from math import sin, cos, pi
+
 
 sys.path.append(r"../..")
 from FTL.core.GMSHGeometry import (
@@ -12,6 +14,11 @@ from FTL.core.GMSHGeometry import (
     GMSHPhysicalGroup,
     dimtags,
 )
+
+import FTL
+from FTL.Transformations.LinearTransformation import LinearTransformation
+from FTL.Transformations.ZBend import ZBend
+from FTL.Transformations.Spiral import Spiral
 
 lcar = 2
 gmsh.initialize()
@@ -92,6 +99,7 @@ end_gen = time.time()
 # gmsh.fltk.run()
 # gmsh.model.mesh.refine()
 print("Mesh created.")
+
 m = {}
 for e in gmsh.model.getEntities():
     m[e] = (
@@ -100,9 +108,11 @@ for e in gmsh.model.getEntities():
         gmsh.model.mesh.getElements(e[0], e[1]),
     )
 print("Creating new model.....")
+# gmsh.fltk.run()
 # gmsh.model.add('model_transformed')
 gmsh.model.mesh.clear()
 print("Copying entities...")
+start_trans = time.time()
 for e in sorted(m):
     # gmsh.model.addDiscreteEntity(e[0], e[1], [b[1] for b in m[e][0]])
     # print("--------------------")
@@ -112,13 +122,33 @@ for e in sorted(m):
     nodes = []
     if len(m[e][1][0]) > 0:
         # print("Adding nodes...")
+        points = np.asarray(pts).reshape(-1, 3)
+        """
         for x, y, z in np.asarray(pts).reshape(-1, 3):
             nodes.append(x)
             nodes.append(y)
             nodes.append(z + x**2 / 200)
-    gmsh.model.mesh.addNodes(e[0], e[1], m[e][1][0], nodes, m[e][1][2])
+        """
+        angle = -pi / 6
+        mat = [
+            [cos(angle), 0, sin(angle), 0],
+            [0, 1, 0, 0],
+            [-sin(angle), 0, cos(angle), 0],
+        ]
+        bounds = ((-10, 10), (-10, 10))
+        """trans = LinearTransformation(
+            mat, bounds
+        )"""
+        trans = ZBend(0, 100, -100, 100, 180, FTL.DIR.POSX)
+        trans.transformPoints(points)
+        pts = points.reshape(-1)
+    gmsh.model.mesh.addNodes(e[0], e[1], m[e][1][0], pts, m[e][1][2])
     gmsh.model.mesh.addElements(e[0], e[1], m[e][2][0], m[e][2][1], m[e][2][2])
+end_trans = time.time()
 print("Done")
+
+gmsh.fltk.run()
+
 """for i in range(len(points)):
     x, y, z = points[i]
     z += x/2
@@ -139,6 +169,7 @@ print(str(branch_name)[2:-3])
 print("\nCreation Time: ", end_creation - start_creation)
 print("Fragmentation Time: ", end_frag - start_frag)
 print("Mesh Generation Time: ", end_gen - start_gen)
+# print("Mesh Transformation Time: ", end_trans - start_trans)
 print("\nTotal Time: ", end_global - start_global)
 # gmsh.fltk.run()
 gmsh.finalize()
