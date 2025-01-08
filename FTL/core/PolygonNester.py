@@ -13,11 +13,13 @@ class PolygonNester:
             for child in poly.children:
                 print(f"|\t {child}")
 
-    def add_polygon(self, polygon):
+    def add_polygon(self, polygon, bulge=None):
         def recalc():
             for poly_recalc in poly_recalcs:
                 self.add_polygon(poly_recalc)
 
+        if bulge is not None:
+            polygon.bulge = bulge
         exit_loop = False
         poly_recalcs = np.array([], dtype=Polygon)
         self.dump()
@@ -97,6 +99,7 @@ class Polygon:
             points if points is not None else np.empty(0, dtype=np.float64)
         )
         self.parent = None
+        self.bulge = False
         self.children = np.empty(0, dtype=Polygon)
         self.number = Polygon.num_polys
         Polygon.num_polys += 1

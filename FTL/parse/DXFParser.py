@@ -10,6 +10,7 @@ import numpy as np
 
 from FTL.Util.logging import Logger, Loggable
 from FTL.core.GMSHGeometry import GMSHGeom2D, GMSHGeom3D, dimtags
+from FTL.core.PolygonNester import PolygonNester, Polygon
 
 SNAP_TOLERANCE = 0.02
 
@@ -65,6 +66,7 @@ class DXFLayer(Loggable):
         self.layer = layer
         self.name = layer.dxf.name
         self.entities = entities
+        self.pn = PolygonNester()
         self.open_polys = []
 
     def add_entity(self, entity):
@@ -87,6 +89,17 @@ class DXFLayer(Loggable):
             if hasattr(e, "has_width"):
                 print("Has width: ", e.has_width)
             self.render_entity(e, geom)
+        for poly in self.pn.polygons:
+            # geom.add_polygon(poly.points, bulge=True)
+            # TODO: just for testing. correct later.
+            if len(poly.children) > 0:
+                geom.add_polygon(
+                    poly.points,
+                    [hole.points for hole in poly.children],
+                    bulge=poly.bulge,
+                )
+            else:
+                geom.add_polygon(poly.points, bulge=poly.bulge)
         # geom.plot()
         return geom
 
@@ -200,7 +213,8 @@ class DXFLayer(Loggable):
                 return None
             if pts[0][0] == pts[-1][0] and pts[0][1] == pts[-1][1]:
                 print("Endpoints meet. Making shape...")
-                geom.add_polygon(pts, bulge=True)
+                # geom.add_polygon(pts, bulge=True)
+                self.pn.add_polygon(Polygon(pts), bulge=True)
             elif (
                 np.sqrt(
                     (pts[0][0] - pts[-1][0]) ** 2
@@ -210,7 +224,8 @@ class DXFLayer(Loggable):
             ):
                 print("Endpoints close enough. Closing shape...")
                 pts[-1] = pts[0]
-                geom.add_polygon(pts, bulge=True)
+                # geom.add_polygon(pts, bulge=True)
+                self.pn.add_polygon(Polygon(pts), bulge=True)
             else:
                 print(
                     "Distance: ",
@@ -336,7 +351,10 @@ class DXFLayer(Loggable):
                                     for x, y, b in new_pts
                                 ]
                                 print(np.array(new_pts))
-                                geom.add_polygon(new_pts, bulge=True)
+                                # geom.add_polygon(new_pts, bulge=True)
+                                self.pn.add_polygon(
+                                    Polygon(new_pts), bulge=True
+                                )
                                 delete_entries.append((poly[0], poly[1]))
                                 break
                             else:

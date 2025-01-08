@@ -316,6 +316,7 @@ class GMSHGeom2D(AbstractGeom2D):
             )
         else:
             print("Rendering open line as closed poly...")
+            print(in_outline)
             pts = [gmsh.model.occ.add_point(x, y, 0) for x, y, _ in in_outline]
             lines = [
                 _add_line(
@@ -330,16 +331,39 @@ class GMSHGeom2D(AbstractGeom2D):
                     pids=(pts[len(pts) - 1], pts[0]),
                 )
             )
-
         outline = gmsh.model.occ.add_curve_loop(lines)
         for pts_hole in coords_holes:
             # TODO: remove additional holes?
             print("Making hole...")
+            print(pts_hole)
+            pts = [
+                gmsh.model.occ.add_point(x, y, 0) for x, y, _ in pts_hole[:-1]
+            ]
+            print(len(pts), len(in_outline))
             lines = [
+                _add_line(
+                    pts_hole[i], pts_hole[i + 1], pids=(pts[i], pts[i + 1])
+                )
+                for i in range(len(pts_hole) - 2)
+            ]
+            """lines = [
                 _add_line(pts_hole[i], pts_hole[i + 1])
                 for i in range(len(pts_hole) - 1)
-            ]
-            lines.append(_add_line(pts_hole[len(pts_hole) - 1], pts_hole[0]))
+            ]"""
+            print("Adding closing segment...")
+            lines.append(
+                _add_line(
+                    pts_hole[len(pts) - 1],
+                    pts_hole[0],
+                    pids=(
+                        pts[len(pts) - 1],
+                        pts[0],
+                    ),
+                )
+            )
+            # if pts_hole[0][0] != pts_hole[-1][0] or pts_hole[0][1] != pts_hole[-1][1]:
+            # Add closing segment
+            #    lines.append(_add_line(pts_hole[-1], pts_hole[0]))
             hole = gmsh.model.occ.add_curve_loop(lines)
             holes.append(hole)
         surface = gmsh.model.occ.add_plane_surface([outline, *holes])
