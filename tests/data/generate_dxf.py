@@ -456,37 +456,71 @@ def make_dxf_poly_bulge_orientation():
 def make_dxf_poly_holes():
     doc = ezdxf.new("R2010")
     doc.layers.add(name="poly_hole")
-    doc.layers.add(name="poly_in_hole")
+    doc.layers.add(name="poly_multiple_holes")
+    doc.layers.add(name="island_in_hole")
+    doc.layers.add(name="island_in_hole_backwards")
+    doc.layers.add(name="poly_multiple_islands")
+    doc.layers.add(name="island_with_hole_in_hole")
     msp = doc.modelspace()
 
-    pts_first = [
+    pts_outer = [
         (0, 0, 0),
         (10, 0, 0),
         (10, 10, 0),
         (0, 10, 0),
     ]
-    pts_second = [
+    pts_hole_in_outer = [
         (1, 1, 0),
         (9, 1, 0),
         (9, 9, 0),
         (1, 9, 0),
     ]
-    pts_third = [
+    pts_island1 = [
         (2, 2, 0),
         (8, 2, 0),
         (8, 8, 0),
         (2, 8, 0),
     ]
+    pts_island1_hole = [
+        (3, 3, 0),
+        (7, 3, 0),
+        (7, 7, 0),
+        (3, 7, 0),
+    ]
+    pts_inner_11 = [
+        (4, 4, 0),
+        (4.5, 4, 0),
+        (4.5, 4.5, 0),
+        (4, 4.5, 0),
+    ]
+    pts_inner_21 = [
+        (5.5, 4, 0),
+        (6, 4, 0),
+        (6, 4.5, 0),
+        (5.5, 4.5, 0),
+    ]
+    pts_inner_12 = [
+        (4, 5.5, 0),
+        (4.5, 5.5, 0),
+        (4.5, 6, 0),
+        (4, 6, 0),
+    ]
+    pts_inner_22 = [
+        (5.5, 5.5, 0),
+        (6, 5.5, 0),
+        (6, 6, 0),
+        (5.5, 6, 0),
+    ]
 
     poly1 = msp.add_lwpolyline(
-        pts_first,
+        pts_outer,
         format="xyb",
         dxfattribs={"layer": "poly_hole"},
     )
     poly1.close(True)
     poly1.dxf.const_width = 0
     poly2 = msp.add_lwpolyline(
-        pts_second,
+        pts_hole_in_outer,
         format="xyb",
         dxfattribs={"layer": "poly_hole"},
     )
@@ -494,26 +528,163 @@ def make_dxf_poly_holes():
     poly2.dxf.const_width = 0
 
     poly1 = msp.add_lwpolyline(
-        pts_first,
+        pts_outer,
         format="xyb",
-        dxfattribs={"layer": "poly_in_hole"},
+        dxfattribs={"layer": "poly_multiple_holes"},
+    )
+    poly1.close(True)
+    poly1.dxf.const_width = 0
+    hole11 = msp.add_lwpolyline(
+        pts_inner_11,
+        format="xyb",
+        dxfattribs={"layer": "poly_multiple_holes"},
+    )
+    hole11.close(True)
+    hole11.dxf.const_width = 0
+    hole21 = msp.add_lwpolyline(
+        pts_inner_21,
+        format="xyb",
+        dxfattribs={"layer": "poly_multiple_holes"},
+    )
+    hole21.close(True)
+    hole21.dxf.const_width = 0
+    hole12 = msp.add_lwpolyline(
+        pts_inner_12,
+        format="xyb",
+        dxfattribs={"layer": "poly_multiple_holes"},
+    )
+    hole12.close(True)
+    hole12.dxf.const_width = 0
+    hole22 = msp.add_lwpolyline(
+        pts_inner_22,
+        format="xyb",
+        dxfattribs={"layer": "poly_multiple_holes"},
+    )
+    hole22.close(True)
+    hole22.dxf.const_width = 0
+
+    poly1 = msp.add_lwpolyline(
+        pts_outer,
+        format="xyb",
+        dxfattribs={"layer": "island_in_hole"},
     )
     poly1.close(True)
     poly1.dxf.const_width = 0
     poly2 = msp.add_lwpolyline(
-        pts_second,
+        pts_hole_in_outer,
         format="xyb",
-        dxfattribs={"layer": "poly_in_hole"},
+        dxfattribs={"layer": "island_in_hole"},
     )
     poly2.close(True)
     poly2.dxf.const_width = 0
     poly3 = msp.add_lwpolyline(
-        pts_third,
+        pts_island1,
         format="xyb",
-        dxfattribs={"layer": "poly_in_hole"},
+        dxfattribs={"layer": "island_in_hole"},
     )
     poly3.close(True)
     poly3.dxf.const_width = 0
+
+    poly3 = msp.add_lwpolyline(
+        pts_island1,
+        format="xyb",
+        dxfattribs={"layer": "island_in_hole_backwards"},
+    )
+    poly3.close(True)
+    poly3.dxf.const_width = 0
+    poly2 = msp.add_lwpolyline(
+        pts_hole_in_outer,
+        format="xyb",
+        dxfattribs={"layer": "island_in_hole_backwards"},
+    )
+    poly2.close(True)
+    poly2.dxf.const_width = 0
+    poly1 = msp.add_lwpolyline(
+        pts_outer,
+        format="xyb",
+        dxfattribs={"layer": "island_in_hole_backwards"},
+    )
+    poly1.close(True)
+    poly1.dxf.const_width = 0
+
+    poly1 = msp.add_lwpolyline(
+        pts_outer,
+        format="xyb",
+        dxfattribs={"layer": "poly_multiple_islands"},
+    )
+    poly1.close(True)
+    poly1.dxf.const_width = 0
+    poly2 = msp.add_lwpolyline(
+        pts_hole_in_outer,
+        format="xyb",
+        dxfattribs={"layer": "poly_multiple_islands"},
+    )
+    poly2.close(True)
+    poly2.dxf.const_width = 0
+    """poly3 = msp.add_lwpolyline(
+        pts_island1,
+        format="xyb",
+        dxfattribs={"layer": "poly_multiple_islands"},
+    )
+    poly3.close(True)
+    poly3.dxf.const_width = 0"""
+    hole11 = msp.add_lwpolyline(
+        pts_inner_11,
+        format="xyb",
+        dxfattribs={"layer": "poly_multiple_islands"},
+    )
+    hole11.close(True)
+    hole11.dxf.const_width = 0
+    hole21 = msp.add_lwpolyline(
+        pts_inner_21,
+        format="xyb",
+        dxfattribs={"layer": "poly_multiple_islands"},
+    )
+    hole21.close(True)
+    hole21.dxf.const_width = 0
+    hole12 = msp.add_lwpolyline(
+        pts_inner_12,
+        format="xyb",
+        dxfattribs={"layer": "poly_multiple_islands"},
+    )
+    hole12.close(True)
+    hole12.dxf.const_width = 0
+    hole22 = msp.add_lwpolyline(
+        pts_inner_22,
+        format="xyb",
+        dxfattribs={"layer": "poly_multiple_islands"},
+    )
+    hole22.close(True)
+    hole22.dxf.const_width = 0
+
+    poly1 = msp.add_lwpolyline(
+        pts_outer,
+        format="xyb",
+        dxfattribs={"layer": "island_with_hole_in_hole"},
+    )
+    poly1.close(True)
+    poly1.dxf.const_width = 0
+    poly2 = msp.add_lwpolyline(
+        pts_hole_in_outer,
+        format="xyb",
+        dxfattribs={"layer": "island_with_hole_in_hole"},
+    )
+    poly2.close(True)
+    poly2.dxf.const_width = 0
+    poly3 = msp.add_lwpolyline(
+        pts_island1,
+        format="xyb",
+        dxfattribs={"layer": "island_with_hole_in_hole"},
+    )
+    poly3.close(True)
+    poly3.dxf.const_width = 0
+    poly4 = msp.add_lwpolyline(
+        pts_island1_hole,
+        format="xyb",
+        dxfattribs={"layer": "island_with_hole_in_hole"},
+    )
+    poly4.close(True)
+    poly4.dxf.const_width = 0
 
     doc.saveas(data_dir / "poly_holes.dxf")
 

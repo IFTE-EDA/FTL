@@ -357,12 +357,122 @@ class Test_DXFParser_Render:
         layer.render()
         gmsh.model.occ.synchronize()
         assert gmsh.model.get_entities(2) == [(2, 1)]
-        assert len(gmsh.model.get_entities(1)) == 8
-        assert len(gmsh.model.get_entities(0)) == 8
+        assert gmsh.model.get_entities(1) == [(1, i) for i in range(1, 9)]
+        assert gmsh.model.get_entities(0) == [(0, i) for i in range(1, 9)]
         assert get_bbox_rounded(2, 1) == [0.0, 0.0, 0.0, 10.0, 10.0, 0.0]
         assert get_mass_rounded(2, 1) == 36.0
         assert get_com_rounded(2, 1) == [5.0, 5.0, 0.0]
-        print(gmsh.model.is_inside(2, 1, (7.0, 7.0, 0.0)))
-        print(gmsh.model.is_inside(2, 1, (0.0, 0.0, 0.0)))
-        # assert gmsh.model.is_inside(2, 1, (7.0, 7.0, 0.0))
-        # assert not gmsh.model.is_inside(2, 1, (0.0, 0.0, 0.0))
+        assert gmsh.model.is_inside(2, 1, (0.5, 0.5, 0.0))
+        assert not gmsh.model.is_inside(2, 1, (5.0, 5.0, 0.0))
+
+    def test_dxfparser_multiple_holes(self):
+        gmsh.clear()
+        Polygon.reset()
+        parser = DXFParser(get_file("poly_holes.dxf"))
+        layer = parser.get_layer("poly_multiple_holes")
+        # assert len(layer.get_entities()) == 3
+        layer.render()
+        gmsh.model.occ.synchronize()
+        assert gmsh.model.get_entities(2) == [(2, 1)]
+        assert gmsh.model.get_entities(1) == [(1, i) for i in range(1, 21)]
+        assert gmsh.model.get_entities(0) == [(0, i) for i in range(1, 21)]
+        assert get_bbox_rounded(2, 1) == [0.0, 0.0, 0.0, 10.0, 10.0, 0.0]
+        assert get_mass_rounded(2, 1) == 99.0
+        assert get_com_rounded(2, 1) == [5.0, 5.0, 0.0]
+        assert gmsh.model.is_inside(2, 1, (0.5, 0.5, 0.0))
+        assert not gmsh.model.is_inside(2, 1, (4.25, 4.25, 0.0))
+        assert not gmsh.model.is_inside(2, 1, (5.75, 4.25, 0.0))
+        assert not gmsh.model.is_inside(2, 1, (4.25, 5.75, 0.0))
+        assert not gmsh.model.is_inside(2, 1, (5.75, 5.75, 0.0))
+        assert gmsh.model.is_inside(2, 1, (5.0, 5.0, 0.0))
+
+    def test_dxfparser_single_holed_poly_with_island(self):
+        gmsh.clear()
+        Polygon.reset()
+        parser = DXFParser(get_file("poly_holes.dxf"))
+        layer = parser.get_layer("island_in_hole")
+        # assert len(layer.get_entities()) == 3
+        layer.render()
+        gmsh.model.occ.synchronize()
+        assert gmsh.model.get_entities(2) == [(2, 1), (2, 2)]
+        assert gmsh.model.get_entities(1) == [(1, i) for i in range(1, 13)]
+        assert gmsh.model.get_entities(0) == [(0, i) for i in range(1, 13)]
+        assert get_bbox_rounded(2, 1) == [0.0, 0.0, 0.0, 10.0, 10.0, 0.0]
+        assert get_bbox_rounded(2, 2) == [2.0, 2.0, 0.0, 8.0, 8.0, 0.0]
+        assert get_mass_rounded(2, 1) == 36.0
+        assert get_mass_rounded(2, 2) == 36.0
+        assert get_com_rounded(2, 1) == [5.0, 5.0, 0.0]
+        assert gmsh.model.is_inside(2, 1, (0.5, 0.5, 0.0))
+        assert not gmsh.model.is_inside(2, 1, (1.5, 1.5, 0.0))
+        assert not gmsh.model.is_inside(2, 1, (5.0, 5.0, 0.0))
+        assert gmsh.model.is_inside(2, 2, (5.0, 5.0, 0.0))
+
+    def test_dxfparser_single_holed_poly_with_island_backwards(self):
+        gmsh.clear()
+        Polygon.reset()
+        parser = DXFParser(get_file("poly_holes.dxf"))
+        layer = parser.get_layer("island_in_hole_backwards")
+        # assert len(layer.get_entities()) == 3
+        layer.render()
+        gmsh.model.occ.synchronize()
+        assert gmsh.model.get_entities(2) == [(2, 1), (2, 2)]
+        assert gmsh.model.get_entities(1) == [(1, i) for i in range(1, 13)]
+        assert gmsh.model.get_entities(0) == [(0, i) for i in range(1, 13)]
+        assert get_bbox_rounded(2, 1) == [0.0, 0.0, 0.0, 10.0, 10.0, 0.0]
+        assert get_bbox_rounded(2, 2) == [2.0, 2.0, 0.0, 8.0, 8.0, 0.0]
+        assert get_mass_rounded(2, 1) == 36.0
+        assert get_mass_rounded(2, 2) == 36.0
+        assert get_com_rounded(2, 1) == [5.0, 5.0, 0.0]
+        assert gmsh.model.is_inside(2, 1, (0.5, 0.5, 0.0))
+        assert not gmsh.model.is_inside(2, 1, (1.5, 1.5, 0.0))
+        assert not gmsh.model.is_inside(2, 1, (5.0, 5.0, 0.0))
+        assert gmsh.model.is_inside(2, 2, (5.0, 5.0, 0.0))
+
+    def test_dxfparser_multiple_islands(self):
+        gmsh.clear()
+        Polygon.reset()
+        parser = DXFParser(get_file("poly_holes.dxf"))
+        layer = parser.get_layer("poly_multiple_islands")
+        # assert len(layer.get_entities()) == 3
+        layer.render()
+        gmsh.model.occ.synchronize()
+        assert gmsh.model.get_entities(2) == [
+            (2, 1),
+            (2, 2),
+            (2, 3),
+            (2, 4),
+            (2, 5),
+        ]
+        assert gmsh.model.get_entities(1) == [(1, i) for i in range(1, 25)]
+        assert gmsh.model.get_entities(0) == [(0, i) for i in range(1, 25)]
+        assert get_bbox_rounded(2, 1) == [0.0, 0.0, 0.0, 10.0, 10.0, 0.0]
+        assert get_mass_rounded(2, 1) == 36.0
+        assert get_com_rounded(2, 1) == [5.0, 5.0, 0.0]
+        assert gmsh.model.is_inside(2, 1, (0.5, 0.5, 0.0))
+        assert gmsh.model.is_inside(2, 2, (4.25, 4.25, 0.0))
+        assert gmsh.model.is_inside(2, 3, (5.75, 4.25, 0.0))
+        assert gmsh.model.is_inside(2, 4, (4.25, 5.75, 0.0))
+        assert gmsh.model.is_inside(2, 5, (5.75, 5.75, 0.0))
+        assert not gmsh.model.is_inside(2, 1, (5.0, 5.0, 0.0))
+
+    def test_dxfparser_single_holed_poly_with_hole_in_island(self):
+        gmsh.clear()
+        Polygon.reset()
+        parser = DXFParser(get_file("poly_holes.dxf"))
+        layer = parser.get_layer("island_with_hole_in_hole")
+        # assert len(layer.get_entities()) == 3
+        layer.render()
+        gmsh.model.occ.synchronize()
+        gmsh.model.mesh.generate(2)
+        assert gmsh.model.get_entities(2) == [(2, 1), (2, 2)]
+        assert gmsh.model.get_entities(1) == [(1, i) for i in range(1, 17)]
+        assert gmsh.model.get_entities(0) == [(0, i) for i in range(1, 17)]
+        assert get_bbox_rounded(2, 1) == [0.0, 0.0, 0.0, 10.0, 10.0, 0.0]
+        assert get_bbox_rounded(2, 2) == [2.0, 2.0, 0.0, 8.0, 8.0, 0.0]
+        assert get_mass_rounded(2, 1) == 36.0
+        assert get_mass_rounded(2, 2) == 20.0
+        assert get_com_rounded(2, 1) == [5.0, 5.0, 0.0]
+        assert gmsh.model.is_inside(2, 1, (0.5, 0.5, 0.0))
+        assert not gmsh.model.is_inside(2, 1, (1.5, 1.5, 0.0))
+        assert not gmsh.model.is_inside(2, 1, (5.0, 5.0, 0.0))
+        assert not gmsh.model.is_inside(2, 2, (5.0, 5.0, 0.0))
