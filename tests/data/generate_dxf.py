@@ -18,6 +18,7 @@ def main():
     make_dxf_poly_open_2parts()
     make_dxf_poly_open_3parts()
     make_dxf_poly_bulge_orientation()
+    make_dxf_poly_holes()
 
 
 def make_dxf_layers():
@@ -450,6 +451,71 @@ def make_dxf_poly_bulge_orientation():
     _make_layer(msp, (False, False, False), "iii")
 
     doc.saveas(data_dir / "poly_open_bulge_orientation.dxf")
+
+
+def make_dxf_poly_holes():
+    doc = ezdxf.new("R2010")
+    doc.layers.add(name="poly_hole")
+    doc.layers.add(name="poly_in_hole")
+    msp = doc.modelspace()
+
+    pts_first = [
+        (0, 0, 0),
+        (10, 0, 0),
+        (10, 10, 0),
+        (0, 10, 0),
+    ]
+    pts_second = [
+        (1, 1, 0),
+        (9, 1, 0),
+        (9, 9, 0),
+        (1, 9, 0),
+    ]
+    pts_third = [
+        (2, 2, 0),
+        (8, 2, 0),
+        (8, 8, 0),
+        (2, 8, 0),
+    ]
+
+    poly1 = msp.add_lwpolyline(
+        pts_first,
+        format="xyb",
+        dxfattribs={"layer": "poly_hole"},
+    )
+    poly1.close(True)
+    poly1.dxf.const_width = 0
+    poly2 = msp.add_lwpolyline(
+        pts_second,
+        format="xyb",
+        dxfattribs={"layer": "poly_hole"},
+    )
+    poly2.close(True)
+    poly2.dxf.const_width = 0
+
+    poly1 = msp.add_lwpolyline(
+        pts_first,
+        format="xyb",
+        dxfattribs={"layer": "poly_in_hole"},
+    )
+    poly1.close(True)
+    poly1.dxf.const_width = 0
+    poly2 = msp.add_lwpolyline(
+        pts_second,
+        format="xyb",
+        dxfattribs={"layer": "poly_in_hole"},
+    )
+    poly2.close(True)
+    poly2.dxf.const_width = 0
+    poly3 = msp.add_lwpolyline(
+        pts_third,
+        format="xyb",
+        dxfattribs={"layer": "poly_in_hole"},
+    )
+    poly3.close(True)
+    poly3.dxf.const_width = 0
+
+    doc.saveas(data_dir / "poly_holes.dxf")
 
 
 if __name__ == "__main__":

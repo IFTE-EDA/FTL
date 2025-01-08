@@ -8,6 +8,7 @@ import gmsh
 import numpy as np
 
 from FTL.parse.DXFParser import DXFParser
+from FTL.core.PolygonNester import PolygonNester, Polygon
 
 
 def get_file(file_name: str):
@@ -346,3 +347,22 @@ class Test_DXFParser_Render:
 
     def test_dxfparser_open_bulge_orientation_iii(self):
         self._execute_3parts_test_bulge("iii")
+
+    def test_dxfparser_single_hole(self):
+        gmsh.clear()
+        Polygon.reset()
+        parser = DXFParser(get_file("poly_holes.dxf"))
+        layer = parser.get_layer("poly_hole")
+        # assert len(layer.get_entities()) == 3
+        layer.render()
+        gmsh.model.occ.synchronize()
+        assert gmsh.model.get_entities(2) == [(2, 1)]
+        assert len(gmsh.model.get_entities(1)) == 8
+        assert len(gmsh.model.get_entities(0)) == 8
+        assert get_bbox_rounded(2, 1) == [0.0, 0.0, 0.0, 10.0, 10.0, 0.0]
+        assert get_mass_rounded(2, 1) == 36.0
+        assert get_com_rounded(2, 1) == [5.0, 5.0, 0.0]
+        print(gmsh.model.is_inside(2, 1, (7.0, 7.0, 0.0)))
+        print(gmsh.model.is_inside(2, 1, (0.0, 0.0, 0.0)))
+        # assert gmsh.model.is_inside(2, 1, (7.0, 7.0, 0.0))
+        # assert not gmsh.model.is_inside(2, 1, (0.0, 0.0, 0.0))
