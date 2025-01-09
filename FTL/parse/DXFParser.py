@@ -89,6 +89,10 @@ class DXFLayer(Loggable):
             if hasattr(e, "has_width"):
                 print("Has width: ", e.has_width)
             self.render_entity(e, geom)
+        print(f"There are {len(self.open_polys)} open polys remaining.")
+        for op in self.open_polys:
+            print(f"{op[2][0]} -> {op[2][-1]}")
+        print("Rendering nested polygons...")
         for poly in self.pn.polygons:
             # geom.add_polygon(poly.points, bulge=True)
             # TODO: just for testing. correct later.

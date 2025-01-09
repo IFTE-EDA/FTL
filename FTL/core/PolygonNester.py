@@ -27,7 +27,7 @@ class PolygonNester:
         for poly in self.polygons:
             print(f"Checking {poly}")
             if not poly.overlaps(polygon):
-                print(f"\tPolygon {polygon} does not overlap {poly}")
+                print(f"\t{polygon} does not overlap {poly}")
                 continue
             if polygon.contains(poly):
                 print(
@@ -42,7 +42,7 @@ class PolygonNester:
                 poly.children = np.array([], dtype=Polygon)
             if poly.contains(polygon):
                 print(
-                    f"\tPolygon {polygon} is contained in {poly} - checking children..."
+                    f"\t{polygon} is contained in {poly} - checking children..."
                 )
                 if len(poly.children) > 0 and poly.children_contained_in(
                     polygon
@@ -58,7 +58,7 @@ class PolygonNester:
                 for child in poly.children:
                     if child.contains(polygon):
                         print(
-                            f"\t\tPolygon {polygon} is contained in child {child} - creating new polygon"
+                            f"\t\t{polygon} is contained in child {child} - creating new polygon"
                         )
                         exit_loop = True
                         break  # self.polygons = np.append(self.polygons, polygon)
@@ -67,7 +67,7 @@ class PolygonNester:
                     exit_loop = False
                     continue
                 print(
-                    f"\tPolygon {polygon} is not contained in a child element - adding as new child"
+                    f"\t{polygon} is not contained in a child element - adding as new child"
                 )
                 poly.children = np.append(poly.children, polygon)
                 polygon.parent = poly
