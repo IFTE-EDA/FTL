@@ -92,6 +92,15 @@ class DXFLayer(Loggable):
         print(f"There are {len(self.open_polys)} open polys remaining.")
         for op in self.open_polys:
             print(f"{op[2][0]} -> {op[2][-1]}")
+        print("============================================")
+        print("Rendering remaining open polies as lines...")
+        for poly in self.open_polys:
+            print(poly)
+            geom.add_line(
+                [[p[0], p[1], p[2]] for p in poly[2]],
+                1,
+                bulge=True,
+            )
         print("Rendering nested polygons...")
         for poly in self.pn.polygons:
             # geom.add_polygon(poly.points, bulge=True)
@@ -123,11 +132,13 @@ class DXFLayer(Loggable):
             return self.render_circle(e, geom)
         elif e.dxftype() == "MTEXT":
             return self.render_mtext(e, geom)
+        elif e.dxftype() == "DIMENSION":
+            return GMSHGeom2D()
         else:
             raise Exception(f"Cannot render entity: {e.dxftype()}")
 
     def render_line(self, e, geom):
-        print(f"Line: {e.dxf.start} -> {e.dxf.end}, width={e.dxf.thickness}")
+        print(f"LINE: {e.dxf.start} -> {e.dxf.end}, width={e.dxf.thickness}")
         # print(e.dxf.__dict__)
         # TODO: midpoint should not be needed to be added here...
         p_mid = (
@@ -190,7 +201,7 @@ class DXFLayer(Loggable):
                 and round(reshaped[0][1], 6) == round(reshaped[-1][1], 6)
             ) or e.is_closed:
                 return"""
-            print(f"Rendering LWPolyline: {e.dxf.handle}")
+            print(f"> Rendering LWPolyline: #{e.dxf.handle}")
             print(f"Const width: {e.dxf.const_width}")
             print(f"Closed: {e.is_closed}")
             print(f"Has width: {e.has_width}")
@@ -393,8 +404,6 @@ class DXFLayer(Loggable):
                         print("Nothing found. Storing poly for later...")
                         self.open_polys.append([pts[0], pts[-1], pts])
                     # print("---------------\nOpen polys: \n", self.open_polys)
-                    # print(f"{len(self.open_polys)} open polys remaining.")
-
                 # gmsh.model.occ.synchronize()
                 # gmsh.fltk.run()
             # gmsh.model.occ.synchronize()

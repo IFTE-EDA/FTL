@@ -499,7 +499,8 @@ class GMSHGeom2D(AbstractGeom2D):
             # print(f"Adding line from {pt1} to {pt2} with bulge {pt1[4]}")
             p1 = gmsh.model.occ.add_point(pt1[0], pt1[1], 0)
             p2 = gmsh.model.occ.add_point(pt2[0], pt2[1], 0)
-            if pt1[4] == 0:
+            # This was "pt1[4]" before. Why? Does this make a difference?
+            if pt1[-1] == 0:
                 # render straight line
                 return gmsh.model.occ.add_line(p1, p2)
             else:
@@ -545,7 +546,7 @@ class GMSHGeom2D(AbstractGeom2D):
             pt12 = tuple(
                 (
                     (in_outline[0][i] + in_outline[1][i]) / 2
-                    for i in range(0, 5)
+                    for i in range(0, len(in_outline[0]))
                 )
             )
             in_outline = [in_outline[0], pt12, in_outline[1]]
