@@ -511,10 +511,10 @@ class GMSHGeom2D(AbstractGeom2D):
                 length = math.sqrt(delta_x**2 + delta_y**2)
 
                 pt_m = ((pt1[0] + pt2[0]) / 2, (pt1[1] + pt2[1]) / 2)
-                c_u = pt1[4] * length / 2
-                if pt1[4] > 0:
+                c_u = pt1[2] * length / 2
+                if pt1[2] > 0:
                     c_u = -c_u
-                if pt1[4] > 0:
+                if pt1[2] > 0:
                     pt_u = (
                         pt_m[0] + c_u * np.cos(alpha + np.pi / 2),
                         pt_m[1] + c_u * np.sin(alpha + np.pi / 2),
@@ -538,9 +538,10 @@ class GMSHGeom2D(AbstractGeom2D):
                 return segment
 
         in_outline = coords
-        if orient:
-            in_outline.reverse()
-            print("Re-oriented.")
+        # TODO: Can this safely be removed?
+        """if orient:
+            #in_outline.reverse()
+            print("Re-oriented.")"""
         if len(in_outline) == 2:
             # TODO: test if it really works
             pt12 = tuple(
