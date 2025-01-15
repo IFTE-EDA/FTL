@@ -91,16 +91,11 @@ class DXFLayer(Loggable):
             self.render_entity(e, geom)
         print(f"There are {len(self.open_polys)} open polys remaining.")
         for op in self.open_polys:
-            print(f"{op[2][0]} -> {op[2][-1]}")
+            print(f"{op[2][0]} -> {op[2][-1]} ({len(op[2])} points)")
         print("============================================")
         print("Rendering remaining open polies as lines...")
         for poly in self.open_polys:
-            print(poly)
-            geom.add_line(
-                [[p[0], p[1], p[2]] for p in poly[2]],
-                1,
-                bulge=True,
-            )
+            geom.add_line([[p[0], p[1], p[2]] for p in poly[2]], 1, bulge=True)
         print("Rendering nested polygons...")
         for poly in self.pn.polygons:
             # geom.add_polygon(poly.points, bulge=True)
@@ -205,6 +200,7 @@ class DXFLayer(Loggable):
             print(f"Const width: {e.dxf.const_width}")
             print(f"Closed: {e.is_closed}")
             print(f"Has width: {e.has_width}")
+            print(f"Length: {len(coords)}")
             # if (len(reshaped) < 3):
             #    print("Not enough points to render polyline")
             #    return
