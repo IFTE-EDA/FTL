@@ -23,9 +23,9 @@ class PolygonNester:
         exit_loop = False
         poly_recalcs = np.array([], dtype=Polygon)
         self.dump()
-        print(f">>>Sorting {polygon}<<<")
+        print(f">>>Sorting {polygon}<<< {polygon.bounding_box}")
         for poly in self.polygons:
-            print(f"Checking {poly}")
+            print(f"Checking {poly}  {poly.bounding_box}")
             if not poly.overlaps(polygon):
                 print(f"\t{polygon} does not overlap {poly}")
                 continue
@@ -73,6 +73,7 @@ class PolygonNester:
                 polygon.parent = poly
                 recalc()
                 return
+        print("Adding as new poly...")
         self.polygons = np.append(self.polygons, polygon)
         recalc()
 
@@ -111,7 +112,9 @@ class Polygon:
     def bounding_box(self):
         if len(self.points) == 0:
             return None
-        return (np.min(self.points, axis=0), np.max(self.points, axis=0))
+        return (np.min(self.points, axis=0)[0:2], np.max(self.points, axis=0))[
+            0:2
+        ]
 
     @property
     def children_bounding_box(self):
