@@ -93,6 +93,9 @@ class DXFLayer(Loggable):
         for op in self.open_polys:
             print(f"{op[2][0]} -> {op[2][-1]} ({len(op[2])} points)")
         print("============================================")
+        print("POLYGON DUMP")
+        self.pn.dump()
+        print("============================================")
         print("Rendering remaining open polies as lines...")
         for poly in self.open_polys:
             geom.add_line([[p[0], p[1], p[2]] for p in poly[2]], 1, bulge=True)
