@@ -150,7 +150,7 @@ class DXFLayer(Loggable):
                 p_mid,
                 (e.dxf.end[0], e.dxf.end[1]),
             ],
-            e.dxf.thickness if e.dxf.thickness != 0 else 1,
+            e.dxf.lineweight * 10,  # if e.dxf.lineweight != 0 else 1,
         )
 
     def render_arc(self, e, geom):

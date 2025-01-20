@@ -33,13 +33,19 @@ def make_dxf_lines():
     doc = ezdxf.new("R2010")
     doc.layers.add(name="width_2")
     msp = doc.modelspace()
-    msp.add_line((0, 0), (10, 0)).dxf.thickness = 1
-    msp.add_line((10, 0), (10, 10)).dxf.thickness = 1
-    msp.add_line((10, 10), (0, 10)).dxf.thickness = 1
-    msp.add_line((0, 10), (0, 0)).dxf.thickness = 1
+    line1 = msp.add_line((0, 0), (10000, 0))
+    line1.dxf.lineweight = 100
+    line2 = msp.add_line((10000, 0), (10000, 10000))
+    line2.dxf.lineweight = 100
+    line3 = msp.add_line((10000, 10000), (0, 10000))
+    line3.dxf.lineweight = 100
+    line4 = msp.add_line((0, 10000), (0, 0))
+    line4.dxf.lineweight = 100
 
     msp.add_line(
-        (0, 0), (10, 10), dxfattribs={"layer": "width_2", "thickness": 2}
+        (0, 0),
+        (10000, 10000),
+        dxfattribs={"layer": "width_2", "lineweight": 200},
     )
     doc.saveas(data_dir / "lines.dxf")
 

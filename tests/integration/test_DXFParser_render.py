@@ -57,15 +57,15 @@ class Test_DXFParser_Render:
         render = layer.render(fuse=False)
         assert len(render) == 4
         assert render.dimtags() == [(2, 1), (2, 2), (2, 3), (2, 4)]
-        assert get_bbox_rounded(2, 1) == [-0.5, -0.5, 0.0, 10.5, 0.5, 0]
-        assert get_bbox_rounded(2, 2) == [9.5, -0.5, 0.0, 10.5, 10.5, 0]
-        assert get_bbox_rounded(2, 3) == [-0.5, 9.5, 0.0, 10.5, 10.5, 0]
-        assert get_bbox_rounded(2, 4) == [-0.5, -0.5, 0.0, 0.5, 10.5, 0]
+        assert get_bbox_rounded(2, 1) == [-500, -500, 0.0, 10500, 500, 0]
+        assert get_bbox_rounded(2, 2) == [9500, -500, 0.0, 10500, 10500, 0]
+        assert get_bbox_rounded(2, 3) == [-500, 9500, 0.0, 10500, 10500, 0]
+        assert get_bbox_rounded(2, 4) == [-500, -500, 0.0, 500, 10500, 0]
         layer = parser.get_layer("width_2")
         render = layer.render(fuse=False)
         assert len(render) == 1
         assert render.dimtags() == [(2, 5)]
-        assert get_bbox_rounded(2, 5) == [-1, -1, 0.0, 11, 11, 0]
+        assert get_bbox_rounded(2, 5) == [-1000, -1000, 0.0, 11000, 11000, 0]
 
     """
     def test_dxfparser_render_lines_fused(self):

@@ -66,9 +66,19 @@ class Test_DXFParser:
             assert e.dxftype() == "LINE"
             print("Start: ", e.dxf.start)
             print("End: ", e.dxf.end)
-            assert e.dxf.start in [(0, 0), (10, 0), (10, 10), (0, 10)]
-            assert e.dxf.end in [(0, 0), (10, 0), (10, 10), (0, 10)]
-            assert e.dxf.thickness == 1
+            assert e.dxf.start in [
+                (0, 0),
+                (10000, 0),
+                (10000, 10000),
+                (0, 10000),
+            ]
+            assert e.dxf.end in [
+                (0, 0),
+                (10000, 0),
+                (10000, 10000),
+                (0, 10000),
+            ]
+            assert e.dxf.lineweight == 100
         layer2 = parser.get_layer("width_2")
         assert len(layer2.get_entities()) == 1
         for e in layer2.get_entities():
@@ -77,8 +87,8 @@ class Test_DXFParser:
             print("Start: ", e.dxf.start)
             print("End: ", e.dxf.end)
             assert e.dxf.start == (0, 0)
-            assert e.dxf.end == (10, 10)
-            assert e.dxf.thickness == 2
+            assert e.dxf.end == (10000, 10000)
+            assert e.dxf.lineweight == 200
 
     def test_dxfparser_arc(self):
         parser = DXFParser(get_file("arc.dxf"))
