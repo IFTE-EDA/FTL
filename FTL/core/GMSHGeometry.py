@@ -1125,6 +1125,7 @@ class GMSHPhysicalGroup:
 
     @staticmethod
     def commit_all():
+        gmsh.model.occ.synchronize()
         for group in GMSHPhysicalGroup._groups:
             group.commit()
 
@@ -1139,6 +1140,7 @@ class GMSHPhysicalGroup:
             group.delete()
 
     def uncommit(self):
+        gmsh.model.occ.synchronize()
         gmsh.model.remove_physical_groups([self.dimtag])
         self.dimtag = None
         self.tag = None
