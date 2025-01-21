@@ -605,11 +605,12 @@ class GMSHGeom2D(AbstractGeom2D):
             ]
         # lines.append(gmsh.model.occ.add_line(pts[len(pts) - 1], pts[0]))
         curve_loop = gmsh.model.occ.add_wire(lines)
-        offset_curve = gmsh.model.occ.offset_curve(curve_loop, width / 2)
-        surface_loop = gmsh.model.occ.add_curve_loop(
-            [c[1] for c in offset_curve]
-        )
-        surface = gmsh.model.occ.add_plane_surface([surface_loop])
+        if width > 0:
+            offset_curve = gmsh.model.occ.offset_curve(curve_loop, width / 2)
+            surface_loop = gmsh.model.occ.add_curve_loop(
+                [c[1] for c in offset_curve]
+            )
+            surface = gmsh.model.occ.add_plane_surface([surface_loop])
         gmsh.model.occ.synchronize()
         self.geoms.append(surface)
         return self
