@@ -161,6 +161,28 @@ class GMSHGeom2D(AbstractGeom2D):
     def __len__(self):
         return len(self.geoms)
 
+    def _renumber_from_map(self, entity_map: dict[int, int]):
+        def _flatten(lst):
+            for el in lst:
+                if isinstance(el, (list, tuple)):
+                    yield from _flatten(el)
+                else:
+                    yield el
+
+        print(f"Map: {entity_map}")
+        for i in range(len(self.geoms)):
+            geom = self.geoms[i]
+            if geom in entity_map:
+                print(f"Mapping part {self.geoms[i]} to {entity_map[geom]}")
+                self.geoms[i] = entity_map[geom]
+        self.geoms = list(_flatten(self.geoms))
+        """if self.surface is not None:
+            for i in range(len(self.geoms)):
+                geom = self.surface[i]
+                if geom in entity_map:
+                    self.surface[i] = entity_map[geom]
+                    print(f"Mapping surface {self.surface[i]} to {entity_map[geom]}")"""
+
     def is_empty(self) -> bool:
         if len(self.geoms) == 0:
             return True
@@ -727,6 +749,10 @@ class GMSHGeom2D(AbstractGeom2D):
         ret.geom2d = deepcopy(self)
         return ret
 
+    def create_group_surface(self, name: str):
+        group = GMSHPhysicalGroup(geoms=[self], name=name, dim=2)
+        return group
+
     def set_visible(self, visible: bool = True):
         gmsh.model.setVisibility(self.dimtags(), visible)
 
@@ -818,7 +844,7 @@ class GMSHGeom3D(AbstractGeom3D):
         if len(geoms) > 1:
             # objects = [(2, geoms[0])]
             # TODO: Maybe switch over to a 1/n instead of n/n version?
-            objects = dimtags([g for geom in geoms for g in geom.geoms], 3)
+            objects = [(geom.dim, g) for geom in geoms for g in geom.geoms]
             # tools = [(2, tag) for tag in geoms[1:]]
             # print("Objects: ", objects)
             ret = gmsh.model.occ.fragment(objects, objects)
@@ -863,8 +889,8 @@ class GMSHGeom3D(AbstractGeom3D):
         for i in range(len(self.geoms)):
             geom = self.geoms[i]
             if geom in entity_map:
-                self.geoms[i] = entity_map[geom]
                 print(f"Mapping part {self.geoms[i]} to {entity_map[geom]}")
+                self.geoms[i] = entity_map[geom]
         self.geoms = list(_flatten(self.geoms))
         """if self.surface is not None:
             for i in range(len(self.geoms)):
