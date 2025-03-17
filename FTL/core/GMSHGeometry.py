@@ -701,8 +701,10 @@ class GMSHGeom2D(AbstractGeom2D):
         )
         return self
 
-    def translate(self, x: float = 0, y: float = 0) -> GMSHGeom2D:
-        gmsh.model.occ.translate(self.dimtags(), x, y, 0)
+    def translate(
+        self, x: float = 0, y: float = 0, z: float = 0
+    ) -> GMSHGeom2D:
+        gmsh.model.occ.translate(self.dimtags(), x, y, z)
         return self
 
     def rotate(
