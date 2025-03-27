@@ -286,8 +286,22 @@ class DirBendNew(Transformation):
         cosa = cos(self.z_angle)
         sina = sin(self.z_angle)
 
-        mat_rot1[0] = cosa, -sina, 0, 0
+        """mat_rot1[0] = cosa, -sina, 0, 0
         mat_rot1[1] = sina, cosa, 0, 0
+        mat_rot1[2] = 0, 0, 1, 0
+        mat_rot1[3] = 0, 0, 0, 1"""
+        mat_rot1[0] = (
+            cosa,
+            -sina,
+            0,
+            self.pivot[1] * sina - self.pivot[0] * cosa,
+        )
+        mat_rot1[1] = (
+            sina,
+            cosa,
+            0,
+            -self.pivot[0] * sina - self.pivot[1] * cosa,
+        )
         mat_rot1[2] = 0, 0, 1, 0
         mat_rot1[3] = 0, 0, 0, 1
 
@@ -299,8 +313,12 @@ class DirBendNew(Transformation):
         cosa = cos(-self.z_angle)
         sina = sin(-self.z_angle)
 
-        mat_rot2[0] = cosa, -sina, 0, 0
+        """mat_rot2[0] = cosa, -sina, 0, 0
         mat_rot2[1] = sina, cosa, 0, 0
+        mat_rot2[2] = 0, 0, 1, 0
+        mat_rot2[3] = 0, 0, 0, 1"""
+        mat_rot2[0] = cosa, -sina, 0, self.pivot[0]
+        mat_rot2[1] = sina, cosa, 0, self.pivot[1]
         mat_rot2[2] = 0, 0, 1, 0
         mat_rot2[3] = 0, 0, 0, 1
 
@@ -310,13 +328,13 @@ class DirBendNew(Transformation):
         # mat[1] = 0, 1, 0, 0
         # mat[2] = 0, 0, 1, 0
         # mat[3] = 0, 0, 0, 1
-        # mat = mat_trans1
-        mat = np.dot(mat_rot1, mat_trans1)
+        mat = mat_rot1
+        # mat = np.dot(mat_rot1, mat_trans1)
         # mat = np.dot(mat_trans2, mat)
         mat = np.dot(mat_bend, mat)
         # mat = np.dot(mat_trans1, mat)
         mat = np.dot(mat_rot2, mat)
-        mat = np.dot(mat_trans2, mat)
+        # mat = np.dot(mat_trans2, mat)
 
         """mat[0] = sina*sina, sina*cosa,  -sin(a)*cosa,       cosa*(self.pivot[0] + r * sin(a))
         mat[1] = sina*cosa, cosa*cosa,  -sin(a)*(-sina),    (-sina)*(self.pivot[0] + r * sin(a))
