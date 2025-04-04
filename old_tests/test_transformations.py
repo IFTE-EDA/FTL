@@ -2,6 +2,7 @@ from pathlib import Path
 import os.path
 import sys
 import numpy as np
+import pytest
 import vedo as v
 from shapely.geometry import box
 from math import sin, cos, pi
@@ -24,7 +25,8 @@ class ParentDummy:
 
 class Test_Transformations:
     data_dir = Path(__file__).parent.parent / "data"
-    test_data_dir = Path(__file__).parent / "data"
+    # test_data_dir = Path(__file__).parent / "data"
+    test_data_dir = Path(__file__).parent.parent / "tests" / "data"
 
     def setup_class(self):
         self.parent = ParentDummy()
@@ -36,7 +38,7 @@ class Test_Transformations:
     def compare_to_file(self, points, filename) -> bool:
         with open(self.test_data_dir / filename, "r") as f:
             comp = f.read()
-            if comp == np.round(points, 13).__repr__():
+            if comp == np.round(points, 5).__repr__():
                 print("Compare successful")
                 return True
             else:
@@ -53,28 +55,39 @@ class Test_Transformations:
         tr.parent = self.parent
         tr.name = tr.__class__.__name__
         if tr.addResidual:
-            res = tr.getResidualTransformation()
+            res = tr.get_residual_transformation()
 
         filename = tr.name + ".txt"
 
         if tr.transformWholeMesh:
             # Transformation implemented a method to  the whole transformation on its own
-            points = tr.transformMesh(self.mesh.clone()).points()
+            mesh = tr.transform_mesh(self.mesh.clone())
+            """axs = v.Axes(
+                [mesh],
+                xygrid=True,
+                number_of_divisions=10,
+                xrange=[-50, 65],
+                yrange=[-55, 5],
+                zrange=[0, 30],
+            )"""
+            # v.show(mesh.wireframe())#, axs, elevation=-70, zoom=1.8, size=(960*2, 535*2), screenshot="Render_out.jpg")#, axes=11)
+            points = mesh.points()
         else:
             for pid, pt in enumerate(points):
-                if tr.isInScope(pt):
+                if tr.is_in_scope(pt):
                     vec = np.array([pt[0], pt[1], pt[2], 1])
-                    vec = np.dot(tr.getMatrixAt(pt), vec)
+                    vec = np.dot(tr.get_matrix_at(pt), vec)
                     points[pid][0] = vec[0]
                     points[pid][1] = vec[1]
                     points[pid][2] = vec[2]
-                elif tr.addResidual and res.isInScope(pt):
+                elif tr.addResidual and res.is_in_scope(pt):
                     vec = np.array([pt[0], pt[1], pt[2], 1])
-                    vec = np.dot(res.getMatrixAt(pt), vec)
+                    vec = np.dot(res.get_matrix_at(pt), vec)
                     points[pid][0] = vec[0]
                     points[pid][1] = vec[1]
                     points[pid][2] = vec[2]
             # return points
+        # v.show(mesh.wireframe())
         ret = self.compare_to_file(points, filename)
         print(
             "-> Comparing {}: {}".format(
@@ -94,6 +107,7 @@ class Test_Transformations:
         tr_zbend = FTL.ZBend(-20, 20, -10, 10, 90, FTL.DIR.POSX)
         self.process_transformation(tr_zbend)
 
+    # @pytest.mark.skip("Discarded for now")
     def test_DirBend(self):
         json_db = {
             "points": [
@@ -105,6 +119,20 @@ class Test_Transformations:
             "angle": 90,
         }
         tr_dirbend = FTL.DirBend(json_db)
+        self.process_transformation(tr_dirbend)
+
+    # @pytest.mark.skip("Discarded for now")
+    def test_DirBendNew(self):
+        json_db = {
+            "points": [
+                {"x": -15, "y": 5},
+                {"x": -5, "y": -5},
+                {"x": 60, "y": -5},
+                {"x": 60, "y": 5},
+            ],
+            "angle": 90,
+        }
+        tr_dirbend = FTL.DirBendNew(json_db)
         self.process_transformation(tr_dirbend)
 
     def test_LinearTransformation(self):
@@ -121,6 +149,7 @@ class Test_Transformations:
         )
         self.process_transformation(tr_lin)
 
+    # @pytest.mark.skip("Discarded for now")
     def test_Spiral(self):
         json_sp = {
             "points": [

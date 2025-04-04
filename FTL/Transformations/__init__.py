@@ -1,5 +1,6 @@
 from .Transformation import Transformation
 from .DirBend import DirBend
+from .DirBendNew import DirBendNew
 from .LinearTransformation import LinearTransformation
 from .Spiral import Spiral
 from .ZBend import *

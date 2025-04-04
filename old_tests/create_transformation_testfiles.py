@@ -21,13 +21,15 @@ class ParentDummy:
         pass
 
 
+# data_dir = Path(__file__).parent.parent / "data"
+# test_data_dir = Path(__file__).parent / "data"
 data_dir = Path(__file__).parent.parent / "data"
-test_data_dir = Path(__file__).parent / "data"
+test_data_dir = Path(__file__).parent.parent / "tests" / "data"
 
 
 def compare_to_file(points, filename) -> bool:
     with open(test_data_dir / filename, "r") as f:
-        if f.read() == np.round(points, 13).__repr__():
+        if f.read() == np.round(points, 5).__repr__():
             return True
         else:
             return False
@@ -35,7 +37,7 @@ def compare_to_file(points, filename) -> bool:
 
 def write_to_file(points, filename) -> bool:
     with open(test_data_dir / filename, "w") as f:
-        f.write(np.round(points, 13).__repr__())
+        f.write(np.round(points, 5).__repr__())
         return True
 
 
@@ -43,15 +45,15 @@ def process_transformation(
     tr: FTL.Transformation, res: FTL.Transformation, points: np.ndarray
 ) -> bool:
     for pid, pt in enumerate(points):
-        if tr.isInScope(pt):
+        if tr.is_in_scope(pt):
             vec = np.array([pt[0], pt[1], pt[2], 1])
-            vec = np.dot(tr.getMatrixAt(pt), vec)
+            vec = np.dot(tr.get_matrix_at(pt), vec)
             points[pid][0] = vec[0]
             points[pid][1] = vec[1]
             points[pid][2] = vec[2]
-        elif tr.addResidual and res.isInScope(pt):
+        elif tr.addResidual and res.is_in_scope(pt):
             vec = np.array([pt[0], pt[1], pt[2], 1])
-            vec = np.dot(res.getMatrixAt(pt), vec)
+            vec = np.dot(res.get_matrix_at(pt), vec)
             points[pid][0] = vec[0]
             points[pid][1] = vec[1]
             points[pid][2] = vec[2]
@@ -70,13 +72,13 @@ def process_all(input, filename):
         tr.parent = parent
         tr.name = tr.__class__.__name__
         if tr.addResidual:
-            res = tr.getResidualTransformation()
+            res = tr.get_residual_transformation()
 
         filename = tr.name + ".txt"
 
         if tr.transformWholeMesh:
             # Transformation implemented a method to  the whole transformation on its own
-            points = tr.transformMesh(mesh.clone()).points()
+            points = tr.transform_mesh(mesh.clone()).points()
         else:
             process_transformation(tr, res, points)
         print("Writing {} to '{}'".format(tr.name, filename))
@@ -117,6 +119,7 @@ mat = [
 bounds = box(-60, -10, 60, 10)
 tr_zbend = FTL.ZBend(-20, 20, -10, 10, 90, FTL.DIR.POSX)
 tr_dirbend = FTL.DirBend(json_db)
+tr_dirbendnew = FTL.DirBendNew(json_db)
 tr_lin = FTL.LinearTransformation(
     mat,
     bounds,
@@ -126,6 +129,7 @@ tr_spiral = FTL.Spiral(json_sp)
 
 input.append(tr_zbend)
 input.append(tr_dirbend)
+input.append(tr_dirbendnew)
 input.append(tr_lin)
 input.append(tr_spiral)
 

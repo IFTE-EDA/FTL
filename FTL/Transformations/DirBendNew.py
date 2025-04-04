@@ -70,13 +70,13 @@ class DirBendNew(Transformation):
             n = ay - m * ax + (by - ay)
             y0 = m * minx + n
             y1 = m * maxx + n
-            x0 = (miny - n) / m
-            x1 = (maxy - n) / m
-            logging.debug(
+            # x0 = (miny - n) / m
+            # x1 = (maxy - n) / m
+            """print(
                 "m: {}; n: {}; P1({}, {}), 2({}, {})".format(
                     m, n, x0, y0, x1, y1
                 )
-            )
+            )"""
             logging.debug(
                 "Angle is {}".format(np.arctan(m) / (2 * np.pi) * 360)
             )
@@ -217,11 +217,11 @@ class DirBendNew(Transformation):
             self.parent.update_progress(pid, len(points))
             vec = np.array([pt[0], pt[1], pt[2], 1])
             out = self.get_matrix_at(vec)
-            print(f"vec: {out}")
+            # print(f"vec: {out}")
             points[pid][0] = out[0]
             points[pid][1] = out[1]
             points[pid][2] = out[2]
-            print("next point...")
+            # print("next point...")
         mesh.points(points)
         # mesh.rotate_z(-self.z_angle, rad=True, around=self.pivot)
         return mesh
@@ -247,9 +247,9 @@ class DirBendNew(Transformation):
             return np.dot(mat[0:3], pt)
             # return mat
 
-        print(f"pivot is {self.pivot}")
-        print(f"z_angle is {self.z_angle}")
-        print(f"angle is {self.angle}")
+        # print(f"pivot is {self.pivot}")
+        # print(f"z_angle is {self.z_angle}")
+        # print(f"angle is {self.angle}")
 
         # mat[0] = 0, 0, -sin(a), self.pivot[0] + r * sin(a)
         # mat[1] = 0, 1, 0, 0
