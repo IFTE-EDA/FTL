@@ -229,12 +229,13 @@ class DirBend(Transformation):
         if x > (self.pivot[0] + self.length):
             return self.newTr
 
-        mat = np.zeros((3, 4), dtype=float)
+        mat = np.zeros((4, 4), dtype=float)
 
         if self.boundaries_rot.disjoint(sh.Point(x, y)):
             mat[0] = 1, 0, 0, 0
             mat[1] = 0, 1, 0, 0
             mat[2] = 0, 0, 1, 0
+            mat[3] = 0, 0, 0, 1
 
             return mat
 
@@ -245,5 +246,6 @@ class DirBend(Transformation):
         mat[0] = 0, 0, -sin(a), self.pivot[0] + r * sin(a)
         mat[1] = 0, 1, 0, 0
         mat[2] = 0, 0, cos(a), (1 - cos(a)) * r
+        mat[3] = 0, 0, 0, 1
 
         return mat
