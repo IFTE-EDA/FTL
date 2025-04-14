@@ -39,6 +39,11 @@ class YAMLParser:
             self.dxf_file = data["File"]
             self.dxfparser = DXFParser(self.dxf_file)
 
+        self.vars = {}
+        self.vars["LAYER"] = {}
+        for item in data["Layers"]:
+            self.vars["LAYER"][item["Name"]] = {}
+
     def make_geometry(self, data=None):
         """
         Creates geometry objects based on the parsed YAML data.
@@ -57,6 +62,34 @@ class YAMLParser:
             self.make_layer(item)
         GMSHPhysicalGroup.commit_all()
 
+    def _get_var(self, var: str):
+        """
+        Solves the variables in the YAML file.
+
+        :param var: Variable to be solved.
+        :return: Value of the solved variable.
+        """
+        if not var.startswith("$"):
+            return var
+        if var.startswith("$LAYER"):
+            var_exploded = var.split("/")
+            layer_name = var_exploded[1]
+            var_name = var_exploded[2]
+            return self.vars["LAYER"][layer_name][var_name]
+
+    def _set_var(self, var: str, value):
+        """
+        Sets the value of a variable in the YAML file.
+
+        :param var: Variable to be set.
+        :param value: Value to be assigned to the variable.
+        """
+        if var.startswith("$LAYER"):
+            var_exploded = var.split("/")
+            layer_name = var_exploded[1]
+            var_name = var_exploded[2]
+            self.vars["LAYER"][layer_name][var_name] = value
+
     def make_layer(self, layer):
         """
         Creates a layer object based on the parsed YAML data.
@@ -67,6 +100,32 @@ class YAMLParser:
         # TODO: Check for layer existence?
         dxf_layer = self.dxfparser.get_layer(layer["Layer"])
         geom = dxf_layer.render()
+        layer_vars = self.vars["LAYER"][layer["Name"]]
+        if "Extrude" in layer:
+            print(self.vars)
+            layer_vars = {
+                "BOT": self._get_var(layer["Extrude"][0]),
+                "TOP": self._get_var(layer["Extrude"][1]),
+                "THICKNESS": float(self._get_var(layer["Extrude"][1]))
+                - float(self._get_var(layer["Extrude"][0])),
+            }
+            pass
+        elif "Thickness" in layer:
+            layer_vars = {
+                "BOT": self.zpos,
+                "TOP": self.zpos + layer["Thickness"],
+                "THICKNESS": layer["Thickness"],
+            }
+        else:
+            raise ValueError(
+                "Layer {} must have either Extrude or Thickness defined.".format(
+                    layer["Name"]
+                )
+            )
+        geom_3d = geom.extrude(
+            float(layer_vars["THICKNESS"]),
+            zpos=float(layer_vars["BOT"]),
+        )
         if "Subtract" in layer:
             if not isinstance(layer["Subtract"], list):
                 print(
@@ -103,8 +162,11 @@ class YAMLParser:
                 )
                 for sub in layer["Add"]:
                     geom.add(self.dxfparser.get_layer(layer["Add"]).render())
+
+        self.vars["LAYER"][layer["Name"]] = layer_vars
         # gmsh.model.occ.synchronize()
         # gmsh.fltk.run()
-        geom_3d = geom.extrude(layer["Thickness"], zpos=self.zpos)
-        self.zpos += layer["Thickness"]
+        # geom_3d = geom.extrude(layer["Thickness"], zpos=self.zpos)
+        # TODO: Check if this is okay
+        self.zpos += layer_vars["THICKNESS"]
         geom_3d.create_group_solid(layer["Name"])
