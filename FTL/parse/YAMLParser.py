@@ -107,5 +107,4 @@ class YAMLParser:
         # gmsh.fltk.run()
         geom_3d = geom.extrude(layer["Thickness"], zpos=self.zpos)
         self.zpos += layer["Thickness"]
-        geom_3d.plot(layer["Name"])
         geom_3d.create_group_solid(layer["Name"])
