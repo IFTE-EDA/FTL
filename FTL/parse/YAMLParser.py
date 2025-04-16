@@ -2,11 +2,13 @@ import os
 from pathlib import Path
 
 import sys
+from typing import Sequence
 
 sys.path.append(r"../..")
 from FTL.parse.DXFParser import DXFParser
 from FTL.core.GMSHGeometry import GMSHPhysicalGroup, GMSHGeom3D, GMSHGeom2D
 import gmsh
+import ezdxf
 
 
 class YAMLParser:
@@ -60,6 +62,7 @@ class YAMLParser:
             data = self.yaml_data
         for item in data["Layers"]:
             self.make_layer(item)
+        gmsh.model.occ.synchronize()
         GMSHPhysicalGroup.commit_all()
 
     def _get_var(self, var: str):
@@ -89,6 +92,25 @@ class YAMLParser:
             layer_name = var_exploded[1]
             var_name = var_exploded[2]
             self.vars["LAYER"][layer_name][var_name] = value
+
+    def _get_label_at(self, layer_name: str, area: Sequence[float]):
+        """
+        Gets the label at a specific position in the geometry.
+
+        :param label: Label to be retrieved.
+        :param area: Area in which to search for the label.
+        :return: Label string at the specified position.
+        """
+        layer = self.dxfparser.get_layer(layer_name)
+        for label in layer.get_entities():
+            if not isinstance(label, ezdxf.entities.Text):
+                continue
+            xmin, xmax, ymin, ymax = area
+            if (
+                xmin <= label.dxf.insert.x <= xmax
+                and ymin <= label.dxf.insert.y <= ymax
+            ):
+                return label.plain_text()
 
     def make_layer(self, layer):
         """
@@ -122,10 +144,6 @@ class YAMLParser:
                     layer["Name"]
                 )
             )
-        geom_3d = geom.extrude(
-            float(layer_vars["THICKNESS"]),
-            zpos=float(layer_vars["BOT"]),
-        )
         if "Subtract" in layer:
             if not isinstance(layer["Subtract"], list):
                 print(
@@ -162,6 +180,24 @@ class YAMLParser:
                 )
                 for sub in layer["Add"]:
                     geom.add(self.dxfparser.get_layer(layer["Add"]).render())
+
+        geom_3d = geom.extrude(
+            float(layer_vars["THICKNESS"]),
+            zpos=float(layer_vars["BOT"]),
+        )
+
+        if "Pads" in layer:
+            print(
+                f'Adding pads from DXF layer {layer["Pads"][0]} with labels {layer["Pads"][1]} to layer {layer["Name"]}'
+            )
+            pads_geom = self.dxfparser.get_layer(layer["Pads"][0]).render()
+            pads_geom3d = pads_geom.extrude(
+                float(layer_vars["THICKNESS"]),
+                zpos=float(layer_vars["BOT"]),
+            )
+            self._get_label_at(layer["Pads"][1], [0, 1, 2, 3])
+            print("Label retrieved")
+            geom_3d.add_object(pads_geom3d)
 
         self.vars["LAYER"][layer["Name"]] = layer_vars
         # gmsh.model.occ.synchronize()
