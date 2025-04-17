@@ -666,6 +666,19 @@ class GMSHGeom2D(AbstractGeom2D):
     def dimtags(self) -> list[tuple[int, int]]:
         return dimtags(self.geoms)
 
+    @property
+    def bounding_box(self):
+        bboxes = np.array(
+            [gmsh.model.occ.getBoundingBox(self.dim, g) for g in self.geoms]
+        )
+        bounding_box = [
+            np.min(bboxes[:, 0]),
+            np.min(bboxes[:, 1]),
+            np.max(bboxes[:, 3]),
+            np.max(bboxes[:, 4]),
+        ]
+        return bounding_box
+
     # TODO: check before fusing if only 1 element contained?
     def _fuse_all(self) -> int:
         if not len(self.geoms):
@@ -940,6 +953,21 @@ class GMSHGeom3D(AbstractGeom3D):
     @geom2d.setter
     def geom2d(self, geom2d: GMSHGeom2D):
         self._geom2d = geom2d
+
+    @property
+    def bounding_box(self):
+        bboxes = np.array(
+            [gmsh.model.occ.getBoundingBox(self.dim, g) for g in self.geoms]
+        )
+        bounding_box = [
+            np.min(bboxes[:, 0]),
+            np.min(bboxes[:, 1]),
+            np.min(bboxes[:, 2]),
+            np.max(bboxes[:, 3]),
+            np.max(bboxes[:, 4]),
+            np.max(bboxes[:, 5]),
+        ]
+        return bounding_box
 
     def translate(
         self, x: float = 0, y: float = 0, z: float = 0

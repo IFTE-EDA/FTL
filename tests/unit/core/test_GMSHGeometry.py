@@ -24,6 +24,10 @@ import pytest
 PRECISION_DIGITS = 2
 
 
+def round_sequence(seq):
+    return [round(i, PRECISION_DIGITS) for i in seq]
+
+
 def get_bbox_rounded(dim, tag):
     return [
         round(i, PRECISION_DIGITS)
@@ -551,6 +555,15 @@ class Test_GMSHGeom2D:
         assert parts[2].name == "Unnamed_3"
         assert parts[3].name == "Unnamed_4"
 
+    def test_gmshgeom2d_bounding_box(self):
+        gmsh.clear()
+        geom1 = GMSHGeom2D.get_rectangle((0, 0), (1, 1))
+        geom1.add_rectangle((2, 2), (3, 3))
+        assert round_sequence(geom1.bounding_box) == [0, 0, 3, 3]
+        geom2 = GMSHGeom2D.get_rectangle((2, 3), (4, 4))
+        # extrusion.add_object(geom2.extrude(0.1))
+        assert round_sequence(geom2.bounding_box) == [2, 3, 4, 4]
+
     def test_gmshgeom2d_fuse_all_overlapping(self):
         gmsh.clear()
         geom = GMSHGeom2D()
@@ -923,6 +936,23 @@ class Test_GMSHGeom3D:
         geom2 = GMSHGeom2D.get_rectangle((2, 3), (4, 4))
         extrusion.add_object(geom2.extrude(0.1))
         assert len(extrusion) == 3
+
+    def test_gmshgeom3d_bounding_box(self):
+        gmsh.clear()
+        geom1 = GMSHGeom2D.get_rectangle((0, 0), (1, 1))
+        geom1.add_rectangle((2, 2), (3, 3))
+        extrusion = geom1.extrude(0.1)
+        assert round_sequence(extrusion.bounding_box) == [0, 0, 0, 3, 3, 0.1]
+        geom2 = GMSHGeom2D.get_rectangle((2, 3), (4, 4))
+        # extrusion.add_object(geom2.extrude(0.1))
+        assert round_sequence(geom2.extrude(0.1).bounding_box) == [
+            2,
+            3,
+            0,
+            4,
+            4,
+            0.1,
+        ]
 
     def test_gmshgeom3d_dimtags(self):
         gmsh.clear()
