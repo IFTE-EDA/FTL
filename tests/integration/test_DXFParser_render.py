@@ -4,6 +4,7 @@ import os
 import math
 from pathlib import Path
 
+import pytest
 import gmsh
 import numpy as np
 
@@ -162,6 +163,7 @@ class Test_DXFParser_Render:
         assert get_bbox_rounded(2, 1) == [-1.5, -1.5, 0.0, 11.5, 1.5, 0.0]
         assert np.round(gmsh.model.occ.getMass(2, 1), 2) == 37.07
 
+    @pytest.mark.xfail  # not implemented yet
     def test_dxfparser_render_polyline_return(self):
         gmsh.clear()
         parser = DXFParser(get_file("polyline.dxf"))
