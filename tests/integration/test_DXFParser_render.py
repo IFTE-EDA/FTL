@@ -18,6 +18,10 @@ def get_file(file_name: str):
 PRECISION_DIGITS = 2
 
 
+def round_sequence(seq):
+    return [round(i, PRECISION_DIGITS) for i in seq]
+
+
 def get_bbox_rounded(dim, tag):
     return [
         round(i, PRECISION_DIGITS)
@@ -77,6 +81,19 @@ class Test_DXFParser_Render:
         assert get_bbox_rounded(2, 1) == [-0.5, -0.5, 0.0, 10.5, 10.5, 0]
     """
 
+    def test_dxfparser_line_return(self):
+        parser = DXFParser(get_file("lines.dxf"))
+        print("Layers: ", parser.get_layer_names())
+        layer = parser.get_layer("0")
+        line = layer.render_line(layer.get_entities()[0])
+        print(round_sequence(line.bounding_box))
+        assert round_sequence(line.bounding_box) == [
+            -500.0,
+            -500.0,
+            10500.0,
+            500.0,
+        ]
+
     def test_dxfparser_render_arc(self):
         gmsh.clear()
         parser = DXFParser(get_file("arc.dxf"))
@@ -111,6 +128,13 @@ class Test_DXFParser_Render:
         assert get_bbox_rounded(2, 5) == [-0.5, -0.5, 0.0, 10.5, 10.5, 0.0]
         assert np.round(gmsh.model.occ.getMass(2, 5), 2) == 24.35
 
+    def test_dxfparser_arc_return(self):
+        parser = DXFParser(get_file("arc.dxf"))
+        layer = parser.get_layer("0")
+        arc = layer.render_arc(layer.get_entities()[0])
+        print(round_sequence(arc.bounding_box))
+        assert round_sequence(arc.bounding_box) == [-0.5, -0.5, 5.5, 5.5]
+
     def test_dxfparser_render_circle(self):
         gmsh.clear()
         parser = DXFParser(get_file("circle.dxf"))
@@ -121,6 +145,13 @@ class Test_DXFParser_Render:
         assert get_bbox_rounded(2, 1) == [-5.0, -5.0, 0.0, 5.0, 5.0, 0.0]
         assert np.round(gmsh.model.occ.getMass(2, 1), 2) == 78.54
 
+    def test_dxfparser_circle_return(self):
+        parser = DXFParser(get_file("circle.dxf"))
+        layer = parser.get_layer("0")
+        circle = layer.render_circle(layer.get_entities()[0])
+        print(round_sequence(circle.bounding_box))
+        assert round_sequence(circle.bounding_box) == [-5.0, -5.0, 5.0, 5.0]
+
     def test_dxfparser_render_polyline(self):
         gmsh.clear()
         parser = DXFParser(get_file("polyline.dxf"))
@@ -130,6 +161,14 @@ class Test_DXFParser_Render:
         assert render.dimtags() == [(2, 1)]
         assert get_bbox_rounded(2, 1) == [-1.5, -1.5, 0.0, 11.5, 1.5, 0.0]
         assert np.round(gmsh.model.occ.getMass(2, 1), 2) == 37.07
+
+    def test_dxfparser_render_polyline_return(self):
+        gmsh.clear()
+        parser = DXFParser(get_file("polyline.dxf"))
+        layer = parser.get_layer("straight_cw3")
+        render = layer.render_lw_polyline(layer.get_entities()[0])
+        assert render.dimtags() == [(2, 1)]
+        assert get_bbox_rounded(2, 1) == [-1.5, -1.5, 0.0, 11.5, 1.5, 0.0]
 
     def test_dxfparser_render_poly(self):
         gmsh.clear()

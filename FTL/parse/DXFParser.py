@@ -135,7 +135,7 @@ class DXFLayer(Loggable):
         else:
             raise Exception(f"Cannot render entity: {e.dxftype()}")
 
-    def render_line(self, e, geom):
+    def render_line(self, e, geom=None):
         print(f"LINE: {e.dxf.start} -> {e.dxf.end}, width={e.dxf.thickness}")
         # print(e.dxf.__dict__)
         # TODO: midpoint should not be needed to be added here...
@@ -144,7 +144,11 @@ class DXFLayer(Loggable):
             (e.dxf.start[1] + e.dxf.end[1]) / 2,
         )
         # TODO: handle "0" width, needs to be added to open poly array
-        geom.add_line(
+        if geom is None:
+            make_line = GMSHGeom2D.get_line
+        else:
+            make_line = geom.add_line
+        return make_line(
             [
                 (e.dxf.start[0], e.dxf.start[1]),
                 p_mid,
@@ -153,7 +157,7 @@ class DXFLayer(Loggable):
             e.dxf.lineweight * 10,  # if e.dxf.lineweight != 0 else 1,
         )
 
-    def render_arc(self, e, geom):
+    def render_arc(self, e, geom=None):
         print(
             f"Arc: Center {e.dxf.center}, radius {e.dxf.radius}, from {e.dxf.start_angle} to {e.dxf.end_angle}"
         )
@@ -178,7 +182,11 @@ class DXFLayer(Loggable):
             e.dxf.center[0] + e.dxf.radius * np.cos(np.radians(end_angle)),
             e.dxf.center[1] + e.dxf.radius * np.sin(np.radians(end_angle)),
         )
-        geom.add_arc(p_start, p_mid, p_end, 1)
+        if geom is None:
+            make_arc = GMSHGeom2D.get_arc
+        else:
+            make_arc = geom.add_arc
+        return make_arc(p_start, p_mid, p_end, 1)
 
     def print_duplicates(self, points):
         seen = set()
@@ -189,7 +197,8 @@ class DXFLayer(Loggable):
         ]
         print(f"Duplicate points: {len(points) - len(uniq)}")
 
-    def render_lw_polyline(self, e, geom):
+    # TODO: This needs to be improved so that individual polygons can be generated
+    def render_lw_polyline(self, e, geom=None):
         # for print(e.get_points())
         with e.points("xyb") as points:
             reshaped = np.reshape(points, (-1, 3))
@@ -408,9 +417,13 @@ class DXFLayer(Loggable):
             # gmsh.model.occ.synchronize()
             # gmsh.fltk.run()
 
-    def render_circle(self, e, geom):
+    def render_circle(self, e, geom=None):
         print(f"Circle: {e.dxf.center}, {e.dxf.radius}")
-        geom.add_circle((e.dxf.center[0], e.dxf.center[1]), e.dxf.radius)
+        if geom is None:
+            make_circle = GMSHGeom2D.get_circle
+        else:
+            make_circle = geom.add_circle
+        return make_circle((e.dxf.center[0], e.dxf.center[1]), e.dxf.radius)
 
     def render_mtext(self, e, geom):
         pass  # print(f"MText: {e.dxf.text}")
