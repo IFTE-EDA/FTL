@@ -701,6 +701,16 @@ class GMSHGeom2D(AbstractGeom2D):
         )
         return self
 
+    def add(self, geom: GMSHGeom2D) -> GMSHGeom2D:
+        if not len(geom.geoms):
+            return self
+        if not len(self.geoms):
+            self.geoms = geom.geoms
+            return self
+        self.geoms.extend(geom.geoms)
+        gmsh.model.occ.fuse(self.dimtags(), geom.dimtags())
+        return self
+
     def translate(
         self, x: float = 0, y: float = 0, z: float = 0
     ) -> GMSHGeom2D:
@@ -942,6 +952,7 @@ class GMSHGeom3D(AbstractGeom3D):
         surface_entities = []
         for dim, tag in self.dimtags():
             x1, y1, z1, x2, y2, z2 = gmsh.model.occ.getBoundingBox(dim, tag)
+            gmsh.model.occ.synchronize()
             se = gmsh.model.getEntitiesInBoundingBox(
                 x1,
                 y1,
