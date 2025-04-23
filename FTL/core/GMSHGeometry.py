@@ -952,6 +952,7 @@ class GMSHGeom3D(AbstractGeom3D):
         surface_entities = []
         for dim, tag in self.dimtags():
             x1, y1, z1, x2, y2, z2 = gmsh.model.occ.getBoundingBox(dim, tag)
+            gmsh.model.occ.synchronize()
             se = gmsh.model.getEntitiesInBoundingBox(
                 x1,
                 y1,
