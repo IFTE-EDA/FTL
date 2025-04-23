@@ -11,3 +11,6 @@ parser.make_geometry()
 
 gmsh.model.occ.synchronize()
 gmsh.fltk.run()
+# run meshing
+# gmsh.model.mesh.generate(3)
+# gmsh.fltk.run()

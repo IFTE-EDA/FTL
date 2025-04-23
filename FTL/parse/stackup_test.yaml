@@ -1,0 +1,35 @@
+File: "CPWG.dxf"
+
+Settings:
+ Fill_Vias: False
+ Z: 0
+
+Stackup:
+- Copper_Bot
+- Substrate
+- Copper_Top
+
+Layers:
+- Name: "Copper_Bot"
+  Thickness: 0.3
+  Layer: "bot_metal"
+  #Add: "vias"
+- Name: "Substrate"
+  Thickness: 100
+  Layer: "sub"
+  Subtract: "vias"
+- Name: "Copper_Top"
+  Thickness: 8
+  Layer: "top_metal"
+  #Add: "vias"
+  Pads: ["pads", "labels"]
+- Name: "Vias"
+  Extrude: 
+  - "$LAYERS/Copper_Bot/TOP"
+  - "$LAYERS/Copper_Top/BOT"
+  #Thickness: 100
+  Layer: vias
+
+Ports:
+- Name: P1
+  

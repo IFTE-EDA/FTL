@@ -4,6 +4,8 @@ from pathlib import Path
 import sys
 from typing import Sequence
 
+import numpy as np
+
 sys.path.append(r"../..")
 from FTL.parse.DXFParser import DXFParser
 from FTL.core.GMSHGeometry import GMSHPhysicalGroup, GMSHGeom3D, GMSHGeom2D
@@ -105,7 +107,7 @@ class YAMLParser:
         for label in layer.get_entities():
             if not isinstance(label, ezdxf.entities.Text):
                 continue
-            xmin, xmax, ymin, ymax = area
+            xmin, ymin, xmax, ymax = area
             if (
                 xmin <= label.dxf.insert.x <= xmax
                 and ymin <= label.dxf.insert.y <= ymax
@@ -194,10 +196,31 @@ class YAMLParser:
             pads_geom3d = pads_geom.extrude(
                 float(layer_vars["THICKNESS"]),
                 zpos=float(layer_vars["BOT"]),
-            )
-            self._get_label_at(layer["Pads"][1], [0, 1, 2, 3])
-            print("Label retrieved")
-            geom_3d.add_object(pads_geom3d)
+            ).ripup()
+            for geom in pads_geom3d:
+                g_id = geom.geoms[0]
+                print("GID: ", g_id)
+                print("Bounding Box: ", gmsh.model.occ.getBoundingBox(3, g_id))
+                bbox = gmsh.model.occ.getBoundingBox(3, g_id)
+                bbox = (
+                    np.round(bbox[0], 2),
+                    np.round(bbox[1], 2),
+                    np.round(bbox[3], 2),
+                    np.round(bbox[4], 2),
+                )
+                print("Bounding Box rounded: ", bbox)
+                label = self._get_label_at(layer["Pads"][1], bbox)
+                if label is not None:
+                    print("Label retrieved: ", label)
+                    geom.name = "PADS." + label
+                    geom.create_group_surface(geom.name)
+                else:
+                    print(
+                        "Label not found for pad layer {} in metal layer {}.".format(
+                            layer["Pads"], layer["Name"]
+                        )
+                    )
+            # geom_3d.add_object(pads_geom3d)
 
         self.vars["LAYER"][layer["Name"]] = layer_vars
         # gmsh.model.occ.synchronize()
